@@ -91,20 +91,9 @@ sistema-de-inscripciones/
 │       ├── System/               Audit, AccessLog, Config
 │       ├── Ubigeo/               Country, Department, Provincie, Distrit
 │       └── Users/                Users, Rols, UserRol, Teachers, Observations
-│
-├── BiometricBridge/              ← Proyecto independiente (.slnx propio, x86)
-│   ├── BiometricBridge.csproj    ← .NET 10, win-x86, single-file, self-contained
-│   ├── Program.cs / ZkService.cs ← Minimal API + ZKFinger Reader SDK
-│   ├── sdk/                      ← libzkfpcsharp.dll y dependencias x86
-│   ├── biometric_bridge_setup.iss← Inno Setup para instalador local
-│   └── README.md                 ← Documentación específica del puente biométrico
-│
-├── AUDITORIA_SEGURIDAD.md        ← Auditoría detallada (reporte histórico)
-├── BiometricBridge_Setup.exe     ← Instalador firmado del puente local
 └── README.md                     ← (este archivo)
 ```
 
-> **Nota:** `BiometricBridge` es una solución aparte. Se compila como ejecutable `x86` que se instala en cada máquina cliente para exponer el lector ZKTeco vía `http://localhost:5000`. El sitio web lo consume desde el navegador.
 
 ---
 
@@ -144,13 +133,6 @@ sistema-de-inscripciones/
 | Compat | Bootstrap 5.3, jQuery 3.7, jQuery-Validate (vía LibMan/CDNJS) | — | Validación cliente legacy |
 | Mapas | Leaflet + GeoJSON local (`wwwroot/data/geo/`) | — | Choropleth en dashboard |
 
-### Bridge biométrico (proyecto aparte, x86)
-
-| Componente | Versión | Rol |
-|---|---|---|
-| .NET 10 Minimal API | net10.0 / win-x86 | Endpoint local en `http://localhost:5000` |
-| `libzkfpcsharp.dll` (ZKFinger SDK) | x86 | Captura de huella ZK9500 |
-| Inno Setup | — | Genera `BiometricBridge_Setup.exe` |
 
 ---
 
@@ -225,18 +207,6 @@ El proyecto es un **monolito en capas (layered monolith)** con separación pragm
 - ✅ Migrations EF Core versionadas, `OnModelCreating` con `DeleteBehavior.Restrict` por defecto (evita cascadas accidentales).
 - ✅ Auditoría granular vía interceptor — rara en proyectos a este nivel.
 
-**Lo que duele a futuro**
-
-- ⚠️ **Acoplamiento a `AppDbContext`**: ~30 controladores lo inyectan directo y construyen consultas inline. Cambios en el modelo requieren tocar muchos lugares; es difícil aislar lógica para tests.
-- ⚠️ **Controladores enormes**: `HomeController` (~1.100 líneas) mezcla inscripción, lookups públicos, modalidades, resultados, etc. Es un *god controller*. Conviene partirlo por feature.
-- ⚠️ **Mezcla MVC + Razor Pages**: hay vistas en `Pages/` pero ninguna usa el handler model (`OnGet`/`OnPost`). En la práctica, los `Pages/` funcionan como Views de MVC. Mejor unificar a uno de los dos paradigmas.
-- ⚠️ **Sin DTOs**: se serializan entidades EF directamente a JSON (con `Include` profundos), lo que filtra estructura interna del dominio y carga datos innecesarios.
-- ⚠️ **`AppDbContext` con ~55 `DbSet`**: el plan-cache de EF crece mucho y arrancar el contexto es más caro.
-- ⚠️ **Sin proyecto de tests**. La lógica crítica (hashing, validación de archivos, inscripción) no está cubierta.
-- ⚠️ **Constantes mágicas** repartidas en literales en lugar de `AppConstants`/enums.
-- ⚠️ **Errores tipográficos en entidades** (`Beneficiarie`, `Provincie`, `Distrit`, `Vacancies` plural para una sola fila).
-
-**Resumen honesto:** la arquitectura **funciona y es mantenible hoy**. Si el equipo crece o se planea reuso del dominio, el siguiente paso natural es introducir una **capa de aplicación con casos de uso (services + DTOs)** y *opcionalmente* repositorios o `IQueryable` projections, sin migrar a microservicios.
 
 ---
 
@@ -250,13 +220,7 @@ El proyecto es un **monolito en capas (layered monolith)** con separación pragm
 | **Background jobs** | 1 worker dentro del proceso web | Suficiente para el job actual (1 cron diario) | Para cargas mayores conviene servidor Hangfire dedicado o cola externa |
 | **Almacenamiento de archivos** | Disco local (`wwwroot/uploads` o `BaseStoragePath`) | Limitado por disco del servidor | Para escalar horizontal, mover a S3/Azure Blob; `FileService` ya está abstraído y permite el cambio sin tocar callers |
 | **Generación de PDF** | Puppeteer descarga Chromium en runtime | Cada instancia tiene su Chromium; CPU-bound | Mover a job/queue si el volumen crece (cientos de PDFs/min) |
-| **Biometría** | Cliente-instalable por máquina | N/A (es local al cliente) | OK; el bridge se distribuye con Inno Setup |
 
-### Proyección realista
-
-- **Para 1 universidad (UNAMAD):** la arquitectura aguanta ciclos de inscripción de 5.000–20.000 postulantes con buena tunear de PostgreSQL e índices. **Verde.**
-- **Para 5+ universidades multi-tenant:** requiere reestructuración (separación de schemas o bases por tenant, caché distribuido, almacenamiento de archivos externo, SignalR con Redis backplane). **Ámbar.**
-- **Para SaaS público de alta escala:** no apropiado en su forma actual. Habría que extraer dominios (inscripción, exámenes, biometría, documental) y replantear la persistencia y la mensajería. **Rojo.**
 
 ### Acciones de bajo costo y alto impacto
 
@@ -432,17 +396,10 @@ dotnet build
 - Hangfire dashboard: `/hangfire` solo es accesible a roles `SuperAdmin` / `Soporte` autenticados.
 - Cron: el job `deactivate-expired-modalities` corre a las 00:05 hora Perú. Configurable vía `Jobs:TimeZoneId`.
 
-### 5.6. BiometricBridge (cliente)
-
-```powershell
-cd BiometricBridge
-dotnet publish -c Release -r win-x86 --self-contained true -p:PublishSingleFile=true
-# Compilar instalador con Inno Setup → biometric_bridge_setup.iss
-```
 
 Distribuir `BiometricBridge_Setup.exe` a las máquinas con lector ZK9500. Detalles en `BiometricBridge/README.md`.
 
-### 5.7. Higiene del repositorio
+### 5.6. Higiene del repositorio
 
 Mantener fuera del repo (ya cubiertos en `.gitignore`):
 - `bin/`, `obj/`, `node_modules/`
@@ -453,7 +410,7 @@ Mantener fuera del repo (ya cubiertos en `.gitignore`):
 
 Limpiar cuando aparezcan: `Index copy.cshtml`, `TestComponents.cshtml`, `fix_comments.ps1`, `*.csproj.Backup.tmp`.
 
-### 5.8. Observabilidad y operación
+### 5.7. Observabilidad y operación
 
 - Logs: `ILogger` por defecto a consola. Para producción, considerar Serilog + sink a archivo o Seq.
 - Health checks recomendados: `AddHealthChecks().AddDbContextCheck<AppDbContext>().AddHangfire()`. Endpoint sugerido `/health`.
@@ -536,33 +493,10 @@ Si `ResponseFieldsJson` se deja vacío, la respuesta JSON se aplana automáticam
 
 El `AuditInterceptor` redacta automáticamente `AuthValue` (junto con `Password`, `Token`, `Secret`, `ApiKey`, etc.) antes de serializar a la tabla `Audits`.
 
-### Pendientes
-
-Pendientes documentados (ver `AUDITORIA_SEGURIDAD.md` para detalle histórico):
-
-- UI obligatoria de cambio de contraseña al primer login (requiere columna `MustChangePassword` y migración).
-- Sustituir `FingerprintService` mock por integración real con BiometricBridge cuando se libere a producción de biometría.
-- Política de contraseñas (longitud, complejidad, rotación) y bloqueo automático tras N fallos.
 
 ---
 
-## 7. Roadmap pendiente (resumen ejecutivo)
-
-| Prioridad | Acción | Impacto |
-|---|---|---|---|
-| P1 | ✅ Migración de controladores a servicios — completada (ver §8) | Acoplamiento reducido |
-| P1 | UI de cambio de contraseña obligatorio en primer login | Cierra cuenta `admin` por defecto |
-| P1 | Paginación en listados administrativos | Rendimiento en tablas grandes |
-| P2 | Proyecto `ADMISION.Tests` con cobertura mínima | Sostenibilidad y refactor seguro |
-| P2 | `AsNoTracking` + índices SQL en consultas frecuentes | Escalabilidad inmediata |
-| P2 | DTOs/Projections para endpoints JSON | Evita filtrar estructura interna |
-| P3 | Renombrar entidades mal escritas (`Beneficiarie`→`Beneficiary`, `Provincie`→`Province`, `Distrit`→`District`, `Vacancies`→`Vacancy`) | Legibilidad |
-| P3 | Health checks + Serilog + Swagger | Observabilidad y soporte |
-| P3 | Caché en memoria de tablas casi-inmutables (Ubigeo, Configs) | Reduce queries repetidos |
-
----
-
-## 8. Patrón de servicios (centralización de consultas)
+## 7. Patrón de servicios (centralización de consultas)
 
 Migración en curso para sacar las consultas de los controladores hacia servicios reutilizables. El patrón:
 
@@ -683,11 +617,11 @@ La mayoría de controladores han sido migrados a servicios. Estado actual:
 
 ---
 
-## 9. Design System
+## 8. Design System
 
 El UI corre sobre **Tailwind 3.4** con paleta extendida y un set de utilidades CSS y partials Razor reutilizables. Todo el diseño es **sin gradientes** y soporta `html.dark` para futura activación.
 
-### 9.1 Paleta y tipografía (`ADMISION/tailwind.config.js`)
+### 8.1 Paleta y tipografía (`ADMISION/tailwind.config.js`)
 
 | Token         | Uso                              | Valores                                              |
 |---------------|----------------------------------|------------------------------------------------------|
@@ -700,7 +634,7 @@ El UI corre sobre **Tailwind 3.4** con paleta extendida y un set de utilidades C
 
 Regla: **no `linear-gradient`/`radial-gradient`/`bg-gradient-*`** en backgrounds, botones, texto ni stripes. Usa colores sólidos + opacidad cuando necesites variantes (`bg-primary-500/15`, etc.).
 
-### 9.2 Utilidades CSS (`ADMISION/wwwroot/css/site.css`)
+### 8.2 Utilidades CSS (`ADMISION/wwwroot/css/site.css`)
 
 Clases de presentación disponibles en cualquier vista:
 
@@ -720,7 +654,7 @@ Clases de presentación disponibles en cualquier vista:
 | **Combobox** | `.combobox` + `.combobox__dropdown` / `__list` / `__option`                              |
 | Misc         | `[data-tip]` (tooltip), `kbd`, `.dragdots`, `.cmd-row` + `.cmd-ico`, `.tl-progress`      |
 
-### 9.3 Partials Razor reutilizables (`ADMISION/Pages/Shared/_*.cshtml`)
+### 8.3 Partials Razor reutilizables (`ADMISION/Pages/Shared/_*.cshtml`)
 
 | Partial                | Descripción                                                                                  |
 |------------------------|----------------------------------------------------------------------------------------------|
@@ -831,13 +765,13 @@ Clases de presentación disponibles en cualquier vista:
 }' />
 ```
 
-### 9.4 Animación `.fade-up`
+### 8.4 Animación `.fade-up`
 
 Los layouts (`_PublicLayout`, `_AdminLayout`) montan un `IntersectionObserver` al cargar la página. Cualquier elemento con la clase `.fade-up` se anima al entrar al viewport. En admin, el observer usa `#main-content` como `root` porque el scroll vive ahí (no en el `window`).
 
 Para re-animar después de inyectar HTML (AJAX, swap de vistas): `window.ADM.refreshFadeUp()`.
 
-### 9.5 Librerías externas usadas en UI
+### 8.5 Librerías externas usadas en UI
 
 Ya están cargadas en los layouts (vía CDN/NuGet local) — no se requieren instalaciones adicionales:
 
@@ -854,5 +788,3 @@ Ya están cargadas en los layouts (vía CDN/NuGet local) — no se requieren ins
 
 ---
 
-*Documentación específica de cada proyecto:* [`ADMISION/README.md`](ADMISION/README.md) · [`ADMISION.ENTITIES/README.md`](ADMISION.ENTITIES/README.md) · [`BiometricBridge/README.md`](BiometricBridge/README.md)
-*Auditoría de seguridad detallada:* [`AUDITORIA_SEGURIDAD.md`](AUDITORIA_SEGURIDAD.md)*
