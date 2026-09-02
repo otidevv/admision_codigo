@@ -1,0 +1,139 @@
+@model ADMISION.Models.ViewModels.Public.VacanciesPublicViewModel
+@{
+    ViewData["Title"] = "Vacantes";
+    ViewData["ResolVacancies"] = Model.ResolVacancies;
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+    var totalDataColumns  = Model.Columns.Count;
+    var totalTableColumns = totalDataColumns + 2; // Carrera + N + Total
+}
+
+<section class="relative py-12 sm:py-16 md:py-20 overflow-hidden">
+
+
+    <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 relative">
+
+        <!-- Page hero -->
+        <div class="text-center mb-10 sm:mb-12 fade-up max-w-2xl mx-auto">
+            <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                <i class="ti ti-table text-[10px]"></i>
+                Cuadro Oficial @(Model.SelectedTerm?.Year ?? DateTime.Now.Year.ToString())
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+                Cuadro de <span class="font-serif font-normal text-primary-600">vacantes</span>
+            </h1>
+            <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+                Distribución de vacantes por carrera y modalidad del proceso de admisión
+                @(Model.SelectedTerm != null ? Model.SelectedTerm.Name : ""). @(Model.ResolVacancies)
+            </p>
+        </div>
+
+        @if (Model.SelectedTerm == null)
+        {
+            <div class="bg-white ring-soft rounded-md py-16 sm:py-20 text-center">
+                <i class="ti ti-alert-circle text-3xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 font-medium text-sm">No hay un período académico activo en este momento.</p>
+            </div>
+        }
+        else if (!Model.Faculties.Any() || !Model.Columns.Any())
+        {
+            <div class="bg-white ring-soft rounded-md py-16 sm:py-20 text-center">
+                <i class="ti ti-history text-3xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 font-medium text-sm">
+                    El cuadro de vacantes del proceso
+                    <span class="font-bold text-primary-600">@Model.SelectedTerm.Name</span>
+                    aún no está disponible.
+                </p>
+            </div>
+        }
+        else
+        {
+            @if (Model.TotalVacancies > 0)
+            {
+                <div class="flex justify-center mb-6 fade-up">
+                    <div class="bg-primary rounded-md px-5 py-2.5 text-center shadow-glow">
+                        <p class="text-[10px] text-primary-200 font-semibold uppercase tracking-[0.18em]">Total general @Model.SelectedTerm?.Name</p>
+                        <p class="text-2xl sm:text-3xl font-bold text-white leading-tight tabular-nums">@Model.TotalVacancies</p>
+                    </div>
+                </div>
+            }
+
+            <div class="bg-white ring-soft rounded-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse" style="min-width:900px">
+                        <thead>
+                            <tr class="bg-primary text-white">
+                                <th rowspan="2" class="px-3 py-2.5 font-bold text-left border-r border-primary-600 leading-snug align-middle uppercase tracking-[0.12em]" style="min-width:240px">
+                                    Carrera Profesional
+                                </th>
+                                @foreach (var group in Model.ModalityGroups)
+                                {
+                                    if (group.HasSubHeaders)
+                                    {
+                                        <th colspan="@group.ColumnCount" class="px-3 py-2 font-bold text-center border-r border-b border-primary-600 leading-snug uppercase tracking-[0.12em]">
+                                            @group.ModalityName
+                                        </th>
+                                    }
+                                    else
+                                    {
+                                        <th rowspan="2" class="px-3 py-2.5 font-bold text-center border-r border-primary-600 leading-snug align-middle uppercase tracking-[0.12em]" style="min-width:90px">
+                                            @group.ModalityName
+                                        </th>
+                                    }
+                                }
+                                <th rowspan="2" class="px-3 py-2.5 font-bold text-center leading-snug align-middle uppercase tracking-[0.12em]" style="width:70px">Total</th>
+                            </tr>
+                            <tr class="bg-primary text-white">
+                                @foreach (var group in Model.ModalityGroups)
+                                {
+                                    if (!group.HasSubHeaders) { continue; }
+                                    var subCols = Model.Columns.Where(c => c.ModalityId == group.ModalityId && c.TypeModalityId != null).ToList();
+                                    for (var i = 0; i < subCols.Count; i++)
+                                    {
+                                        var isLast = i == subCols.Count - 1;
+                                        var borderCls = isLast ? "border-r border-primary-600" : "border-r border-primary-500/60";
+                                        <th class="px-2 py-1.5 font-semibold text-center @borderCls leading-snug text-[11px]" style="min-width:80px">
+                                            @subCols[i].Header
+                                        </th>
+                                    }
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var facultad in Model.Faculties)
+                            {
+                                <tr class="bg-primary-50 border-y border-primary-100">
+                                    <td colspan="@totalTableColumns" class="px-3 py-2.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-7 h-7 rounded-md bg-white ring-1 ring-primary-200 flex items-center justify-center shrink-0">
+                                                <i class="@facultad.Icon text-primary-600 text-[11px]"></i>
+                                            </span>
+                                            <span class="text-[11px] font-bold text-primary-700 uppercase tracking-[0.15em]">@facultad.Name</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @for (int i = 0; i < facultad.Careers.Count; i++)
+                                {
+                                    var row   = facultad.Careers[i];
+                                    var rowBg = i % 2 == 0 ? "bg-white" : "bg-ink-50/60";
+                                    <tr class="@rowBg hover:bg-primary-50/40 transition-colors border-b border-ink-100">
+                                        <td class="px-3 py-2.5 font-medium text-ink-800 border-r border-ink-100 leading-snug" style="min-width:240px">
+                                            @row.CareerName
+                                        </td>
+                                        @for (int j = 0; j < row.Values.Count; j++)
+                                        {
+                                            var val      = row.Values[j];
+                                            var isEmpty  = val == 0;
+                                            var numColor = isEmpty ? "text-ink-300" : "text-ink-700 font-semibold tabular-nums";
+                                            <td class="px-2 py-2.5 text-center @numColor border-r border-ink-100" style="min-width:80px">@val</td>
+                                        }
+                                        <td class="px-2 py-2.5 text-center font-bold text-primary-600 border-l border-ink-200 tabular-nums" style="width:70px">@row.Total</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</section>

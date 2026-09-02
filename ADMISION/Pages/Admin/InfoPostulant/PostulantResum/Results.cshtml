@@ -1,0 +1,272 @@
+@model List<ADMISION.ENTITIES.Models.Postulante.Inscription>
+@using ADMISION.ENTITIES.Constants
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+
+    ViewData["Title"] = "Resultados - " + fullName;
+
+    var canEditGrade = User.IsInRole(AppConstants.Roles.SuperAdmin);
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-circle-check"></i><span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-alert-circle"></i><span>@TempData["Error"]</span>
+    </div>
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Resultados</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Historial de <span class="font-serif font-normal text-primary-600">calificaciones</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName</p>
+        </div>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver al expediente
+        </a>
+    </div>
+</section>
+
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-trophy text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Calificaciones</h2>
+            <p class="text-[11.5px] text-ink-500">Resultado del proceso de evaluación por inscripción</p>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="overflow-x-auto">
+            <table class="atlas w-full">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Período</th>
+                        <th>Modalidad</th>
+                        <th>Apellidos y Nombres</th>
+                        <th>Carrera Profesional</th>
+                        <th class="text-right">Nota</th>
+                        <th class="text-center">Estado</th>
+                        @if (canEditGrade)
+                        {
+                            <th class="text-center">Acción</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inscription in Model)
+                    {
+                        string stateBadge;
+                        string stateLabel;
+                        if (inscription.GradeAdmission.HasValue)
+                        {
+                            stateBadge = inscription.IsAdmission ? "badge b-green" : "badge b-gray";
+                            stateLabel = inscription.IsAdmission ? "Ingresante" : "No ingresante";
+                        }
+                        else
+                        {
+                            stateBadge = "badge b-amber";
+                            stateLabel = "Sin nota";
+                        }
+
+                        <tr>
+                            <td class="font-mono text-xs font-semibold text-ink-700 dark:text-ink-200 tabular-nums">
+                                @inscription.CodePostulant
+                            </td>
+                            <td class="text-xs text-ink-600 dark:text-ink-300">
+                                @(inscription.Modality?.Term?.Name ?? "—")
+                            </td>
+                            <td class="text-xs text-ink-600 dark:text-ink-300">
+                                @(inscription.Modality?.Name ?? "—")
+                            </td>
+                            <td class="text-xs font-semibold text-ink-900 dark:text-ink-100">
+                                @fullName
+                            </td>
+                            <td class="text-xs text-ink-600 dark:text-ink-300">
+                                @(inscription.Career?.Name ?? "—")
+                            </td>
+                            <td class="text-right">
+                                @if (inscription.GradeAdmission.HasValue)
+                                {
+                                    <span class="font-mono text-xs font-bold tabular-nums text-primary-600">
+                                        @inscription.GradeAdmission.Value.ToString("F3")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-ink-300">—</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="@stateBadge">@stateLabel</span>
+                            </td>
+                            @if (canEditGrade)
+                            {
+                                <td class="text-center">
+                                    <div class="inline-flex items-center gap-1">
+                                        <button type="button"
+                                                class="btn-edit-grade inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                                title="Editar nota"
+                                                data-inscription-id="@inscription.Id"
+                                                data-postulant-id="@postulantId"
+                                                data-grade="@(inscription.GradeAdmission?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                                                data-admitted="@(inscription.IsAdmission ? "true" : "false")"
+                                                data-modality="@(inscription.Modality?.Name ?? "—")"
+                                                data-career="@(inscription.Career?.Name ?? "—")">
+                                            <i class="ti ti-edit text-[10px]"></i>
+                                        </button>
+                                        @if (inscription.GradeAdmission.HasValue)
+                                        {
+                                            <button type="button"
+                                                    class="btn-clear-grade inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                                    title="Limpiar nota"
+                                                    data-inscription-id="@inscription.Id"
+                                                    data-postulant-id="@postulantId">
+                                                <i class="ti ti-eraser text-[10px]"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="py-14 text-center">
+            <i class="ti ti-trophy text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 text-sm font-medium">No se registran inscripciones para este postulante.</p>
+        </div>
+    }
+</section>
+
+@if (canEditGrade)
+{
+    <form id="form-set-grade" method="post" class="hidden">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="gradeAdmission" />
+        <input type="hidden" name="isAdmission" />
+    </form>
+
+    <form id="form-clear-grade" method="post" class="hidden">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <script>
+        (function () {
+            const setForm = document.getElementById('form-set-grade');
+            const clearForm = document.getElementById('form-clear-grade');
+
+            document.querySelectorAll('.btn-edit-grade').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inscriptionId = btn.dataset.inscriptionId;
+                    const postulantId = btn.dataset.postulantId;
+                    const currentGrade = btn.dataset.grade || '';
+                    const currentAdmitted = btn.dataset.admitted === 'true';
+                    const modality = btn.dataset.modality;
+                    const career = btn.dataset.career;
+
+                    Swal.fire({
+                        title: 'Edición manual de nota',
+                        html: `
+                            <div class="text-left text-sm text-gray-600 mb-3 leading-relaxed">
+                                <div class="text-[11px] uppercase font-bold text-gray-400 tracking-wider mb-1">Inscripción</div>
+                                <div class="font-semibold text-gray-800">${career}</div>
+                                <div class="text-xs text-gray-500">${modality}</div>
+                            </div>
+                            <div class="text-left mb-3">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Nota de ingreso</label>
+                                <input id="swal-grade" type="number" step="0.001" min="0" class="swal2-input !mx-0 !w-full" value="${currentGrade}" placeholder="Ej: 1450,500" />
+                                <p class="text-[10px] text-gray-400 mt-1">Hasta 3 decimales. Vacío = sin nota publicada.</p>
+                            </div>
+                            <div class="text-left">
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <input id="swal-admitted" type="checkbox" class="h-4 w-4 text-primary border-gray-300 rounded-md" ${currentAdmitted ? 'checked' : ''} />
+                                    <span class="text-sm font-semibold text-gray-800">Marcar al postulante como ADMITIDO</span>
+                                </label>
+                                <p class="text-[10px] text-gray-400 mt-1">Esta acción quedará registrada con tu usuario.</p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'Guardar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#f54477',
+                        focusConfirm: false,
+                        preConfirm: () => {
+                            const gradeInput = document.getElementById('swal-grade');
+                            const admittedInput = document.getElementById('swal-admitted');
+                            const gradeRaw = (gradeInput.value || '').trim().replace(',', '.');
+                            const grade = gradeRaw === '' ? null : Number(gradeRaw);
+                            const admitted = admittedInput.checked;
+
+                            if (grade !== null && (isNaN(grade) || grade < 0)) {
+                                Swal.showValidationMessage('La nota debe ser un número mayor o igual a 0.');
+                                return false;
+                            }
+                            if (admitted && grade === null) {
+                                Swal.showValidationMessage('Para marcar como admitido debes registrar una nota.');
+                                return false;
+                            }
+                            return { grade, admitted };
+                        }
+                    }).then(r => {
+                        if (!r.isConfirmed || !r.value) return;
+                        setForm.action = `/admin/info-postulant/postulant/postulant-resum/${postulantId}/inscription/${inscriptionId}/grade`;
+                        setForm.querySelector('input[name="gradeAdmission"]').value = r.value.grade === null ? '' : r.value.grade;
+                        setForm.querySelector('input[name="isAdmission"]').value = r.value.admitted ? 'true' : 'false';
+                        setForm.submit();
+                    });
+                });
+            });
+
+            document.querySelectorAll('.btn-clear-grade').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inscriptionId = btn.dataset.inscriptionId;
+                    const postulantId = btn.dataset.postulantId;
+                    Swal.fire({
+                        title: '¿Limpiar nota?',
+                        text: 'La inscripción quedará sin nota y marcada como no admitido.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, limpiar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#dc2626'
+                    }).then(r => {
+                        if (!r.isConfirmed) return;
+                        clearForm.action = `/admin/info-postulant/postulant/postulant-resum/${postulantId}/inscription/${inscriptionId}/clear-grade`;
+                        clearForm.submit();
+                    });
+                });
+            });
+        })();
+    </script>
+}

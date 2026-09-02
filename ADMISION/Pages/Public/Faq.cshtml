@@ -1,0 +1,181 @@
+@model IEnumerable<ADMISION.ENTITIES.Models.Info.FaqItem>
+
+@{
+    ViewData["Title"] = "Preguntas frecuentes";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+
+    var categories = ViewBag.Categories as IReadOnlyList<string> ?? new List<string>();
+    var grouped = Model
+        .GroupBy(f => string.IsNullOrWhiteSpace(f.Category) ? "Generales" : f.Category!)
+        .OrderBy(g => g.Key)
+        .ToList();
+}
+
+<section class="relative py-14 sm:py-16 md:py-20 overflow-hidden">
+
+    <!-- Hero -->
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center fade-up">
+        <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+            <i class="ti ti-messages text-[10px]"></i>
+            Centro de ayuda
+        </div>
+        <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+            Preguntas <span class="font-serif font-normal text-primary-600">frecuentes</span>
+        </h1>
+        <p class="text-ink-500 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
+            Resolvemos las dudas más comunes del proceso de admisión.
+            Si no encuentras tu pregunta, escríbenos al chatbot del portal.
+        </p>
+    </div>
+
+    <!-- Buscador -->
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 fade-up">
+        <div class="relative">
+            <i class="ti ti-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+            <input id="faqSearch" type="search"
+                   placeholder="Busca por palabra clave: examen, pago, modalidad…"
+                   class="w-full h-11 pl-11 pr-4 bg-white rounded-md ring-soft text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                   autocomplete="off" />
+        </div>
+
+        @if (categories.Any())
+        {
+            <div class="flex flex-wrap items-center justify-center gap-2 mt-4">
+                <button type="button" data-cat="*"
+                        class="faq-chip active px-3 py-1 rounded-full text-[12px] font-semibold transition-all">
+                    Todas
+                </button>
+                @foreach (var cat in categories)
+                {
+                    <button type="button" data-cat="@cat"
+                            class="faq-chip px-3 py-1 rounded-full text-[12px] font-semibold transition-all">
+                        @cat
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Listado por categoría -->
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-8">
+        @if (!Model.Any())
+        {
+            <div class="bg-white ring-soft rounded-md py-14 text-center fade-up">
+                <i class="ti ti-message-off text-4xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 text-sm font-medium">Aún no hay preguntas frecuentes publicadas.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var group in grouped)
+            {
+                <section class="fade-up faq-category" data-cat="@group.Key">
+                    <h2 class="eyebrow mb-3">@group.Key</h2>
+                    <div class="space-y-2">
+                        @foreach (var item in group.OrderBy(f => f.DisplayOrder).ThenBy(f => f.Question))
+                        {
+                            <details class="faq-item group bg-white ring-soft rounded-md overflow-hidden"
+                                     data-question="@item.Question.ToLower()"
+                                     data-keywords="@(item.Keywords?.ToLower() ?? "")">
+                                <summary class="cursor-pointer flex items-start justify-between gap-3 px-4 py-3.5 list-none hover:bg-ink-50/60 transition-colors">
+                                    <span class="text-[14px] font-semibold text-ink-900 tracking-tight">@item.Question</span>
+                                    <i class="ti ti-plus text-[11px] text-ink-400 group-open:rotate-45 transition-transform mt-1 shrink-0"></i>
+                                </summary>
+                                <div class="px-4 pb-4 -mt-1 text-[13px] text-ink-600 leading-relaxed whitespace-pre-line">@item.Answer</div>
+                            </details>
+                        }
+                    </div>
+                </section>
+            }
+
+            <!-- Empty state al filtrar -->
+            <div id="faqNoResults" class="hidden bg-white ring-soft rounded-md py-12 text-center fade-up">
+                <i class="ti ti-search text-3xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 text-sm font-medium">No encontramos preguntas que coincidan.</p>
+                <p class="text-ink-400 text-xs mt-1">Intenta con otras palabras o usa el chatbot para una respuesta más específica.</p>
+            </div>
+        }
+    </div>
+
+    <!-- CTA chatbot -->
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 text-center fade-up">
+        <div class="bg-primary-50/60 ring-1 ring-primary-200/60 rounded-md p-5">
+            <i class="ti ti-robot text-primary-600 text-2xl mb-2 block"></i>
+            <p class="text-[13px] text-ink-700 font-medium">¿No encontraste lo que buscabas?</p>
+            <p class="text-[12px] text-ink-500 mt-1">Usa el chatbot flotante (abajo a la derecha) y pregúntale lo que necesites.</p>
+        </div>
+    </div>
+</section>
+
+<style>
+    .faq-chip {
+        background: #fff;
+        color: #5c6478;
+        box-shadow: inset 0 0 0 1px rgba(15,18,32,0.08);
+    }
+    .faq-chip:hover { color: #d10e49; }
+    .faq-chip.active {
+        background: #f54477;
+        color: #fff;
+        box-shadow: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            const searchInput = document.getElementById('faqSearch');
+            const items = document.querySelectorAll('.faq-item');
+            const categories = document.querySelectorAll('.faq-category');
+            const chips = document.querySelectorAll('.faq-chip');
+            const noResults = document.getElementById('faqNoResults');
+
+            let activeCat = '*';
+            let query = '';
+
+            function applyFilter() {
+                const q = query.trim().toLowerCase();
+                let visibleTotal = 0;
+
+                categories.forEach(cat => {
+                    const catName = cat.dataset.cat;
+                    let visibleInCat = 0;
+
+                    cat.querySelectorAll('.faq-item').forEach(item => {
+                        const matchesText = !q ||
+                            (item.dataset.question || '').includes(q) ||
+                            (item.dataset.keywords || '').includes(q);
+                        const matchesCat = activeCat === '*' || activeCat === catName;
+                        const show = matchesText && matchesCat;
+                        item.classList.toggle('hidden', !show);
+                        if (show) visibleInCat++;
+                    });
+
+                    cat.classList.toggle('hidden', visibleInCat === 0);
+                    visibleTotal += visibleInCat;
+                });
+
+                if (noResults) noResults.classList.toggle('hidden', visibleTotal !== 0);
+            }
+
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    activeCat = chip.dataset.cat;
+                    applyFilter();
+                });
+            });
+
+            let debounceTimer = null;
+            searchInput?.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    query = searchInput.value || '';
+                    applyFilter();
+                }, 180);
+            });
+        })();
+    </script>
+}

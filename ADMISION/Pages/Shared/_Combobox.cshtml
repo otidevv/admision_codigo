@@ -1,0 +1,258 @@
+@*
+================================================================================
+  _Combobox.cshtml  —  Input editable con dropdown filtrable (typeahead).
+
+  A diferencia de _CustomSelect, el usuario puede teclear texto libre y
+  ver sugerencias filtradas en tiempo real. Útil para campos como
+  "Colegio", "Universidad", "Ciudad" cuando el valor puede ser tanto
+  una opción existente como un texto libre nuevo.
+
+  El dropdown usa `position: fixed` para escapar cualquier overflow.
+
+  Uso:
+    <partial name="_Combobox" model='new {
+        Id = "schoolPicker",
+        Name = "SchoolName",
+        Label = "Colegio",
+        Placeholder = "Empieza a escribir…",
+        Options = colegios.Select(c => new { id = c.Id.ToString(), name = c.Name }),
+        AllowFreeText = true,                // permite valores no listados
+        MinChars = 1                          // chars mínimos para mostrar sugerencias
+    }' />
+
+  Eventos:
+    document.getElementById('schoolPicker')
+        .addEventListener('combobox:select', e => console.log(e.detail));
+================================================================================
+*@
+
+@using System.Reflection
+@using System.Text.Json
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    bool B(string p, bool d = false) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        return v is bool b ? b : d;
+    }
+    int I(string p, int d = 0) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        if (v is int direct) return direct;
+        return int.TryParse(v?.ToString(), out int parsed) ? parsed : d;
+    }
+    object? Raw(string p) => t?.GetProperty(p)?.GetValue(__m);
+
+    var id          = V("Id", "combobox-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var name        = V("Name", id);
+    var label       = V("Label");
+    var placeholder = V("Placeholder", "Escribe para buscar…");
+    var value       = V("Value");
+    var hiddenName  = V("HiddenName", name);
+    var required    = B("Required");
+    var allowFree   = B("AllowFreeText", false);
+    var minChars    = I("MinChars", 0);
+    var helperText  = V("Helper");
+    var iconLeft    = V("IconLeft", "ti-search");
+
+    var optionsRaw  = Raw("Options");
+    var optionsJson = optionsRaw == null
+        ? "[]"
+        : JsonSerializer.Serialize(optionsRaw, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+    var inputAttrs = required ? "required" : "";
+}
+
+<div class="form-field" id="wrapper-@id">
+    @if (!string.IsNullOrEmpty(label))
+    {
+        <label for="@id" class="form-label">
+            @label
+            @if (required)
+            {
+                <span class="required">*</span>
+            }
+        </label>
+    }
+
+    <div class="combobox" data-id="@id" data-options='@Html.Raw(optionsJson)' data-allow-free="@(allowFree.ToString().ToLower())" data-min-chars="@minChars">
+        <div class="form-input-wrapper">
+            <i class="ti @iconLeft form-input-icon"></i>
+            <input id="@id" type="text" placeholder="@placeholder" value="@value"
+                   class="form-input form-input--suffix"
+                   autocomplete="off"
+                   role="combobox"
+                   aria-autocomplete="list"
+                   aria-expanded="false"
+                   aria-controls="dropdown-@id"
+                   @Html.Raw(inputAttrs) />
+            <i class="ti ti-chevron-down form-input-icon form-input-icon--right text-[12px] combobox__chevron"></i>
+        </div>
+
+        @if (hiddenName != id)
+        {
+            <input type="hidden" id="hidden-@id" name="@hiddenName" value="" />
+        }
+        else
+        {
+            @* El input visible es el que viaja con el form. *@
+        }
+
+        <div id="dropdown-@id" class="combobox__dropdown" role="listbox">
+            <ul id="list-@id" class="combobox__list">
+                @* Opciones se inyectan vía JS. *@
+            </ul>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(helperText))
+    {
+        <span class="form-helper">@helperText</span>
+    }
+</div>
+
+<script>
+    (function () {
+        var id = '@id';
+        var wrapper = document.getElementById('wrapper-' + id);
+        if (!wrapper) return;
+        var cb       = wrapper.querySelector('.combobox');
+        var input    = document.getElementById(id);
+        var hidden   = document.getElementById('hidden-' + id);
+        var dropdown = document.getElementById('dropdown-' + id);
+        var list     = document.getElementById('list-' + id);
+        var chevron  = cb.querySelector('.combobox__chevron');
+
+        var options = JSON.parse(cb.dataset.options || '[]').map(function (o) {
+            return { value: o.id ?? o.value, label: o.name ?? o.label ?? o.text };
+        });
+        var allowFree = cb.dataset.allowFree === 'true';
+        var minChars  = parseInt(cb.dataset.minChars || '0', 10);
+        var highlighted = -1;
+        var visible = [];
+
+        // Si trae value inicial, lo emparejamos contra options para set del hidden.
+        if (input.value && hidden) {
+            var match = options.find(function (o) { return String(o.label).toLowerCase() === input.value.toLowerCase(); });
+            hidden.value = match ? match.value : (allowFree ? input.value : '');
+        }
+
+        function open() {
+            cb.classList.add('is-open');
+            input.setAttribute('aria-expanded', 'true');
+            if (chevron) chevron.style.transform = 'translateY(-50%) rotate(180deg)';
+            position();
+            render(input.value);
+            window.addEventListener('scroll', position, true);
+            window.addEventListener('resize', position);
+        }
+        function close() {
+            cb.classList.remove('is-open');
+            input.setAttribute('aria-expanded', 'false');
+            if (chevron) chevron.style.transform = 'translateY(-50%) rotate(0deg)';
+            highlighted = -1;
+            window.removeEventListener('scroll', position, true);
+            window.removeEventListener('resize', position);
+        }
+
+        function position() {
+            if (!cb.classList.contains('is-open')) return;
+            var rect = input.getBoundingClientRect();
+            dropdown.style.top   = (rect.bottom + 6) + 'px';
+            dropdown.style.left  = rect.left + 'px';
+            dropdown.style.width = rect.width + 'px';
+
+            // Reposicionar si no entra abajo.
+            requestAnimationFrame(function () {
+                var dh = dropdown.offsetHeight;
+                if (rect.bottom + 6 + dh > window.innerHeight - 8 && rect.top - 6 - dh > 8) {
+                    dropdown.style.top = (rect.top - dh - 6) + 'px';
+                }
+            });
+        }
+
+        function render(query) {
+            var q = (query || '').toLowerCase().trim();
+            if (q.length < minChars && q.length > 0) {
+                list.innerHTML = '<li class="combobox__option--empty">Escribe al menos ' + minChars + ' caracteres…</li>';
+                visible = [];
+                return;
+            }
+            visible = q.length === 0
+                ? options.slice(0, 50)
+                : options.filter(function (o) { return String(o.label).toLowerCase().includes(q); }).slice(0, 50);
+
+            if (visible.length === 0) {
+                list.innerHTML = allowFree
+                    ? '<li class="combobox__option--empty">Sin coincidencias · se guardará "' + escapeHtml(query) + '" como texto libre</li>'
+                    : '<li class="combobox__option--empty">Sin resultados</li>';
+                return;
+            }
+            list.innerHTML = visible.map(function (o, i) {
+                return '<li class="combobox__option' + (i === highlighted ? ' is-highlighted' : '') + '" data-idx="' + i + '" role="option">' + escapeHtml(o.label) + '</li>';
+            }).join('');
+        }
+
+        function pick(idx) {
+            var item = visible[idx];
+            if (!item) return;
+            input.value = item.label;
+            if (hidden) hidden.value = item.value;
+            close();
+            input.dispatchEvent(new CustomEvent('combobox:select', { bubbles: true, detail: { value: item.value, label: item.label } }));
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, function (c) {
+                return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+            });
+        }
+
+        input.addEventListener('focus', open);
+        input.addEventListener('input', function () {
+            if (!cb.classList.contains('is-open')) open();
+            else render(input.value);
+            highlighted = -1;
+            if (hidden) {
+                // Mientras el usuario escribe, vaciamos hidden (a menos que coincida exacto).
+                var exact = options.find(function (o) { return String(o.label).toLowerCase() === input.value.toLowerCase(); });
+                hidden.value = exact ? exact.value : (allowFree ? input.value : '');
+            }
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (!cb.classList.contains('is-open')) {
+                if (e.key === 'ArrowDown' || e.key === 'Enter') { e.preventDefault(); open(); return; }
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlighted = Math.min(visible.length - 1, highlighted + 1);
+                render(input.value);
+                var el = list.querySelector('.is-highlighted');
+                if (el) el.scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlighted = Math.max(0, highlighted - 1);
+                render(input.value);
+                var el2 = list.querySelector('.is-highlighted');
+                if (el2) el2.scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                if (highlighted >= 0) { e.preventDefault(); pick(highlighted); }
+                else { close(); }
+            } else if (e.key === 'Escape') {
+                close();
+            }
+        });
+
+        list.addEventListener('click', function (e) {
+            var li = e.target.closest('.combobox__option');
+            if (!li) return;
+            pick(parseInt(li.dataset.idx, 10));
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!cb.contains(e.target) && !dropdown.contains(e.target)) close();
+        });
+    })();
+</script>

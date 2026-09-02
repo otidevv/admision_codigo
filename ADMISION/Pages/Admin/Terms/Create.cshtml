@@ -1,0 +1,180 @@
+@model ADMISION.ENTITIES.Models.Modality.Term
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Crear Periodo";
+
+    // Cada item: (FormName, Label, Hint).
+    // Los FormName deben coincidir con las propiedades de TermReplicationOptions
+    // bound como Replication.X en el controller.
+    var replicationItems = new (string Name, string Label, string Hint)[]
+    {
+        ("Replication.PaymentCodes",          "Códigos de pago",            "Códigos del periodo (sin asociaciones a modalidad)"),
+        ("Replication.TematicAreaCareers",    "Áreas por carrera",          "Mapeo carrera → área temática"),
+        ("Replication.Modalities",            "Modalidades",                "Incluye Tipos de Modalidad, Vacantes (cupos al 100%), Carreras asociadas y Requisitos por modalidad"),
+        ("Replication.PaymentCodeModalities", "Asociaciones de pago",       "Junction PaymentCode × Modalidad × TipoModalidad con sus montos. Requiere Códigos de pago + Modalidades"),
+        ("Replication.ScheduleEvents",        "Cronograma",                 "Eventos del cronograma del periodo (fases de inscripción/examen/resultados)"),
+        ("Replication.PublicInfos",           "Información pública",        "Bloques mostrados en /modalidad. Requiere Modalidades cuando están vinculadas"),
+        ("Replication.Beneficiaries",         "Beneficiarios (descuentos)", "Catálogo de beneficiarios y sus porcentajes"),
+    };
+}
+
+<!-- Breadcrumb + Page Hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/periodos" class="hover:text-primary-600 transition-colors">Periodos</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 font-medium">Nuevo periodo</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Configuración académica</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-400">
+                Crear nuevo <span class="font-serif font-normal text-primary-600">periodo</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Define ventana, número y opcionalmente replica configuración del periodo anterior.</p>
+        </div>
+    </div>
+</section>
+
+<form asp-action="Create" method="post" class="space-y-5 max-w-3xl">
+
+    <!-- Card: Datos del periodo -->
+    <section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 flex items-center justify-between rounded-t-md">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-calendar-plus text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-400 tracking-tight text-[15px]">Datos del periodo</h2>
+                    <p class="text-[11.5px] text-ink-500">Identificación y ventana de vigencia</p>
+                </div>
+            </div>
+            <span class="badge b-primary">Paso 1 / 2</span>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Name", Name = "Name", Label = "Nombre",
+                    Placeholder = "Ej: 2026-I", Required = true,
+                    Value = Model?.Name,
+                    Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "Year", Name = "Year", Label = "Año",
+                    Placeholder = "Ej: 2026", Required = true,
+                    InputMode = "numeric", MaxLength = "4",
+                    Value = Model?.Year,
+                    Error = ViewData.ModelState["Year"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "Number", Name = "Number", Label = "Número",
+                    Type = "number", Required = true, Min = "0",
+                    Value = Model?.Number.ToString(),
+                    Error = ViewData.ModelState["Number"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <div class="flex items-end pb-1">
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "IsActive", Name = "IsActive",
+                        Label = "Periodo activo",
+                        Hint  = "Visible para los postulantes",
+                        Checked = Model?.IsActive ?? true,
+                        Variant = "default"
+                    })' />
+                </div>
+
+                <partial name="_FormDate" model='@(new {
+                    Id = "StartDate", Name = "StartDate",
+                    Label = "Fecha de inicio", Required = true,
+                    Value = Model?.StartDate,
+                    Error = ViewData.ModelState["StartDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormDate" model='@(new {
+                    Id = "EndDate", Name = "EndDate",
+                    Label = "Fecha de fin", Required = true,
+                    Value = Model?.EndDate,
+                    LinkedMinId = "StartDate",
+                    Error = ViewData.ModelState["EndDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+        </div>
+    </section>
+
+    <!-- Card: Replicación -->
+    <section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md overflow-hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 flex items-center justify-between rounded-t-md bg-secondary-50/40">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-secondary-100 text-secondary-700 inline-flex items-center justify-center">
+                    <i class="ti ti-copy text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 tracking-tight text-[15px]">Replicar configuración</h2>
+                    <p class="text-[11.5px] text-ink-500">Copia desde el periodo anterior — opcional</p>
+                </div>
+            </div>
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "replicationEnabled", Name = "Replication.Enabled",
+                Label = "Activar",
+                Variant = "switch"
+            })' />
+        </div>
+
+        <div id="replicationOptions" class="hidden p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-ink-200/60">
+                <span class="text-[11px] font-bold uppercase tracking-[0.16em] text-secondary-700">Tablas a replicar</span>
+                <div class="flex gap-3 text-xs">
+                    <button type="button" id="replicationAll"
+                            class="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
+                        <i class="ti ti-checks mr-1 text-[10px]"></i> Marcar todas
+                    </button>
+                    <span class="text-ink-200">·</span>
+                    <button type="button" id="replicationNone"
+                            class="text-ink-500 hover:text-ink-700 font-semibold transition-colors">
+                        <i class="ti ti-x mr-1 text-[10px]"></i> Desmarcar todas
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                @foreach (var item in replicationItems)
+                {
+                    var itemId = item.Name.Replace(".", "_");
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = itemId, Name = item.Name,
+                        Label = item.Label, Hint = item.Hint,
+                        Checked = true,
+                        Variant = "card",
+                        Class = "replication-item"
+                    })' />
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Acciones -->
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-ink-700 text-sm font-semibold hover:bg-ink-100 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar periodo
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/admin/terms/create.js" asp-append-version="true"></script>
+}

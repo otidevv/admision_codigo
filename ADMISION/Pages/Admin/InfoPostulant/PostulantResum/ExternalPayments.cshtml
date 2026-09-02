@@ -1,0 +1,125 @@
+@model IReadOnlyList<ADMISION.ENTITIES.Models.Integrations.ExternalPaymentVoucher>
+@using ADMISION.ENTITIES.Constants
+@using ADMISION.ENTITIES.Models.Integrations
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+    ViewData["Title"] = "Pagos Externos - " + fullName;
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Pagos Externos</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Historial de <span class="font-serif font-normal text-primary-600">pagos externos</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName</p>
+        </div>
+    </div>
+</section>
+
+@await Html.PartialAsync("~/Pages/Admin/InfoPostulant/PostulantResum/_ExternalPaymentsCard.cshtml", Model)
+
+@section Scripts {
+    <script>
+        (function() {
+            const postulantId = '@postulantId';
+
+            function showLoader() { document.getElementById('paymentsLoader')?.classList.remove('hidden'); }
+            function hideLoader() { document.getElementById('paymentsLoader')?.classList.add('hidden'); }
+            function showError(msg) {
+                const el = document.getElementById('paymentsCardError');
+                if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+            }
+            function hideError() { document.getElementById('paymentsCardError')?.classList.add('hidden'); }
+
+            function renderRecords(records) {
+                const container = document.getElementById('paymentsCardContent');
+                if (!container) return;
+                if (!records || records.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+                let html = '';
+                records.forEach(function(v) {
+                    const payments = v.Payments || [];
+                    const queried = v.QueriedAt ? new Date(v.QueriedAt).toLocaleString('es-PE') : '';
+                    html += '<div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">';
+                    html += '  <div class="flex items-center justify-between mb-2">';
+                    html += '    <span class="text-xs font-mono font-bold text-amber-600">' + (v.SerialVoucher || '') + '</span>';
+                    html += '    <span class="badge b-gray text-[10px]">' + payments.length + ' pago(s)</span>';
+                    html += '  </div>';
+                    if (v.FullName) {
+                        html += '  <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">' + v.FullName + '</p>';
+                    }
+                    if (payments.length > 0) {
+                        html += '  <div class="mt-2 space-y-1.5">';
+                        payments.forEach(function(p, idx) {
+                            const border = idx > 0 ? ' border-t border-ink-200/40 dark:border-ink-800/40 pt-1.5' : '';
+                            html += '    <div class="flex items-center justify-between text-xs' + border + '">';
+                            html += '      <div class="flex-1 min-w-0">';
+                            html += '        <span class="text-ink-700 dark:text-ink-200 font-medium">' + (p.Description || '') + '</span>';
+                            if (p.TermName) {
+                                html += '        <span class="text-ink-400 ml-1">(' + p.TermName + ')</span>';
+                            }
+                            html += '      </div>';
+                            html += '      <div class="text-right ml-2 flex-shrink-0">';
+                            html += '        <span class="font-semibold text-ink-900 dark:text-ink-100">S/ ' + (p.Total || 0).toFixed(2) + '</span>';
+                            if (p.Discount > 0) {
+                                html += '        <span class="text-rose-500 text-[10px] block">-S/ ' + (p.Discount || 0).toFixed(2) + '</span>';
+                            }
+                            html += '      </div>';
+                            html += '    </div>';
+                        });
+                        html += '  </div>';
+                    }
+                    html += '  <p class="text-[10px] text-ink-400 mt-2 font-mono"><i class="ti ti-clock mr-0.5"></i> ' + queried + '</p>';
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            }
+
+            function fetchData() {
+                showLoader();
+                hideError();
+                fetch('/admin/info-postulant/postulant/postulant-resum/' + postulantId + '/external-payments/refresh')
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        hideLoader();
+                        if (result.data && result.data.length > 0) {
+                            renderRecords(result.data);
+                            document.getElementById('paymentsCardEmpty')?.classList.add('hidden');
+                            document.getElementById('paymentsCardData')?.classList.remove('hidden');
+                        } else {
+                            document.getElementById('paymentsCardData')?.classList.add('hidden');
+                            document.getElementById('paymentsCardEmpty')?.classList.remove('hidden');
+                        }
+                        if (!result.success && result.message && result.message !== 'sin_api') {
+                            showError(result.message);
+                        }
+                    })
+                    .catch(function() {
+                        hideLoader();
+                        document.getElementById('paymentsCardData')?.classList.add('hidden');
+                        document.getElementById('paymentsCardEmpty')?.classList.remove('hidden');
+                        showError('Error de red al consultar pagos.');
+                    });
+            }
+
+            document.getElementById('refreshPaymentsBtn')?.addEventListener('click', fetchData);
+        })();
+    </script>
+}

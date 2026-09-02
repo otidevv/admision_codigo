@@ -1,0 +1,100 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Postulant.DisabilityType>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Tipos de Discapacidad";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Nombre", Field = "name", Sortable = true },
+        new() { Label = "Descripción", Field = "description" },
+        new() {
+            Label = "Estado",
+            Field = "isActive",
+            Type = "badge",
+            Sortable = true,
+            BadgeMap = new() {
+                { "true", "green" },
+                { "false", "gray" }
+            }
+        }
+    };
+
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "edit", Label = "Editar", Icon = "ti-edit", Href = "/admin/exam-management/disability-types/edit/{id}" },
+        new() { Key = "delete", Label = "Eliminar", Icon = "ti-trash", Danger = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["AjaxUrl"] = Url.Action("List");
+    ViewData["TableId"] = "disabilityTypesTable";
+    ViewData["EmptyIcon"] = "ti-accessible";
+    ViewData["EmptyTitle"] = "Sin tipos registrados";
+    ViewData["EmptySubtitle"] = "Aún no se han registrado tipos de discapacidad.";
+}
+
+<!-- Page Hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Tipos de discapacidad</span>
+        </div>
+        <div class="eyebrow">Inclusión y accesibilidad</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Tipos de <span class="font-serif font-normal text-primary-600">discapacidad</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Administra los tipos de discapacidad registrados en el sistema.</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <button type="button" onclick="DT.refresh('disabilityTypesTable')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-refresh text-xs"></i> Actualizar
+        </button>
+        <a asp-action="Create"
+           class="btn-grad inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i> Nuevo tipo
+        </a>
+    </div>
+</section>
+
+<!-- Filter bar -->
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-4 sm:p-5 mb-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label for="filterStatus" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Estado</label>
+            <select id="filterStatus"
+                    class="w-full h-9 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md px-4 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                <option value="">Todos</option>
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+            </select>
+        </div>
+
+        <div class="md:col-span-2">
+            <label for="filterSearch" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Buscar</label>
+            <div class="relative">
+                <i class="ti ti-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <input type="text" id="filterSearch"
+                       class="w-full h-9 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md pl-11 pr-4 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                       placeholder="Escriba el nombre o descripción...">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script src="~/js/admin/exam-management/disability-types/index.js" asp-append-version="true"></script>
+}

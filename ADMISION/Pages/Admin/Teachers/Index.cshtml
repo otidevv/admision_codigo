@@ -1,0 +1,234 @@
+@using ADMISION.Models.Shared
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@model IEnumerable<ADMISION.ENTITIES.Models.Users.Teachers>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Gestión de Docentes";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Docente",     Field = "fullName",        Type = "combined", SubField = "specialization", Sortable = true },
+        new() { Label = "Documento",   Field = "document",        Type = "code",     Sortable = true },
+        new() { Label = "Grado",       Field = "degree",          Type = "text",     Sortable = true },
+        new() { Label = "Tipo",        Field = "type",            Type = "badge",    BadgeMap = new Dictionary<string, string> { { "Nombrado", "blue" }, { "Contratado", "amber" }, { "Auxiliar", "green" } } },
+        new() { Label = "Estado",      Field = "statusText",      Type = "badge",    BadgeMap = new Dictionary<string, string> { { "Activo", "green" }, { "Inactivo", "red" } } },
+    };
+
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "edit",   Label = "Editar",          Icon = "ti-edit" },
+        new() { Key = "toggle", Label = "Inhabilitar",     Icon = "ti-player-stop", Danger = true },
+        new() { Key = "delete", Label = "Eliminar",        Icon = "ti-trash", Danger = true, Separator = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["TableId"] = "teachersTable";
+    ViewData["ClientSide"] = true;
+    ViewData["EmptyTitle"] = "No se encontraron docentes";
+    ViewData["EmptySubtitle"] = "Registra el primer docente para comenzar.";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin" class="hover:text-primary-600 transition-colors">Panel</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Docentes</span>
+        </div>
+        <div class="eyebrow">Gestión académica</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Registro de <span class="font-serif font-normal text-primary-600">docentes</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Administra la información de los docentes del instituto.</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="/admin/docentes/importar"
+           class="btn-soft inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md">
+            <i class="ti ti-upload text-xs"></i>
+            Importar Excel
+        </a>
+        <button type="button" onclick="openTeacherModal()"
+                class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-user-plus text-xs"></i>
+            Nuevo docente
+        </button>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Búsqueda rápida</h2>
+            <p class="text-[11.5px] text-ink-500">Filtra por nombre, documento o especialidad</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-5">
+        <div class="max-w-md">
+            <label for="filterText" class="form-label">Buscar</label>
+            <div class="form-input-wrapper">
+                <input type="text" id="filterText"
+                       class="form-input form-input--suffix"
+                       placeholder="Buscar por nombre, DNI o especialidad…"
+                       autocomplete="off" />
+                <i class="ti ti-search form-input-icon form-input-icon--right"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up">
+    <div id="tableContainer">
+        @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+    </div>
+</section>
+
+@{
+    var __afToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+
+<!-- Modal de docente (crear / editar) -->
+<div id="teacherModal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="teacherModal-title" aria-hidden="true">
+    <div class="adm-modal__overlay"></div>
+
+    <div class="adm-modal__card adm-modal__card--xl">
+        <header class="adm-modal__header">
+            <div class="min-w-0">
+                <div class="eyebrow">Datos del docente</div>
+                <h3 id="teacherModal-title" class="adm-modal__title mt-1">Nuevo docente</h3>
+                <p class="adm-modal__subtitle">Completa los datos personales y académicos</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                <i class="ti ti-x"></i>
+            </button>
+        </header>
+
+        <div class="adm-modal__body" id="teacherModal-body">
+            <form id="teacherForm" class="space-y-5">
+                <input name="__RequestVerificationToken" type="hidden" value="@__afToken" />
+                <input type="hidden" id="teacherId" name="Id" />
+                <input type="hidden" id="teacherUserId" name="UserId" />
+
+                <!-- Sección: Datos personales -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60">
+                    <span class="w-8 h-8 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-id-badge-2 text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Datos personales</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <partial name="_FormInput" model='new { Id = "name", Name = "Name", Label = "Nombres", Required = true, Placeholder = "Ej: Juan", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "firstNameFather", Name = "FirstNameFather", Label = "Ap. paterno", Required = true, Placeholder = "Ej: Pérez", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "firstNameMother", Name = "FirstNameMother", Label = "Ap. materno", Required = true, Placeholder = "Ej: García", Autocomplete = "off" }' />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-field">
+                        <label for="documentType" class="form-label">Tipo de documento <span class="required">*</span></label>
+                        <select id="documentType" name="DocumentType" class="form-input">
+                            <option value="DNI">DNI</option>
+                            <option value="CE">C.E.</option>
+                            <option value="PASAPORTE">Pasaporte</option>
+                        </select>
+                    </div>
+                    <partial name="_FormInput" model='new { Id = "document", Name = "Document", Label = "Número de documento", Required = true, Placeholder = "Número de documento", IconLeft = "ti-id", InputMode = "numeric", MaxLength = "20", Autocomplete = "off" }' />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-field">
+                        <label for="genero" class="form-label">Género</label>
+                        <select id="genero" name="Genero" class="form-input">
+                            <option value="">Seleccione…</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <partial name="_FormDate" model='new { Id = "birthdate", Name = "Birthdate", Label = "Fecha de nacimiento", Max = DateTime.Today.ToString("yyyy-MM-dd"), Placeholder = "Selecciona una fecha" }' />
+                </div>
+
+                <!-- Sección: Contacto -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60 pt-2">
+                    <span class="w-8 h-8 rounded-md bg-secondary-100 text-secondary-700 inline-flex items-center justify-center">
+                        <i class="ti ti-address-book text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Contacto</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <partial name="_FormInput" model='new { Id = "email", Name = "Email", Type = "email", Label = "Correo electrónico", Placeholder = "ejemplo@correo.com", IconLeft = "ti-mail", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "phoneNumber", Name = "PhoneNumber", Type = "tel", Label = "Teléfono / celular", Placeholder = "999888777", IconLeft = "ti-phone", InputMode = "tel", MaxLength = "15", Autocomplete = "off" }' />
+                </div>
+
+                <partial name="_FormInput" model='new { Id = "address", Name = "Address", Label = "Dirección", Placeholder = "Calle, Av, Jr…", IconLeft = "ti-map-pin", Autocomplete = "off" }' />
+
+                <!-- Sección: Datos académicos -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60 pt-2">
+                    <span class="w-8 h-8 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-school text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Datos académicos</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <partial name="_FormInput" model='new { Id = "specialization", Name = "Specialization", Label = "Especialidad", Required = true, Placeholder = "Ej: Matemática", IconLeft = "ti-book", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "degree", Name = "Degree", Label = "Grado académico", Required = true, Placeholder = "Ej: Licenciado", IconLeft = "ti-medal", Autocomplete = "off" }' />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-field">
+                        <label for="type" class="form-label">Tipo de docente <span class="required">*</span></label>
+                        <select id="type" name="Type" class="form-input">
+                            <option value="">Seleccione…</option>
+                            <option value="Nombrado">Nombrado</option>
+                            <option value="Contratado">Contratado</option>
+                            <option value="Auxiliar">Auxiliar</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Estado</label>
+                        <label class="form-check form-check--card cursor-pointer mt-2">
+                            <input type="checkbox" id="isActive" name="IsActive" value="true" checked class="role-checkbox" />
+                            <span class="leading-tight">
+                                <span class="form-check__text">Docente activo</span>
+                                <span class="text-[11px] text-ink-500 block mt-0.5">El docente podrá ser asignado a exámenes</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close
+                    class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                Cancelar
+            </button>
+            <button type="submit" form="teacherForm"
+                    class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar docente
+            </button>
+        </footer>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.AdminTeachersData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(t => new {
+            t.Id,
+            FullName = t.User?.FullName ?? "",
+            Document = t.User?.Document ?? "",
+            Specialization = t.Specialization,
+            Degree = t.Degree,
+            Type = t.Type,
+            StatusText = t.IsActive ? "Activo" : "Inactivo"
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/teachers/index.js" asp-append-version="true"></script>
+}

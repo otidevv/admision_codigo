@@ -1,0 +1,30 @@
+/* Tabs del perfil de usuario. */
+.tab-btn {
+    color: #6b7280;
+}
+
+.tab-btn.active {
+    color: #d10e49;
+    background: #fef2f5;
+    box-shadow: inset 0 -2px 0 #f54477;
+}
+
+.tab-btn:not(.active):hover {
+    color: #475569;
+    background: #f8fafc;
+}
+
+html.dark .tab-btn {
+    color: #94a3b8;
+}
+
+html.dark .tab-btn.active {
+    color: #f76e98;
+    background: rgba(245, 68, 119, 0.10);
+    box-shadow: inset 0 -2px 0 #f54477;
+}
+
+html.dark .tab-btn:not(.active):hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.04);
+}

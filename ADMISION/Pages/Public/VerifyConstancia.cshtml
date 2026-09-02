@@ -1,0 +1,101 @@
+@model ADMISION.Services.Interfaces.InscriptionVerificationDto
+
+@{
+    ViewData["Title"] = "Verificación de constancia";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+    var code = ViewBag.Code as string ?? "";
+    var found = Model != null && Model.Found;
+}
+
+<section class="relative py-14 sm:py-16 md:py-20 overflow-hidden">
+
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="text-center fade-up mb-8">
+            <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                <i class="ti ti-shield text-[10px]"></i>
+                Verificación oficial
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-[40px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-2">
+                Verificar <span class="font-serif font-normal text-primary-600">constancia</span>
+            </h1>
+            <p class="text-ink-500 text-sm leading-relaxed">
+                Esta página valida la autenticidad de una constancia de inscripción emitida por la Oficina de Admisión.
+            </p>
+        </div>
+
+        @if (found)
+        {
+            <div class="bg-white ring-soft rounded-md p-6 sm:p-7 fade-up">
+                <div class="flex items-start gap-4">
+                    <span class="w-12 h-12 rounded-md bg-emerald-50 text-emerald-600 inline-flex items-center justify-center text-xl shrink-0">
+                        <i class="ti ti-circle-check"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="eyebrow text-emerald-700">Documento auténtico</div>
+                        <h2 class="text-[18px] font-semibold tracking-tight text-ink-900 mt-0.5">@Model!.FullName</h2>
+                        <p class="text-[12.5px] text-ink-500 mt-0.5">DNI @Model.DocumentNumber · Código @Model.CodePostulant</p>
+                    </div>
+                </div>
+
+                <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="rounded-md bg-ink-50/60 ring-soft px-4 py-3">
+                        <div class="eyebrow text-[10px]">Carrera</div>
+                        <div class="text-[13px] text-ink-900 font-semibold mt-0.5">@Model.CareerName</div>
+                    </div>
+                    <div class="rounded-md bg-ink-50/60 ring-soft px-4 py-3">
+                        <div class="eyebrow text-[10px]">Modalidad</div>
+                        <div class="text-[13px] text-ink-900 font-semibold mt-0.5">
+                            @Model.ModalityName
+                            @if (!string.IsNullOrWhiteSpace(Model.TypeModalityName))
+                            {
+                                <span class="text-ink-500"> · @Model.TypeModalityName</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="rounded-md bg-ink-50/60 ring-soft px-4 py-3">
+                        <div class="eyebrow text-[10px]">Periodo</div>
+                        <div class="text-[13px] text-ink-900 font-semibold mt-0.5">@Model.TermName</div>
+                    </div>
+                    <div class="rounded-md bg-ink-50/60 ring-soft px-4 py-3">
+                        <div class="eyebrow text-[10px]">Área temática</div>
+                        <div class="text-[13px] text-ink-900 font-semibold mt-0.5">@(string.IsNullOrWhiteSpace(Model.TematicAreaCode) ? "—" : Model.TematicAreaCode)</div>
+                    </div>
+                    <div class="rounded-md bg-ink-50/60 ring-soft px-4 py-3 sm:col-span-2">
+                        <div class="eyebrow text-[10px]">Fecha de inscripción</div>
+                        <div class="text-[13px] text-ink-900 font-mono tabular-nums mt-0.5">
+                            @Model.InscriptionDate.LocalDateTime.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+                    <span class="badge b-green">
+                        <i class="ti ti-circle-check text-[9px]"></i>
+                        Estado: @Model.State
+                    </span>
+                    <a href="/" class="text-[12px] font-semibold text-primary-600 hover:text-primary-700">
+                        <i class="ti ti-arrow-left text-[10px] mr-1"></i> Volver al inicio
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="bg-white ring-soft rounded-md p-6 sm:p-7 text-center fade-up">
+                <span class="inline-flex w-14 h-14 rounded-md bg-rose-50 text-rose-600 items-center justify-center text-2xl mb-3">
+                    <i class="ti ti-circle-x"></i>
+                </span>
+                <h2 class="text-[18px] font-semibold text-ink-900">Constancia no encontrada</h2>
+                <p class="text-[12.5px] text-ink-500 mt-1.5 max-w-md mx-auto">
+                    No encontramos ninguna inscripción asociada al código
+                    <span class="font-mono text-ink-800">@code</span>.
+                    Verifica que hayas escaneado el QR correcto o contacta a la Oficina de Admisión.
+                </p>
+                <a href="/" class="inline-flex items-center gap-2 mt-5 btn-grad text-sm font-semibold px-5 py-2.5 rounded-md">
+                    <i class="ti ti-arrow-left text-xs"></i> Volver al inicio
+                </a>
+            </div>
+        }
+    </div>
+</section>

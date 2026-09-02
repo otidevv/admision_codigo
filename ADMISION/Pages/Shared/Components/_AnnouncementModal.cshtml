@@ -1,0 +1,150 @@
+@*
+    Announcement Modal – modal flotante con carrusel si hay multiples anuncios.
+    Ocupa 90% del ancho de pantalla. Auto-avanza cada 5s. Flechas + dots.
+    Usage: <partial name="Components/_AnnouncementModal" />
+*@
+
+@{
+    var announcements = (ViewData["Announcements"] as IEnumerable<ADMISION.ENTITIES.Models.Info.Announcement>
+                        ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Info.Announcement>())
+                        .Where(a => !string.IsNullOrEmpty(a.ImageUrl)).ToList();
+}
+
+@if (announcements.Count > 0)
+{
+    var total = announcements.Count;
+    var isCarousel = total > 1;
+
+    <div id="announcementModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6" style="display:none;">
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" onclick="closeAnnouncement()"></div>
+
+        <!-- Modal content -->
+        <div class="relative w-[90vw] max-w-[1000px] max-h-[90vh] bg-white dark:bg-ink-900 rounded-xl shadow-2xl overflow-hidden flex flex-col">
+
+            <!-- Close button -->
+            <button type="button" onclick="closeAnnouncement()"
+                    class="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-ink-900/50 text-white flex items-center justify-center hover:bg-ink-900/80 transition-colors shadow-lg"
+                    title="Cerrar">
+                <i class="ti ti-x text-base"></i>
+            </button>
+
+            <!-- Carousel container -->
+            <div class="relative overflow-hidden flex-1 min-h-0">
+                <div id="annSlides" class="flex transition-transform duration-500 ease-in-out h-full" style="transform:translateX(0)">
+                    @foreach (var ann in announcements)
+                    {
+                        <div class="ann-slide shrink-0 w-full h-full flex items-center justify-center">
+                            @if (!string.IsNullOrEmpty(ann.LinkUrl))
+                            {
+                                <a href="@ann.LinkUrl" target="_blank" rel="noopener noreferrer" class="block w-full h-full">
+                                    <img src="/@ann.ImageUrl" alt="Anuncio" class="w-full h-full object-contain" loading="eager" />
+                                </a>
+                            }
+                            else
+                            {
+                                <img src="/@ann.ImageUrl" alt="Anuncio" class="w-full h-full object-contain" loading="eager" />
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (isCarousel)
+                {
+                    <!-- Prev -->
+                    <button type="button" id="annPrev"
+                            class="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-ink-900/40 text-white flex items-center justify-center hover:bg-ink-900/70 transition-colors backdrop-blur-sm">
+                        <i class="ti ti-chevron-left text-lg"></i>
+                    </button>
+                    <!-- Next -->
+                    <button type="button" id="annNext"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-ink-900/40 text-white flex items-center justify-center hover:bg-ink-900/70 transition-colors backdrop-blur-sm">
+                        <i class="ti ti-chevron-right text-lg"></i>
+                    </button>
+                }
+            </div>
+
+            @if (isCarousel)
+            {
+                <!-- Dots -->
+                <div class="flex items-center justify-center gap-2 py-3 bg-ink-50 dark:bg-ink-800 border-t border-ink-200/40 dark:border-ink-700/40">
+                    @for (var i = 0; i < total; i++)
+                    {
+                        <button type="button" data-ann-dot="@i"
+                                class="ann-dot w-2 h-2 rounded-full transition-all @(i == 0 ? "bg-primary-600 w-5" : "bg-ink-300 dark:bg-ink-600")"
+                                title="Anuncio @(i + 1)"></button>
+                    }
+                    <span class="ml-2 text-[10px] text-ink-400 font-mono" id="annCounter">1 / @total</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var modal = document.getElementById('announcementModal');
+            var slides = document.getElementById('annSlides');
+            if (!modal || !slides) return;
+
+            var total = @total;
+            var current = 0;
+            var autoTimer = null;
+            var isCarousel = @Html.Raw(isCarousel ? "true" : "false");
+
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            window.closeAnnouncement = function () {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+                if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+            };
+
+            if (!isCarousel) return;
+
+            function goTo(index) {
+                if (index < 0) index = total - 1;
+                if (index >= total) index = 0;
+                current = index;
+                slides.style.transform = 'translateX(-' + (current * 100) + '%)';
+
+                document.querySelectorAll('.ann-dot').forEach(function (d, i) {
+                    if (i === current) {
+                        d.classList.add('bg-primary-600', 'w-5');
+                        d.classList.remove('bg-ink-300', 'dark:bg-ink-600');
+                    } else {
+                        d.classList.remove('bg-primary-600', 'w-5');
+                        d.classList.add('bg-ink-300', 'dark:bg-ink-600');
+                    }
+                });
+
+                var counter = document.getElementById('annCounter');
+                if (counter) counter.textContent = (current + 1) + ' / ' + total;
+            }
+
+            var prevBtn = document.getElementById('annPrev');
+            var nextBtn = document.getElementById('annNext');
+            if (prevBtn) prevBtn.addEventListener('click', function () { goTo(current - 1); resetAuto(); });
+            if (nextBtn) nextBtn.addEventListener('click', function () { goTo(current + 1); resetAuto(); });
+
+            document.querySelectorAll('.ann-dot').forEach(function (d) {
+                d.addEventListener('click', function () {
+                    goTo(parseInt(d.getAttribute('data-ann-dot'), 10));
+                    resetAuto();
+                });
+            });
+
+            function startAuto() { autoTimer = setInterval(function () { goTo(current + 1); }, 5000); }
+            function resetAuto() { if (autoTimer) clearInterval(autoTimer); startAuto(); }
+            startAuto();
+
+            // Keyboard
+            document.addEventListener('keydown', function (e) {
+                if (modal.style.display === 'none') return;
+                if (e.key === 'ArrowLeft') { goTo(current - 1); resetAuto(); }
+                if (e.key === 'ArrowRight') { goTo(current + 1); resetAuto(); }
+                if (e.key === 'Escape') window.closeAnnouncement();
+            });
+        })();
+    </script>
+}

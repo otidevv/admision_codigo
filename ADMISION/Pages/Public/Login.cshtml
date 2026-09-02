@@ -1,0 +1,459 @@
+@model ADMISION.Models.ViewModels.Admin.LoginViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    Layout = null;
+    ViewData["Title"] = "Iniciar Sesión";
+    var captchaEnabled      = ViewBag.CaptchaEnabled is bool ce && ce;
+    var captchaProvider     = (ViewBag.CaptchaProvider as string) ?? "Turnstile";
+    var captchaSiteKey      = ViewBag.CaptchaSiteKey as string;
+    var captchaIsRecaptcha  = string.Equals(captchaProvider, "ReCaptcha", StringComparison.OrdinalIgnoreCase);
+    var __afToken           = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admisión Admin</title>
+
+    <link rel="preload" href="~/lib/inter/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/fonts.css" />
+    <link rel="stylesheet" href="~/css/output.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/lib/tabler-icons/tabler-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/png" href="~/img/unamad.png" asp-append-version="true" />
+    @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey))
+    {
+        if (captchaIsRecaptcha)
+        {
+            <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        }
+        else
+        {
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        }
+    }
+</head>
+<body class="flex min-h-screen font-sans bg-ink-50">
+
+    <!-- ===== LEFT PANEL: Login (1/3) ===== -->
+    <div class="w-full lg:w-[420px] xl:w-[460px] min-h-screen flex flex-col overflow-y-auto z-10 bg-ink-50">
+        <div class="w-full max-w-sm mx-auto px-6 sm:px-8 pt-16 sm:pt-24 pb-12">
+
+            <!-- Logo & Title -->
+            <div class="text-center mb-6">
+                <a href="/" class="inline-flex justify-center items-center mb-6">
+                    <span class="w-12 h-12 rounded-md bg-primary inline-flex items-center justify-center shadow-glow">
+                        <i class="ti ti-school text-white text-lg"></i>
+                    </span>
+                </a>
+
+                <h2 class="text-3xl sm:text-[34px] font-semibold tracking-[-0.025em] leading-tight text-ink-900">
+                    Bienvenido
+                </h2>
+
+                <p class="mt-2 text-sm text-ink-500">
+                    Inicia sesión para administrar el sistema
+                </p>
+            </div>
+
+            <!-- Form -->
+            <form class="space-y-5" asp-controller="Login" asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="bg-rose-50 ring-1 ring-rose-200 p-4 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="ti ti-alert-circle text-rose-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-semibold text-rose-800">Error de inicio de sesión</h3>
+                                <div class="mt-2 text-sm text-rose-700">
+                                    <span asp-validation-summary="All" class="block list-disc pl-5 space-y-1"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Usuario -->
+                <div>
+                    <label asp-for="UserName" class="block text-sm font-medium text-ink-700 mb-1.5">Usuario</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="ti ti-user text-ink-400 text-xs"></i>
+                        </div>
+                        <input asp-for="UserName"
+                               class="pl-10 block w-full bg-white ring-1 ring-ink-200 rounded-md py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm transition-all"
+                               placeholder="Ingrese su usuario" />
+                    </div>
+                    <span asp-validation-for="UserName" class="text-rose-500 text-xs mt-1 block"></span>
+                </div>
+
+                <!-- Contraseña -->
+                <div>
+                    <label asp-for="Password" class="block text-sm font-medium text-ink-700 mb-1.5">Contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="ti ti-lock text-ink-400 text-xs"></i>
+                        </div>
+                        <input asp-for="Password" type="password"
+                               class="pl-10 pr-10 block w-full bg-white ring-1 ring-ink-200 rounded-md py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm transition-all"
+                               placeholder="••••••••" />
+                        <button type="button" onclick="togglePassword()"
+                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-ink-400 hover:text-ink-600 transition-colors">
+                            <i id="passwordIcon" class="ti ti-eye text-xs"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-rose-500 text-xs mt-1 block"></span>
+                </div>
+
+                <!-- Recordarme + Olvidaste contraseña -->
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input asp-for="RememberMe"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-ink-300 rounded">
+                        <span class="text-ink-700">Recordarme</span>
+                    </label>
+                    <a href="#" onclick="openForgotModal(); return false;" class="font-medium text-primary-600 hover:text-primary-700 transition-colors">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+
+                @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey))
+                {
+                    <div class="flex justify-center">
+                        @if (captchaIsRecaptcha)
+                        {
+                            <div class="g-recaptcha" data-sitekey="@captchaSiteKey"></div>
+                        }
+                        else
+                        {
+                            <div class="cf-turnstile" data-sitekey="@captchaSiteKey" data-theme="light"></div>
+                        }
+                    </div>
+                }
+
+                <!-- Submit -->
+                <button type="submit"
+                        class="btn-grad w-full flex justify-center items-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+                    <i class="ti ti-login text-xs"></i>
+                    Ingresar
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <p class="text-center text-xs text-ink-400 mt-10">
+                &copy; @DateTime.Now.Year Sistema de Admisión v1.0
+            </p>
+        </div>
+    </div>
+
+    <!-- ===== RIGHT PANEL: Image (resto) — oculto en móvil ===== -->
+    <div class="hidden lg:block flex-1 relative overflow-hidden bg-secondary-1000">
+
+        <!-- Background image -->
+        <img src="~/images/login-bg.jpg"
+             alt="Campus universitario"
+             class="absolute inset-0 w-full h-full object-cover opacity-60"
+             onerror="this.style.display='none'" />
+
+        <!-- Overlay sólido -->
+        <div class="absolute inset-0 bg-secondary-1000/85"></div>
+
+
+        <!-- Content over image -->
+        <div class="relative z-10 flex flex-col items-center justify-center h-full px-12 xl:px-16 text-white text-center">
+            <div class="mb-6">
+                <div class="w-24 h-24 rounded-md bg-white/15 ring-1 ring-white/30 mx-auto flex items-center justify-center mb-6">
+                    <i class="ti ti-building-bank text-4xl text-white"></i>
+                </div>
+                <h1 class="text-4xl xl:text-5xl font-semibold tracking-[-0.025em] leading-tight">
+                    Sistema de <span class="font-serif font-normal">Admisión</span>
+                </h1>
+                <p class="text-xs xl:text-sm font-bold text-primary-300 mt-3 uppercase tracking-[0.22em]">
+                    UNAMAD
+                </p>
+            </div>
+            <p class="text-white/75 text-sm leading-relaxed max-w-md">
+                Plataforma oficial de gestión del proceso de admisión de la Universidad Nacional Amazónica de Madre de Dios.
+            </p>
+
+            <!-- Decorative dots -->
+            <div class="flex gap-2 mt-10">
+                <div class="w-2 h-2 rounded-full bg-white/60"></div>
+                <div class="w-2 h-2 rounded-full bg-white/40"></div>
+                <div class="w-2 h-2 rounded-full bg-white/20"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: Restablecer contraseña ===== -->
+    <div id="forgotModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-ink-900/60 backdrop-blur-sm" onclick="closeForgotModal()"></div>
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-ink-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-ink-900 tracking-tight">Restablecer contraseña</h3>
+                    <p class="text-xs text-ink-500 mt-0.5">Recupera el acceso a tu cuenta administrativa</p>
+                </div>
+                <button type="button" onclick="closeForgotModal()"
+                        class="w-8 h-8 rounded-md flex items-center justify-center text-ink-400 hover:bg-ink-50 transition-colors">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+
+            <!-- Paso 1: usuario -->
+            <div id="forgotStep1" class="p-6 space-y-4">
+                <div>
+                    <label for="forgotUsername" class="block text-sm font-medium text-ink-700 mb-1.5">Usuario</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="ti ti-user text-ink-400 text-xs"></i>
+                        </div>
+                        <input id="forgotUsername" type="text" autocomplete="username"
+                               class="pl-10 block w-full bg-white ring-1 ring-ink-200 rounded-md py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm transition-all"
+                               placeholder="Ingrese su usuario" />
+                    </div>
+                </div>
+                <div id="forgotError1" class="hidden bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-xs rounded-md px-3 py-2"></div>
+                <button type="button" id="forgotSendBtn" onclick="sendResetCode()"
+                        class="btn-grad w-full flex justify-center items-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-md transition-all">
+                    <i class="ti ti-mail-forward text-xs"></i>
+                    Enviar código
+                </button>
+            </div>
+
+            <!-- Paso 2: código + nueva contraseña -->
+            <div id="forgotStep2" class="hidden p-6 space-y-4">
+                <div class="flex items-start gap-3 bg-emerald-50 ring-1 ring-emerald-200 rounded-md p-3">
+                    <i class="ti ti-circle-check text-emerald-600 mt-0.5"></i>
+                    <div>
+                        <p class="text-sm font-semibold text-emerald-800">Código enviado</p>
+                        <p id="forgotSentInfo" class="text-xs text-emerald-700 mt-0.5"></p>
+                    </div>
+                </div>
+                <div>
+                    <label for="forgotCode" class="block text-sm font-medium text-ink-700 mb-1.5">Código de verificación</label>
+                    <input id="forgotCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                           class="block w-full bg-white ring-1 ring-ink-200 rounded-md py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm tracking-widest text-center transition-all"
+                           placeholder="••••••" />
+                </div>
+                <div>
+                    <label for="forgotNewPassword" class="block text-sm font-medium text-ink-700 mb-1.5">Nueva contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="ti ti-lock text-ink-400 text-xs"></i>
+                        </div>
+                        <input id="forgotNewPassword" type="password" autocomplete="new-password"
+                               class="pl-10 block w-full bg-white ring-1 ring-ink-200 rounded-md py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm transition-all"
+                               placeholder="Mínimo 6 caracteres" />
+                    </div>
+                </div>
+                <div>
+                    <label for="forgotConfirmPassword" class="block text-sm font-medium text-ink-700 mb-1.5">Confirmar contraseña</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i class="ti ti-checks text-ink-400 text-xs"></i>
+                        </div>
+                        <input id="forgotConfirmPassword" type="password" autocomplete="new-password"
+                               class="pl-10 block w-full bg-white ring-1 ring-ink-200 rounded-md py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm transition-all"
+                               placeholder="Repita la contraseña" />
+                    </div>
+                </div>
+                <div id="forgotError2" class="hidden bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-xs rounded-md px-3 py-2"></div>
+                <button type="button" id="forgotResetBtn" onclick="completeReset()"
+                        class="btn-grad w-full flex justify-center items-center gap-2 py-2.5 px-4 text-sm font-semibold rounded-md transition-all">
+                    <i class="ti ti-device-floppy text-xs"></i>
+                    Restablecer contraseña
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var forgotToken = '@__afToken';
+
+        function openForgotModal() {
+            document.getElementById('forgotModal').classList.remove('hidden');
+            document.getElementById('forgotStep1').classList.remove('hidden');
+            document.getElementById('forgotStep2').classList.add('hidden');
+            document.getElementById('forgotUsername').value = '';
+            document.getElementById('forgotCode').value = '';
+            document.getElementById('forgotNewPassword').value = '';
+            document.getElementById('forgotConfirmPassword').value = '';
+            hideError('forgotError1');
+            hideError('forgotError2');
+            setTimeout(function () { document.getElementById('forgotUsername').focus(); }, 50);
+        }
+
+        function closeForgotModal() {
+            document.getElementById('forgotModal').classList.add('hidden');
+        }
+
+        function showError(id, message) {
+            var el = document.getElementById(id);
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+
+        function hideError(id) {
+            var el = document.getElementById(id);
+            el.classList.add('hidden');
+        }
+
+        function setBusy(btnId, busy, htmlBusy, htmlIdle) {
+            var btn = document.getElementById(btnId);
+            btn.disabled = busy;
+            btn.innerHTML = busy ? htmlBusy : htmlIdle;
+        }
+
+        async function sendResetCode() {
+            var username = document.getElementById('forgotUsername').value.trim();
+            hideError('forgotError1');
+            if (!username) {
+                showError('forgotError1', 'Ingrese su usuario.');
+                return;
+            }
+
+            setBusy('forgotSendBtn', true,
+                '<i class="ti ti-loader animate-spin text-xs"></i> Enviando…',
+                '<i class="ti ti-mail-forward text-xs"></i> Enviar código');
+
+            try {
+                var response = await fetch('/login/forgot-password/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': forgotToken
+                    },
+                    body: JSON.stringify({ userName: username })
+                });
+                var data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('forgotSentInfo').textContent =
+                        (data.maskedEmail ? 'Hemos enviado un código a ' + data.maskedEmail + '.' : 'Revise su bandeja de entrada.') +
+                        ' Es válido por 10 minutos.';
+                    document.getElementById('forgotStep1').classList.add('hidden');
+                    document.getElementById('forgotStep2').classList.remove('hidden');
+                    setTimeout(function () { document.getElementById('forgotCode').focus(); }, 50);
+                } else {
+                    showError('forgotError1', data.error || 'No se pudo enviar el código.');
+                }
+            } catch (e) {
+                showError('forgotError1', 'Ocurrió un error inesperado. Intente nuevamente.');
+            } finally {
+                setBusy('forgotSendBtn', false,
+                    '<i class="ti ti-loader animate-spin text-xs"></i> Enviando…',
+                    '<i class="ti ti-mail-forward text-xs"></i> Enviar código');
+            }
+        }
+
+        async function completeReset() {
+            var username = document.getElementById('forgotUsername').value.trim();
+            var code = document.getElementById('forgotCode').value.trim();
+            var password = document.getElementById('forgotNewPassword').value;
+            var confirm = document.getElementById('forgotConfirmPassword').value;
+            hideError('forgotError2');
+
+            if (!code) { showError('forgotError2', 'Ingrese el código de verificación.'); return; }
+            if (password.length < 6) { showError('forgotError2', 'La contraseña debe tener al menos 6 caracteres.'); return; }
+            if (password !== confirm) { showError('forgotError2', 'Las contraseñas no coinciden.'); return; }
+
+            setBusy('forgotResetBtn', true,
+                '<i class="ti ti-loader animate-spin text-xs"></i> Guardando…',
+                '<i class="ti ti-device-floppy text-xs"></i> Restablecer contraseña');
+
+            try {
+                var response = await fetch('/login/forgot-password/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': forgotToken
+                    },
+                    body: JSON.stringify({ userName: username, code: code, newPassword: password, confirmPassword: confirm })
+                });
+                var data = await response.json();
+
+                if (response.ok) {
+                    closeForgotModal();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Contraseña actualizada',
+                        text: data.message || 'Ya puede iniciar sesión con su nueva contraseña.',
+                        confirmButtonColor: '#f54477',
+                        confirmButtonText: 'Iniciar sesión'
+                    }).then(function () {
+                        var passInput = document.getElementById('Password');
+                        if (passInput) passInput.value = '';
+                        document.getElementById('UserName')?.focus();
+                    });
+                } else {
+                    showError('forgotError2', data.error || 'No se pudo restablecer la contraseña.');
+                }
+            } catch (e) {
+                showError('forgotError2', 'Ocurrió un error inesperado. Intente nuevamente.');
+            } finally {
+                setBusy('forgotResetBtn', false,
+                    '<i class="ti ti-loader animate-spin text-xs"></i> Guardando…',
+                    '<i class="ti ti-device-floppy text-xs"></i> Restablecer contraseña');
+            }
+        }
+    </script>
+
+    <script>
+        function togglePassword() {
+            var input = document.getElementById('Password');
+            var icon = document.getElementById('passwordIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'ti ti-eye-off text-xs';
+            } else {
+                input.type = 'password';
+                icon.className = 'ti ti-eye text-xs';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+        @if (TempData["BlockedObservation"] != null)
+        {
+            <text>
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Usuario Bloqueado',
+                    text: '@Html.Raw(TempData["BlockedObservation"])',
+                    confirmButtonColor: '#f54477',
+                    confirmButtonText: 'Entendido'
+                });
+            </text>
+        }
+
+            var qs = new URLSearchParams(window.location.search);
+            if (qs.get('expired') === '1') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Sesión expirada',
+                    text: 'Tu sesión ha caducado por inactividad. Vuelve a iniciar sesión.',
+                    confirmButtonColor: '#f54477',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+            if (qs.get('pwd') === '1') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Contraseña actualizada',
+                    text: 'Tu contraseña fue cambiada. Inicia sesión con tu nueva contraseña.',
+                    confirmButtonColor: '#f54477',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

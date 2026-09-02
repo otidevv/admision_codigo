@@ -1,0 +1,112 @@
+@model ADMISION.ENTITIES.Models.Info.Sponsor
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Crear Sponsor";
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Publicaciones</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-management/sponsors" class="hover:text-primary-600 transition-colors">Sponsors</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Nuevo sponsor</span>
+    </div>
+    <div class="eyebrow">Portal público</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Registrar nuevo <span class="font-serif font-normal text-primary-600">sponsor</span>
+    </h1>
+</section>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="space-y-5 max-w-3xl">
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-brand-handshake text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del sponsor</h2>
+                <p class="text-[11.5px] text-ink-500">Nombre, logo y orden de visualización</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Name", Name = "Name",
+                    Label = "Nombre del sponsor", Required = true,
+                    Placeholder = "Ej: Empresa XYZ",
+                    Value = Model?.Name,
+                    IconLeft = "ti-building",
+                    Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "DisplayOrder", Name = "DisplayOrder",
+                    Label = "Orden de visualización", Type = "number", Required = true, Min = "0",
+                    Value = (Model?.DisplayOrder ?? 0).ToString(),
+                    IconLeft = "ti-sort-ascending-numbers",
+                    Error = ViewData.ModelState["DisplayOrder"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "IsActive", Name = "IsActive",
+                Label = "Sponsor activo",
+                Hint = "Visible en el carrusel del portal público.",
+                Variant = "switch",
+                Checked = Model?.IsActive ?? true
+            })' />
+        </div>
+    </section>
+
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-photo text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Logo del sponsor</h2>
+                <p class="text-[11.5px] text-ink-500">Sube el logo. PNG o JPG hasta 2MB.</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div>
+                <label class="form-label">Logo <span class="required">*</span></label>
+                <p class="text-[11px] text-ink-400 mb-2">Se mostrará en el carrusel de sponsors del portal público.</p>
+                <div class="flex justify-center px-4 pt-6 pb-6 border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-md bg-ink-50/50 dark:bg-ink-800/40 hover:border-primary-400 transition-all cursor-pointer relative overflow-hidden group"
+                     onclick="document.getElementById('logo').click()">
+                    <div class="space-y-2 text-center z-10">
+                        <i id="preview-placeholder-logo" class="ti ti-cloud-upload text-4xl text-ink-300 group-hover:text-primary-500 transition-colors mb-2"></i>
+                        <img id="preview-logo" src="#" alt="Vista previa del logo" class="hidden mx-auto h-24 w-auto max-w-xs rounded-md ring-1 ring-ink-200 shadow-sm mb-3 object-contain" />
+                        <div class="flex text-sm text-ink-600 dark:text-ink-300 justify-center">
+                            <span class="font-semibold text-primary-600">Haz clic para subir</span>
+                            <input id="logo" name="logo" type="file" class="sr-only" accept="image/*" onchange="previewImage(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a href="/admin/info-management/sponsors"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar sponsor
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/js/admin/info-management/sponsor/create.js" asp-append-version="true"></script>
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

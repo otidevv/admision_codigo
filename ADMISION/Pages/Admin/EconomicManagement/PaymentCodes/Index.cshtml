@@ -1,0 +1,132 @@
+﻿@model IEnumerable<ADMISION.ENTITIES.Models.EconomicManagement.PaymentCode>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Códigos de Pago";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/economic-management" class="hover:text-primary-600 transition-colors">Gestión económica</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Códigos de Pago</span>
+        </div>
+        <div class="eyebrow">Conceptos de recaudación</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Códigos de <span class="font-serif font-normal text-primary-600">pago</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Configura los conceptos y códigos de recaudación por periodo.</p>
+    </div>
+    <a asp-action="Create" class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i>
+        Nuevo código
+    </a>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="atlas w-full">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Modalidad</th>
+                    <th class="text-right">Monto</th>
+                    <th>Periodo</th>
+                    <th>Estado</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="font-mono font-semibold text-primary-600">@Html.DisplayFor(m => item.Code)</td>
+                        <td class="text-ink-700 dark:text-ink-200">@Html.DisplayFor(m => item.Description)</td>
+                        <td class="text-ink-600 dark:text-ink-300">
+                            @if (item.PaymentCodeModalities.Any())
+                            {
+                                @(item.PaymentCodeModalities.FirstOrDefault()?.Modality?.Name ?? "-")
+                            }
+                            else
+                            {
+                                <span class="text-xs text-ink-400">-</span>
+                            }
+                        </td>
+                        <td class="text-right">
+                            @if (item.PaymentCodeModalities.Any())
+                            {
+                                <div class="flex flex-col gap-1 items-end">
+                                    @foreach (var mod in item.PaymentCodeModalities.Take(3))
+                                    {
+                                        <div class="text-xs flex items-baseline gap-1.5 justify-end">
+                                            <span class="font-mono tabular-nums font-semibold text-ink-900 dark:text-ink-100">S/ @mod.Amount.ToString("N2")</span>
+                                            <span class="text-ink-500">— @(mod.TypeModality?.Name ?? mod.Modality?.Name ?? "")</span>
+                                        </div>
+                                    }
+                                    @if (item.PaymentCodeModalities.Count > 3)
+                                    {
+                                        <div class="text-xs text-ink-400">y @(item.PaymentCodeModalities.Count - 3) más...</div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-xs text-ink-400">-</span>
+                            }
+                        </td>
+                        <td class="text-ink-600 dark:text-ink-300">
+                            <span class="badge b-violet">@Html.DisplayFor(m => item.Term.Name)</span>
+                        </td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="badge b-green">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge b-gray">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-ink-400"></span> Inactivo
+                                </span>
+                            }
+                        </td>
+                        <td class="text-right">
+                            <div class="flex justify-end gap-2">
+                                <a asp-action="Edit" asp-route-id="@item.Id"
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                   title="Editar">
+                                    <i class="ti ti-edit text-xs"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="inline delete-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="button"
+                                            class="btn-delete inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                            data-name="@item.Code"
+                                            title="Eliminar">
+                                        <i class="ti ti-trash text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (!Model.Any())
+    {
+        <div class="py-14 text-center">
+            <i class="ti ti-receipt text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 text-sm font-medium">No hay códigos de pago registrados.</p>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/economic-management/payment-codes/index.js" asp-append-version="true"></script>
+}

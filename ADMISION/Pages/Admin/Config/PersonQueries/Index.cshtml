@@ -1,0 +1,88 @@
+@model List<ADMISION.ENTITIES.Models.Integrations.ExternalApi>
+
+@{
+    ViewData["Title"] = "Consultas por DNI";
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+
+    string CategoryBadge(string c) => c switch
+    {
+        "Academic" => "b-blue",
+        "Payment"  => "b-amber",
+        _          => "b-gray"
+    };
+
+    string CategoryIcon(string c) => c switch
+    {
+        "Academic" => "ti-school",
+        "Payment"  => "ti-coin",
+        _          => "ti-plug"
+    };
+}
+
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/config" class="hover:text-primary-600 transition-colors">Configuración</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Consultas por DNI</span>
+        </div>
+        <div class="eyebrow">Integraciones</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Consultas por <span class="font-serif font-normal text-primary-600">DNI</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1 max-w-2xl">
+            Selecciona una API registrada, ingresa el DNI y consulta información académica o de pagos de un postulante.
+        </p>
+    </div>
+    <div>
+        <a href="/admin/config/apis"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-plug text-xs"></i> Administrar APIs
+        </a>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-6 p-4 bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-200 dark:ring-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-md flex items-center gap-3">
+        <i class="ti ti-circle-check"></i>
+        <span class="text-sm">@TempData["Success"]</span>
+    </div>
+}
+
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    @if (Model != null && Model.Any())
+    {
+        foreach (var api in Model)
+        {
+            <a href="/admin/consultas/@api.Id"
+               class="fade-up group bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all flex flex-col gap-3 hover:ring-primary-300/60 dark:hover:ring-primary-500/30">
+                <div class="flex items-start justify-between">
+                    <span class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 flex items-center justify-center text-[15px] group-hover:scale-[1.03] transition-transform">
+                        <i class="ti @CategoryIcon(api.Category)"></i>
+                    </span>
+                    <span class="badge @CategoryBadge(api.Category) text-[10px]">@api.Category</span>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-ink-900 dark:text-ink-100 text-[14px] tracking-tight">@api.Name</h4>
+                    @if (!string.IsNullOrWhiteSpace(api.Description))
+                    {
+                        <p class="text-[11.5px] text-ink-500 mt-1 leading-relaxed">@api.Description</p>
+                    }
+                </div>
+                <code class="text-[10.5px] text-ink-400 dark:text-ink-500 font-mono truncate">@api.Url</code>
+                <div class="mt-auto pt-2 flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Consultar <i class="ti ti-arrow-right text-[9px]"></i>
+                </div>
+            </a>
+        }
+    }
+    else
+    {
+        <div class="col-span-full py-14 text-center">
+            <i class="ti ti-search text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 text-sm font-medium">No hay APIs de consulta registradas.</p>
+            <p class="text-ink-400 text-xs mt-1">Registra una API con categoría Academic o Payment en <a href="/admin/config/apis" class="text-primary-600 underline">APIs externas</a>.</p>
+        </div>
+    }
+</section>

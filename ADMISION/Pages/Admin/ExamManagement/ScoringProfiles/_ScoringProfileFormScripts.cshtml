@@ -1,0 +1,12 @@
+@model ADMISION.Models.ViewModels.Admin.ScoringProfileFormModel
+@{
+    var terms = (ViewData["Terms"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var defaultTermId = ViewData["DefaultTermId"]?.ToString() ?? "";
+}
+<script>
+    window.ScoringProfileFormConfig = {
+        terms: @Html.Raw(Json.Serialize(terms.Select(t => new { id = (string)t.Id.ToString(), name = (string)t.Name }))),
+        defaultTermId: @Html.Raw(Json.Serialize(defaultTermId))
+    };
+</script>
+<script src="~/js/admin/exam-management/scoring-profiles/form.js" asp-append-version="true"></script>

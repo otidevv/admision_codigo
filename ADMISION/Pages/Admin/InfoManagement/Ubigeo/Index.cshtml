@@ -1,0 +1,357 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using ADMISION.ENTITIES.Constants
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@model dynamic
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Ubigeo";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Ubigeo</span>
+        </div>
+        <div class="eyebrow">Ubicación geográfica</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Ubicación geográfica <span class="font-serif font-normal">(Ubigeo)</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Gestión de departamentos, provincias y distritos del Perú.</p>
+    </div>
+</section>
+
+<!-- Stats cards -->
+<section class="fade-up grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 flex items-center gap-4">
+        <span class="w-12 h-12 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-xl">
+            <i class="ti ti-map-pin"></i>
+        </span>
+        <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-500">Departamentos</p>
+            <p class="text-2xl font-semibold text-ink-900 dark:text-ink-100 tracking-tight">@ViewBag.DeptCount</p>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 flex items-center gap-4">
+        <span class="w-12 h-12 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-600 inline-flex items-center justify-center text-xl">
+            <i class="ti ti-building"></i>
+        </span>
+        <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-500">Provincias</p>
+            <p class="text-2xl font-semibold text-ink-900 dark:text-ink-100 tracking-tight">@ViewBag.ProvCount</p>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 flex items-center gap-4">
+        <span class="w-12 h-12 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center text-xl">
+            <i class="ti ti-map-pin"></i>
+        </span>
+        <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-500">Distritos</p>
+            <p class="text-2xl font-semibold text-ink-900 dark:text-ink-100 tracking-tight">@ViewBag.DistCount</p>
+        </div>
+    </div>
+</section>
+
+<!-- Import section -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-file-import text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Importar data RENIEC (CSV)</h2>
+            <p class="text-[11.5px] text-ink-500">Sube el archivo formateado por el RENIEC para actualizar los registros</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 space-y-5">
+        @if (TempData["Success"] != null)
+        {
+            <div class="p-3 rounded-md bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-200/60 dark:ring-emerald-500/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-3">
+                <i class="ti ti-circle-check"></i>
+                <p class="text-sm font-semibold">@TempData["Success"]</p>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="p-3 rounded-md bg-rose-50 dark:bg-rose-500/10 ring-1 ring-rose-200/60 dark:ring-rose-500/30 text-rose-700 dark:text-rose-300 flex items-center gap-3">
+                <i class="ti ti-alert-triangle"></i>
+                <p class="text-sm font-semibold">@TempData["Error"]</p>
+            </div>
+        }
+
+        <form asp-action="ImportCsv" method="post" enctype="multipart/form-data" class="max-w-2xl space-y-5">
+            <div>
+                <partial name="_CustomSelect" model='new { Id = "CountryId", Name = "countryId", Label = "País destino", Required = true }' />
+                <p class="text-[11.5px] text-ink-500 mt-1.5">Los departamentos importados se asociarán a este país.</p>
+            </div>
+
+            <div>
+                <label for="csvFile" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">
+                    Seleccionar archivo .csv <span class="text-rose-500">*</span>
+                </label>
+                <label for="csvFile"
+                       class="block cursor-pointer rounded-md ring-1 ring-dashed ring-ink-200 dark:ring-ink-700 bg-ink-50/40 dark:bg-ink-800/40 hover:ring-primary-400 hover:bg-primary-50/40 transition-colors p-6 text-center">
+                    <i id="csv-icon" class="ti ti-file-spreadsheet text-3xl text-ink-300 dark:text-ink-500 mb-3 block"></i>
+                    <div id="csv-info" class="hidden mb-2">
+                        <span id="csv-name" class="block text-sm font-semibold text-ink-900 dark:text-ink-100"></span>
+                        <span id="csv-size" class="block text-[11.5px] text-ink-500"></span>
+                    </div>
+                    <div id="csv-placeholder">
+                        <p class="text-sm text-ink-700 dark:text-ink-200 font-medium">Arrastra o haz clic para seleccionar</p>
+                        <p class="text-[11.5px] text-ink-500 mt-1">Solo archivos .csv</p>
+                    </div>
+                    <input id="csvFile" type="file" name="file" accept=".csv" required class="sr-only"
+                           onchange="handleCsvSelect(this)" />
+                </label>
+                <p class="text-[11.5px] text-ink-500 mt-2 flex items-center gap-1.5">
+                    <i class="ti ti-info-circle text-primary-500"></i>
+                    Columnas requeridas: <span class="font-mono text-ink-700 dark:text-ink-200">UBIGEO, DEPARTAMENTO, PROVINCIA, DISTRITO</span>.
+                </p>
+            </div>
+
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                <button type="submit"
+                        class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-upload text-xs"></i> Iniciar importación
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Guía de formato -->
+    <div class="border-t border-ink-200/60 dark:border-ink-800/60 bg-ink-50/60 dark:bg-ink-800/40 px-4 sm:px-5 py-5">
+        <div class="flex items-center gap-3 mb-3">
+            <span class="w-9 h-9 rounded-md bg-secondary-100 dark:bg-secondary-500/15 text-secondary-700 dark:text-secondary-300 inline-flex items-center justify-center">
+                <i class="ti ti-bulb text-sm"></i>
+            </span>
+            <h3 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Guía de formato RENIEC</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-[11.5px] font-bold uppercase tracking-[0.14em] text-ink-500 mb-2">Ejemplo de registros</p>
+                <code class="block bg-white dark:bg-ink-900 ring-1 ring-ink-200/60 dark:ring-ink-700 p-3 rounded-md font-mono text-[11.5px] text-ink-700 dark:text-ink-200 leading-relaxed">
+                    UBIGEO,DEPARTAMENTO,PROVINCIA,DISTRITO<br />
+                    010101,AMAZONAS,CHACHAPOYAS,CHACHAPOYAS<br />
+                    010102,AMAZONAS,CHACHAPOYAS,ASUNCION
+                </code>
+            </div>
+            <ul class="space-y-2 text-ink-600 dark:text-ink-300 text-[13px] leading-relaxed">
+                <li class="flex gap-2"><i class="ti ti-circle text-[5px] mt-2 text-primary-500"></i> La importación crea departamentos y provincias faltantes automáticamente.</li>
+                <li class="flex gap-2"><i class="ti ti-circle text-[5px] mt-2 text-primary-500"></i> Los registros se vinculan por el código de 2 (Dpt), 4 (Prov) y 6 (Dist) dígitos.</li>
+                <li class="flex gap-2"><i class="ti ti-circle text-[5px] mt-2 text-primary-500"></i> La codificación RENIEC es la estándar para procesos gubernamentales en Perú.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ===== GESTIÓN MANUAL ===== -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mt-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center">
+            <i class="ti ti-pencil-plus text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Gestión manual</h2>
+            <p class="text-[11.5px] text-ink-500">Administra departamentos, provincias y distritos manualmente.</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 space-y-5">
+        <!-- Filtro por país -->
+        <div class="max-w-xs" id="manualCountryWrapper">
+            <partial name="_CustomSelect" model='new {
+                Id = "UbigeoCountryId",
+                Name = "ubigeoCountryId",
+                Label = "Seleccionar país",
+                Required = true,
+                Placeholder = "Seleccione un país…"
+            }' />
+        </div>
+
+        <!-- Paneles jerárquicos -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Departamentos -->
+            <div class="ring-1 ring-ink-200/60 dark:ring-ink-800/60 rounded-md overflow-hidden bg-ink-50/40 dark:bg-ink-800/20 flex flex-col">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-ink-200/60 dark:border-ink-800/60 bg-white dark:bg-ink-900">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-map-pin text-primary-500 text-sm"></i>
+                        <h3 class="text-[13px] font-semibold text-ink-900 dark:text-ink-100">Departamentos</h3>
+                        <span id="deptCount" class="badge b-gray text-[10px] hidden">0</span>
+                    </div>
+                    <button type="button" id="btnAddDept" disabled
+                            class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Nuevo departamento" data-modal-open="deptModal">
+                        <i class="ti ti-plus text-xs"></i>
+                    </button>
+                </div>
+                <div id="deptList" class="divide-y divide-ink-100 dark:divide-ink-800/60 max-h-[420px] overflow-y-auto">
+                    <div class="p-6 text-center text-ink-400 text-sm empty-state">
+                        <i class="ti ti-building text-2xl mb-2 block"></i>
+                        <p>Seleccione un país para listar</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provincias -->
+            <div class="ring-1 ring-ink-200/60 dark:ring-ink-800/60 rounded-md overflow-hidden bg-ink-50/40 dark:bg-ink-800/20 flex flex-col">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-ink-200/60 dark:border-ink-800/60 bg-white dark:bg-ink-900">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-building text-amber-500 text-sm"></i>
+                        <h3 class="text-[13px] font-semibold text-ink-900 dark:text-ink-100">Provincias</h3>
+                        <span id="provCount" class="badge b-gray text-[10px] hidden">0</span>
+                    </div>
+                    <button type="button" id="btnAddProv" disabled
+                            class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-amber-200 dark:ring-amber-500/30 text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Nueva provincia" data-modal-open="provModal">
+                        <i class="ti ti-plus text-xs"></i>
+                    </button>
+                </div>
+                <div id="provList" class="divide-y divide-ink-100 dark:divide-ink-800/60 max-h-[420px] overflow-y-auto">
+                    <div class="p-6 text-center text-ink-400 text-sm empty-state">
+                        <i class="ti ti-building text-2xl mb-2 block"></i>
+                        <p>Seleccione un departamento</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distritos -->
+            <div class="ring-1 ring-ink-200/60 dark:ring-ink-800/60 rounded-md overflow-hidden bg-ink-50/40 dark:bg-ink-800/20 flex flex-col">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-ink-200/60 dark:border-ink-800/60 bg-white dark:bg-ink-900">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-map-2 text-emerald-500 text-sm"></i>
+                        <h3 class="text-[13px] font-semibold text-ink-900 dark:text-ink-100">Distritos</h3>
+                        <span id="distCount" class="badge b-gray text-[10px] hidden">0</span>
+                    </div>
+                    <button type="button" id="btnAddDist" disabled
+                            class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-emerald-200 dark:ring-emerald-500/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Nuevo distrito" data-modal-open="distModal">
+                        <i class="ti ti-plus text-xs"></i>
+                    </button>
+                </div>
+                <div id="distList" class="divide-y divide-ink-100 dark:divide-ink-800/60 max-h-[420px] overflow-y-auto">
+                    <div class="p-6 text-center text-ink-400 text-sm empty-state">
+                        <i class="ti ti-map-2 text-2xl mb-2 block"></i>
+                        <p>Seleccione una provincia</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@{
+    var __afToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+
+<!-- ===== MODAL: Departamento ===== -->
+<div id="deptModal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="deptModal-title" aria-hidden="true">
+    <div class="adm-modal__overlay" data-modal-close></div>
+    <div class="adm-modal__card adm-modal__card--sm">
+        <header class="adm-modal__header">
+            <div>
+                <div class="eyebrow">Ubicación geográfica</div>
+                <h3 id="deptModal-title" class="adm-modal__title mt-1">Nuevo departamento</h3>
+                <p class="adm-modal__subtitle">Ingrese los datos del departamento</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar"><i class="ti ti-x"></i></button>
+        </header>
+        <div class="adm-modal__body">
+            <form id="deptForm" class="space-y-4">
+                <input name="__RequestVerificationToken" type="hidden" value="@__afToken" />
+                <input type="hidden" id="deptId" name="Id" />
+                <partial name="_FormInput" model='new { Id = "deptName", Name = "Name", Label = "Nombre del departamento", Required = true, Placeholder = "Ej: Amazonas", IconLeft = "ti-map-pin" }' />
+                <partial name="_FormInput" model='new { Id = "deptCode", Name = "Code", Label = "Código (2 dígitos)", Required = true, Placeholder = "Ej: 01", IconLeft = "ti-hash", MaxLength = "2", InputMode = "numeric" }' />
+            </form>
+        </div>
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">Cancelar</button>
+            <button type="submit" form="deptForm" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- ===== MODAL: Provincia ===== -->
+<div id="provModal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="provModal-title" aria-hidden="true">
+    <div class="adm-modal__overlay" data-modal-close></div>
+    <div class="adm-modal__card adm-modal__card--sm">
+        <header class="adm-modal__header">
+            <div>
+                <div class="eyebrow">Ubicación geográfica</div>
+                <h3 id="provModal-title" class="adm-modal__title mt-1">Nueva provincia</h3>
+                <p class="adm-modal__subtitle">Ingrese los datos de la provincia</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar"><i class="ti ti-x"></i></button>
+        </header>
+        <div class="adm-modal__body">
+            <form id="provForm" class="space-y-4">
+                <input name="__RequestVerificationToken" type="hidden" value="@__afToken" />
+                <input type="hidden" id="provId" name="Id" />
+                <input type="hidden" id="provDeptId" name="DepartmentId" />
+                <partial name="_FormInput" model='new { Id = "provName", Name = "Name", Label = "Nombre de la provincia", Required = true, Placeholder = "Ej: Chachapoyas", IconLeft = "ti-building" }' />
+                <partial name="_FormInput" model='new { Id = "provCode", Name = "Code", Label = "Código (4 dígitos)", Required = true, Placeholder = "Ej: 0101", IconLeft = "ti-hash", MaxLength = "4", InputMode = "numeric" }' />
+            </form>
+        </div>
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">Cancelar</button>
+            <button type="submit" form="provForm" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- ===== MODAL: Distrito ===== -->
+<div id="distModal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="distModal-title" aria-hidden="true">
+    <div class="adm-modal__overlay" data-modal-close></div>
+    <div class="adm-modal__card adm-modal__card--sm">
+        <header class="adm-modal__header">
+            <div>
+                <div class="eyebrow">Ubicación geográfica</div>
+                <h3 id="distModal-title" class="adm-modal__title mt-1">Nuevo distrito</h3>
+                <p class="adm-modal__subtitle">Ingrese los datos del distrito</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar"><i class="ti ti-x"></i></button>
+        </header>
+        <div class="adm-modal__body">
+            <form id="distForm" class="space-y-4">
+                <input name="__RequestVerificationToken" type="hidden" value="@__afToken" />
+                <input type="hidden" id="distId" name="Id" />
+                <input type="hidden" id="distProvId" name="ProvinceId" />
+                <partial name="_FormInput" model='new { Id = "distName", Name = "Name", Label = "Nombre del distrito", Required = true, Placeholder = "Ej: Chachapoyas", IconLeft = "ti-map-2" }' />
+                <partial name="_FormInput" model='new { Id = "distCode", Name = "Code", Label = "Código (6 dígitos)", Required = true, Placeholder = "Ej: 010101", IconLeft = "ti-hash", MaxLength = "6", InputMode = "numeric" }' />
+            </form>
+        </div>
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">Cancelar</button>
+            <button type="submit" form="distForm" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- ===== MODAL: Confirmación de eliminación ===== -->
+<partial name="_Modal" model='new {
+    Id = "deleteUbigeoModal",
+    Size = "sm",
+    Eyebrow = "Confirmación",
+    Title = "¿Eliminar registro?",
+    Subtitle = "Esta acción no se puede deshacer. También se eliminarán los registros hijos asociados.",
+    CloseOnBackdrop = true,
+    ShowClose = false,
+    Footer = "<button type=\"button\" data-modal-close class=\"btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all\">Cancelar</button><button type=\"button\" id=\"confirmDeleteUbigeo\" class=\"inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all bg-rose-600 text-white hover:bg-rose-700\"><i class=\"ti ti-trash text-xs\"></i> Eliminar</button>"
+}' />
+
+@section Scripts {
+    <script>
+        window.UbigeoCountries = @Html.Raw(Json.Serialize(ViewBag.Countries));
+    </script>
+    <script src="~/js/admin/info-management/ubigeo/index.js" asp-append-version="true"></script>
+}

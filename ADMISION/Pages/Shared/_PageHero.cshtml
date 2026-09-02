@@ -1,0 +1,100 @@
+@*
+================================================================================
+  _PageHero.cshtml  —  Encabezado estándar de página admin.
+  Layout: eyebrow · h1 · subtítulo · breadcrumb opcional · slot de acciones.
+
+  Uso:
+    <partial name="_PageHero" model='new {
+        Eyebrow      = "Configuración académica",
+        Title        = "Periodos académicos",
+        TitleAccent  = "académicos",     // se renderiza en primary
+        Subtitle     = "Administra los ciclos…",
+        Breadcrumbs  = new[] {
+            new { Label = "Periodos", Href = "/admin/periodos" },
+            new { Label = "Crear",    Href = (string)null }
+        },
+        ActionsHtml  = "<a href=\"/admin/periodos/crear\" class=\"btn-grad px-4 py-2.5 rounded-md text-sm font-semibold\">Nuevo</a>"
+    }' />
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    object? Raw(string p) => t?.GetProperty(p)?.GetValue(__m);
+
+    var eyebrow     = V("Eyebrow");
+    var title       = V("Title");
+    var titleAccent = V("TitleAccent");
+    var subtitle    = V("Subtitle");
+    var actionsHtml = V("ActionsHtml");
+    var breadcrumbs = Raw("Breadcrumbs") as System.Collections.IEnumerable;
+
+    string TitleHtml() {
+        if (string.IsNullOrEmpty(titleAccent) || !title.Contains(titleAccent))
+            return System.Net.WebUtility.HtmlEncode(title);
+        var idx = title.IndexOf(titleAccent, StringComparison.OrdinalIgnoreCase);
+        var pre  = System.Net.WebUtility.HtmlEncode(title.Substring(0, idx));
+        var hit  = System.Net.WebUtility.HtmlEncode(title.Substring(idx, titleAccent.Length));
+        var post = System.Net.WebUtility.HtmlEncode(title.Substring(idx + titleAccent.Length));
+        return $"{pre}<span class=\"font-serif italic font-normal text-primary-600\">{hit}</span>{post}";
+    }
+}
+
+<section class="fade-up mb-5">
+    @if (breadcrumbs != null)
+    {
+        <nav class="flex items-center gap-1.5 text-[11px] text-ink-400 mb-2" aria-label="Breadcrumb">
+            @{
+                var crumbs = breadcrumbs.Cast<object>().ToList();
+                for (int i = 0; i < crumbs.Count; i++)
+                {
+                    var c   = crumbs[i];
+                    var ct  = c.GetType();
+                    var lbl = ct.GetProperty("Label")?.GetValue(c)?.ToString();
+                    var hrf = ct.GetProperty("Href")?.GetValue(c)?.ToString();
+                    var isLast = i == crumbs.Count - 1;
+                    if (!string.IsNullOrEmpty(hrf) && !isLast)
+                    {
+                        <a href="@hrf" class="hover:text-primary-600 transition-colors">@lbl</a>
+                    }
+                    else
+                    {
+                        <span class="text-ink-700 font-medium">@lbl</span>
+                    }
+                    if (!isLast)
+                    {
+                        <i class="ti ti-chevron-right text-[8px]"></i>
+                    }
+                }
+            }
+        </nav>
+    }
+
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0">
+            @if (!string.IsNullOrEmpty(eyebrow))
+            {
+                <div class="eyebrow">@eyebrow</div>
+            }
+            @if (!string.IsNullOrEmpty(title))
+            {
+                <h1 class="mt-0.5 text-xl sm:text-[22px] font-semibold tracking-[-0.015em] text-ink-900 dark:text-ink-100 leading-tight">
+                    @Html.Raw(TitleHtml())
+                </h1>
+            }
+            @if (!string.IsNullOrEmpty(subtitle))
+            {
+                <p class="text-ink-500 text-[12.5px] mt-1 max-w-2xl">@subtitle</p>
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(actionsHtml))
+        {
+            <div class="flex flex-wrap items-center gap-2">
+                @Html.Raw(actionsHtml)
+            </div>
+        }
+    </div>
+</section>

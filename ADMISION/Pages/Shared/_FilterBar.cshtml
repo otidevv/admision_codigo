@@ -1,0 +1,68 @@
+@*
+================================================================================
+  _FilterBar.cshtml  —  Contenedor estándar para barras de filtro.
+
+  Uso (forma "slot"):
+    <partial name="_FilterBar" model='new {
+        ContentHtml = "<div class=\"flex-1 min-w-[260px]\">...</div>" +
+                      "<button class=\"btn-soft\">Limpiar</button>"
+    }' />
+
+  Forma simple con search + selects:
+    <partial name="_FilterBar" model='new {
+        SearchId         = "termsSearch",
+        SearchPlaceholder= "Buscar periodo…",
+        ClearButton      = true,
+        OnClearEvent     = "filters:clear"
+    }' />
+
+  Cuando uses la forma simple, el evento `terms:search` se emite al teclear.
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    bool B(string p, bool d = false) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        return v is bool b ? b : d;
+    }
+
+    var contentHtml      = V("ContentHtml");
+    var searchId         = V("SearchId");
+    var searchPlaceholder= V("SearchPlaceholder", "Buscar…");
+    var searchEvent      = V("SearchEvent", "filterbar:search");
+    var clearButton      = B("ClearButton", false);
+    var onClearEvent     = V("OnClearEvent", "filterbar:clear");
+}
+
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-3 sm:p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-2.5">
+        @if (!string.IsNullOrEmpty(searchId))
+        {
+            <partial name="_SearchInput" model='@(new {
+                Id = searchId,
+                Placeholder = searchPlaceholder,
+                Width = "flex-1 min-w-[220px] sm:max-w-md",
+                EventName = searchEvent
+            })' />
+        }
+
+        @if (!string.IsNullOrEmpty(contentHtml))
+        {
+            @Html.Raw(contentHtml)
+        }
+
+        @if (clearButton)
+        {
+            <button type="button"
+                    id="@(searchId)-clear"
+                    class="text-[11.5px] font-semibold text-ink-500 hover:text-primary-600 px-2 py-1 transition-colors"
+                    onclick="window.dispatchEvent(new CustomEvent('@onClearEvent'))">
+                <i class="ti ti-x mr-1 text-[10px]"></i> Limpiar filtros
+            </button>
+        }
+    </div>
+</section>

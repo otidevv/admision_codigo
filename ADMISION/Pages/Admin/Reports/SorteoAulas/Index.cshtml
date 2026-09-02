@@ -1,0 +1,303 @@
+@model ADMISION.Models.ViewModels.Reports.SorteoAulasReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Sorteo de Aulas";
+
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)ViewBag.Terms
+                ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>();
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Sorteo de Aulas</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Asignación de aulas</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Sorteo de <span class="font-serif font-normal text-primary-600">aulas</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Resumen y listado de asignaciones por salón, pabellón y grupo.</p>
+        </div>
+        <div class="flex flex-wrap gap-2" id="exportButtons" style="display:none">
+            <div class="relative" id="exportResumenDropdown">
+                <button onclick="toggleDropdown('exportResumenDropdown')"
+                        class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 hover:bg-ink-100 transition-all">
+                    <i class="ti ti-chart-bar text-xs"></i> Resumen <i class="ti ti-chevron-down text-[10px]"></i>
+                </button>
+                <div class="dropdown-menu hidden absolute right-0 mt-1 w-48 bg-white dark:bg-ink-800 rounded-md ring-soft shadow-lg z-20">
+                    <a id="linkResumenExcel" href="#"
+                       class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors">
+                        <i class="ti ti-file-spreadsheet text-green-600 text-xs"></i> Excel
+                    </a>
+                    <a id="linkResumenPdf" href="#"
+                       class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors">
+                        <i class="ti ti-file text-rose-600 text-xs"></i> PDF
+                    </a>
+                </div>
+            </div>
+            <div class="relative" id="exportListadoDropdown">
+                <button onclick="toggleDropdown('exportListadoDropdown')"
+                        class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 hover:bg-ink-100 transition-all">
+                    <i class="ti ti-list text-xs"></i> Listado <i class="ti ti-chevron-down text-[10px]"></i>
+                </button>
+                <div class="dropdown-menu hidden absolute right-0 mt-1 w-48 bg-white dark:bg-ink-800 rounded-md ring-soft shadow-lg z-20">
+                    <a id="linkListadoExcel" href="#"
+                       class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors">
+                        <i class="ti ti-file-spreadsheet text-green-600 text-xs"></i> Excel
+                    </a>
+                    <a id="linkListadoPdf" href="#"
+                       class="flex items-center gap-2 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors">
+                        <i class="ti ti-file text-rose-600 text-xs"></i> PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filters -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5 mb-6">
+    <div class="flex flex-wrap items-end gap-4">
+        <div class="flex-1 min-w-[220px]">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo</label>
+            <div class="relative">
+                <i class="ti ti-calendar absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select id="termSelect"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Seleccionar</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id">@t.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="flex-1 min-w-[220px]">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Modalidad</label>
+            <div class="relative">
+                <i class="ti ti-school absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select id="modalitySelect"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Seleccionar</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="loadReport()"
+                class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-filter text-xs"></i> Filtrar
+        </button>
+    </div>
+</section>
+
+<!-- Results container -->
+<div id="reportResults">
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">
+        <i class="ti ti-building text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 font-medium text-sm">Selecciona un periodo y modalidad para ver el reporte.</p>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        const termSelect = document.getElementById('termSelect');
+        const modalitySelect = document.getElementById('modalitySelect');
+        const resultsContainer = document.getElementById('reportResults');
+        const exportButtons = document.getElementById('exportButtons');
+
+        let currentTermId = '';
+        let currentModalityId = '';
+
+        termSelect.addEventListener('change', async () => {
+            const termId = termSelect.value;
+            currentTermId = termId;
+            modalitySelect.innerHTML = '<option value="">Cargando...</option>';
+            exportButtons.style.display = 'none';
+
+            if (!termId) {
+                modalitySelect.innerHTML = '<option value="">Seleccionar</option>';
+                renderEmpty('Selecciona un periodo y modalidad para ver el reporte.');
+                return;
+            }
+
+            try {
+                const resp = await fetch('/admin/reportes/sorteo-aulas/modalities?termId=' + termId);
+                const data = await resp.json();
+                modalitySelect.innerHTML = '<option value="">Seleccionar</option>';
+                data.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.name;
+                    modalitySelect.appendChild(opt);
+                });
+            } catch (e) {
+                modalitySelect.innerHTML = '<option value="">Error al cargar</option>';
+            }
+        });
+
+        async function loadReport() {
+            const termId = termSelect.value;
+            const modalityId = modalitySelect.value;
+
+            if (!termId || !modalityId) {
+                renderEmpty('Selecciona un periodo y modalidad para ver el reporte.');
+                exportButtons.style.display = 'none';
+                return;
+            }
+
+            currentTermId = termId;
+            currentModalityId = modalityId;
+
+            resultsContainer.innerHTML = '<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center"><div class="inline-block w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-ink-400 font-medium text-sm">Cargando reporte...</p></section>';
+
+            try {
+                const resp = await fetch('/admin/reportes/sorteo-aulas/data?termId=' + termId + '&modalityId=' + modalityId);
+                const data = await resp.json();
+
+                if (!data.hasData) {
+                    renderEmpty('No hay asignaciones para este periodo y modalidad.');
+                    exportButtons.style.display = 'none';
+                    return;
+                }
+
+                updateExportLinks(termId, modalityId);
+                exportButtons.style.display = 'flex';
+                renderReport(data);
+            } catch (e) {
+                renderEmpty('Error al cargar el reporte.');
+                exportButtons.style.display = 'none';
+            }
+        }
+
+        function updateExportLinks(termId, modalityId) {
+            const base = '/admin/reportes/sorteo-aulas/export/';
+            const params = '?termId=' + termId + '&modalityId=' + modalityId;
+            document.getElementById('linkResumenExcel').href = base + 'resumen/excel' + params;
+            document.getElementById('linkResumenPdf').href = base + 'resumen/pdf' + params;
+            document.getElementById('linkListadoExcel').href = base + 'listado/excel' + params;
+            document.getElementById('linkListadoPdf').href = base + 'listado/pdf' + params;
+        }
+
+        function renderEmpty(msg) {
+            resultsContainer.innerHTML =
+                '<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">' +
+                '<i class="ti ti-building text-4xl text-ink-300 mb-3 block"></i>' +
+                '<p class="text-ink-400 font-medium text-sm">' + msg + '</p></section>';
+        }
+
+        function renderReport(data) {
+            let html = '';
+
+            // KPI Cards
+            html += '<section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">';
+            html += kpiCard('ti-users', 'bg-primary-50 text-primary-600', 'Asignados', data.summary.totalAsignados);
+            html += kpiCard('ti-door', 'bg-secondary-50 text-secondary-600', 'Aulas con asignaciones', data.summary.totalAulas);
+            html += kpiCard('ti-armchair', 'bg-primary-50 text-primary-600', 'Aforo total', data.summary.totalAforo);
+            html += '</section>';
+
+            // Resumen por Pabellón
+            data.summary.porPabellon.forEach(function (pavilion) {
+                html += '<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">';
+                html += '<div class="px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between">';
+                html += '<div class="flex items-center gap-3">';
+                html += '<span class="badge b-blue">' + esc(pavilion.pavilionCode) + '</span>';
+                html += '<h3 class="font-semibold text-ink-900 dark:text-ink-100 text-sm">' + esc(pavilion.pavilionName) + '</h3>';
+                html += '</div>';
+                html += '<span class="text-xs font-semibold text-ink-500">' + pavilion.totalAsignados + ' asignados / ' + pavilion.totalAforo + ' aforo</span>';
+                html += '</div>';
+
+                html += '<div class="p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">';
+                pavilion.groups.forEach(function (group) {
+                    html += '<div class="ring-1 ring-ink-200 dark:ring-ink-700 rounded-md overflow-hidden">';
+                    html += '<div class="px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border-b border-ink-200/40 dark:border-ink-700/40 flex items-center justify-between">';
+                    html += '<span class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Grupo ' + esc(group.groupName) + '</span>';
+                    html += '<span class="text-[11px] font-semibold text-blue-600/80">' + group.totalAsignados + ' / ' + group.capacidad + '</span>';
+                    html += '</div>';
+
+                    html += '<div class="divide-y divide-ink-100 dark:divide-ink-800">';
+                    group.classrooms.forEach(function (c) {
+                        var capacityClass = c.asignados >= c.capacidad ? 'text-rose-600' : 'text-ink-900 dark:text-ink-100';
+                        html += '<div class="px-4 py-3 flex items-center justify-between gap-3">';
+                        html += '<div class="min-w-0">';
+                        html += '<p class="text-sm font-semibold text-ink-900 dark:text-ink-100 truncate">' + esc(c.classroomName) + '</p>';
+                        var sub = 'Piso ' + c.piso;
+                        if (c.docente) sub += ' · ' + esc(c.docente);
+                        if (c.areaTematica) sub += ' · ' + esc(c.areaTematica);
+                        html += '<p class="text-[11px] text-ink-500 truncate">' + sub + '</p>';
+                        html += '</div>';
+                        html += '<div class="text-right shrink-0">';
+                        html += '<p class="text-sm font-bold ' + capacityClass + '">' + c.asignados + '<span class="text-ink-400 font-normal text-xs">/' + c.capacidad + '</span></p>';
+                        html += '</div></div>';
+                    });
+                    html += '</div>';
+
+                    html += '<div class="px-4 py-2 bg-ink-50 dark:bg-ink-800/50 flex items-center justify-between">';
+                    html += '<span class="text-[11px] font-semibold text-ink-500">Total grupo</span>';
+                    html += '<span class="text-[11px] font-bold text-ink-900 dark:text-ink-100">' + group.totalAsignados + ' / ' + group.capacidad + '</span>';
+                    html += '</div></div>';
+                });
+                html += '</div></section>';
+            });
+
+            // Listado detallado
+            html += '<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">';
+            html += '<div class="px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60">';
+            html += '<h3 class="font-semibold text-ink-900 dark:text-ink-100 text-sm">Listado detallado de asignaciones</h3>';
+            html += '<p class="text-[11px] text-ink-500 mt-0.5">' + data.details.length + ' postulantes asignados, ordenados por aula</p>';
+            html += '</div>';
+            html += '<div class="overflow-x-auto">';
+            html += '<table class="atlas w-full"><thead><tr>';
+            html += '<th class="text-center">Foto</th><th class="text-center">Silla</th><th>Código</th><th>Apellidos</th><th>Nombres</th><th>Carrera</th><th>Aula</th>';
+            html += '</tr></thead><tbody>';
+            data.details.forEach(function (d) {
+                var fotoCell = d.fotoBase64
+                    ? '<img src="' + d.fotoBase64 + '" class="w-8 h-8 rounded-full object-cover" />'
+                    : '<span class="w-8 h-8 rounded-full bg-ink-100 inline-block"></span>';
+                html += '<tr>';
+                html += '<td class="text-center">' + fotoCell + '</td>';
+                html += '<td class="text-center text-ink-700 dark:text-ink-200">' + d.silla + '</td>';
+                html += '<td class="font-mono text-xs text-ink-700 dark:text-ink-200">' + esc(d.codigoPostulante) + '</td>';
+                html += '<td class="text-ink-900 dark:text-ink-100 text-sm">' + esc(d.apellidos) + '</td>';
+                html += '<td class="text-ink-900 dark:text-ink-100 text-sm">' + esc(d.nombres) + '</td>';
+                html += '<td class="text-ink-500 text-xs">' + esc(d.carrera) + '</td>';
+                html += '<td><span class="badge b-blue">' + esc(d.aula) + '</span></td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div></section>';
+
+            resultsContainer.innerHTML = html;
+        }
+
+        function kpiCard(icon, colors, label, value) {
+            return '<div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5 flex items-center gap-4">' +
+                '<span class="w-11 h-11 rounded-md ' + colors + ' inline-flex items-center justify-center text-sm"><i class="ti ti-' + icon + '"></i></span>' +
+                '<div><p class="text-[11px] text-ink-500 font-medium">' + label + '</p>' +
+                '<p class="text-xl font-bold text-ink-900 dark:text-ink-100">' + value + '</p></div></div>';
+        }
+
+        function esc(s) {
+            if (!s) return '';
+            var d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function toggleDropdown(id) {
+            var el = document.getElementById(id);
+            var menu = el.querySelector('.dropdown-menu');
+            document.querySelectorAll('.dropdown-menu').forEach(function (d) {
+                if (d !== menu) d.classList.add('hidden');
+            });
+            menu.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('[id$="Dropdown"]')) {
+                document.querySelectorAll('.dropdown-menu').forEach(function (d) { d.classList.add('hidden'); });
+            }
+        });
+    </script>
+}

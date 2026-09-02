@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Build performance: excluir node_modules/bin/obj del globbing de MSBuild -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);node_modules\**</DefaultItemExcludes>
+
+    <!-- Razor -->
+    <RazorCompileOnBuild Condition="'$(Configuration)' == 'Debug'">true</RazorCompileOnBuild>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>
+    <UseRazorSourceGenerator>true</UseRazorSourceGenerator>
+
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    Static Web Assets: fingerprint + compresión (gzip/brotli) es LENTÍSIMO en Debug
+    (LoadStaticWebAssetsBuildManifest ~60s en este proyecto). Se desactiva solo en Debug;
+    en Release / Publish sigue activo para producción.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <StaticWebAssetsFingerprintContent>false</StaticWebAssetsFingerprintContent>
+    <CompressionEnabled>false</CompressionEnabled>
+    <StaticWebAssetsEnableBuildCompression>false</StaticWebAssetsEnableBuildCompression>
+    <BuildCompressedStaticWebAssetsDisabled>true</BuildCompressedStaticWebAssetsDisabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\Admin\TeacherController\" />
+    <Folder Include="Middleware\" />
+    <ProjectReference Include="..\ADMISION.ENTITIES\ADMISION.ENTITIES.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="Hangfire" Version="1.8.23" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="QuestPDF" Version="2024.12.3" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="Scriban" Version="7.2.3" />
+    <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Las plantillas HTML deben copiarse al output para poder leerse en runtime. -->
+    <Content Include="Templates\Documents\**\*.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,114 @@
+@*
+    Cards de Documentos — lista una colección de DocumentViewModel con iconos por extensión.
+    Estilo Atlas: glass card + lift + chip de extensión + CTA gradient.
+
+    Usage:
+      <partial name="Components/_DocumentCard" model="Model.Prospects" />
+*@
+@model IEnumerable<ADMISION.Models.ViewModels.Public.DocumentViewModel>
+
+@functions {
+    record DocStyle(string Icon, string Accent, string Tint);
+
+    static string GetExtension(ADMISION.Models.ViewModels.Public.DocumentViewModel d)
+    {
+        var candidates = new[] { d.FileName, d.FileUrl };
+        foreach (var c in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(c)) continue;
+            var dot = c.LastIndexOf('.');
+            if (dot >= 0 && dot < c.Length - 1)
+                return c[(dot + 1)..].Trim().ToLowerInvariant();
+        }
+        if (!string.IsNullOrWhiteSpace(d.FileType))
+        {
+            var ft = d.FileType.ToLowerInvariant();
+            if (ft.Contains("pdf")) return "pdf";
+            if (ft.Contains("word") || ft.Contains("docx")) return "docx";
+            if (ft.Contains("sheet") || ft.Contains("excel") || ft.Contains("xlsx")) return "xlsx";
+            if (ft.Contains("presentation") || ft.Contains("powerpoint")) return "pptx";
+            if (ft.StartsWith("image")) return "png";
+            if (ft.Contains("zip") || ft.Contains("compressed")) return "zip";
+        }
+        return "";
+    }
+
+    static DocStyle StyleFor(string ext) => ext switch
+    {
+        "pdf"                                  => new("ti ti-file-text",        "bg-rose-500",    "bg-rose-50 text-rose-600"),
+        "doc" or "docx" or "odt"               => new("ti ti-file-text",       "bg-blue-500",    "bg-blue-50 text-blue-600"),
+        "xls" or "xlsx" or "csv" or "ods"      => new("ti ti-file-spreadsheet",      "bg-emerald-500", "bg-emerald-50 text-emerald-600"),
+        "ppt" or "pptx" or "odp"               => new("ti ti-file-text", "bg-orange-500",  "bg-orange-50 text-orange-600"),
+        "png" or "jpg" or "jpeg" or "gif" or "webp" or "svg"
+                                               => new("ti ti-photo",      "bg-violet-500",  "bg-violet-50 text-violet-600"),
+        "zip" or "rar" or "7z" or "tar" or "gz"
+                                               => new("ti ti-file-zip",     "bg-amber-500",   "bg-amber-50 text-amber-700"),
+        "txt" or "md"                          => new("ti ti-file-text",      "bg-ink-500",     "bg-ink-100 text-ink-600"),
+        _                                       => new("ti ti-file",            "bg-ink-500",     "bg-ink-100 text-ink-600")
+    };
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="max-w-lg mx-auto bg-white ring-soft rounded-md py-12 text-center">
+        <div class="w-14 h-14 rounded-md bg-ink-100 flex items-center justify-center mx-auto mb-3 text-ink-300">
+            <i class="ti ti-folder-open text-xl"></i>
+        </div>
+        <p class="text-ink-500 text-xs max-w-sm mx-auto">Aún no hay documentos publicados en esta sección.</p>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var doc in Model)
+        {
+            var ext      = GetExtension(doc);
+            var style    = StyleFor(ext);
+            var extLabel = string.IsNullOrEmpty(ext) ? "Archivo" : ext.ToUpperInvariant();
+
+            <article class="lift fade-up group bg-white ring-soft rounded-md overflow-hidden flex flex-col">
+
+
+
+                <div class="p-5 flex flex-col flex-1">
+                    <div class="flex items-start gap-2.5 mb-2">
+                        <span class="w-9 h-9 rounded-md @style.Tint flex items-center justify-center shrink-0">
+                            <i class="@style.Icon text-sm"></i>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-bold text-ink-900 tracking-tight">@doc.Title</h3>
+                            @if (!string.IsNullOrWhiteSpace(doc.Badge))
+                            {
+                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-400 mt-0.5">
+                                    <i class="ti ti-calendar mr-1"></i> @doc.Badge
+                                </p>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(doc.Description))
+                    {
+                        <p class="text-ink-500 text-xs leading-relaxed flex-1 mb-4 line-clamp-3">
+                            @doc.Description
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="flex-1"></div>
+                    }
+
+                    <div class="flex items-center justify-between gap-3 mt-auto">
+                        <span class="text-[10px] text-ink-400 font-medium truncate">
+                            @(string.IsNullOrWhiteSpace(doc.FileSize) ? doc.FileName : doc.FileSize)
+                        </span>
+                        <a href="/@doc.FileUrl" target="_blank" rel="noopener"
+                           class="btn-grad inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-md text-xs font-semibold">
+                            <i class="ti ti-download text-[11px]"></i>
+                            <span>Descargar</span>
+                        </a>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+}

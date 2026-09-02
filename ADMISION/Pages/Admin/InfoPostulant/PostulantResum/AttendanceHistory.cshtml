@@ -1,0 +1,87 @@
+@model List<ADMISION.Services.Interfaces.AttendanceHistoryItem>
+@using ADMISION.ENTITIES.Constants
+@using ADMISION.Models.Shared
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+
+    ViewData["Title"] = "Historial de Asistencia - " + fullName;
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Código",        Field = "codePostulant",  Type = "code",    Sortable = true },
+        new() { Label = "Postulante",    Field = "fullName",       Type = "text",    Sortable = true },
+        new() { Label = "DNI",           Field = "document",       Type = "code" },
+        new() { Label = "Carrera",       Field = "careerName",     Type = "text",    Sortable = true },
+        new() { Label = "Modalidad",     Field = "modalityName",   Type = "badge",
+            BadgeMap = new() { { "Ordinario", "blue" }, { "Cepre", "purple" }, { "Extraordinario", "green" } } },
+        new() { Label = "Periodo",       Field = "termName",       Type = "badge" },
+        new() { Label = "Estado",        Field = "biometricStatus",Type = "badge",
+            BadgeMap = new() { { "Verificado", "green" }, { "Manual", "yellow" }, { "Fallido", "red" } } },
+        new() { Label = "Score",         Field = "biometricScore", Type = "text",    Align = "center" },
+        new() { Label = "Fecha/Hora",    Field = "verifiedAt",     Type = "date",    Sortable = true },
+        new() { Label = "Verificado por",Field = "verifiedBy",     Type = "text" },
+        new() { Label = "Notas",         Field = "notes",          Type = "text" },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["TableId"] = "attendanceHistoryTable";
+    ViewData["ClientSide"] = true;
+    ViewData["ShowActions"] = false;
+    ViewData["PageSize"] = 20;
+    ViewData["EmptyTitle"] = "Sin registros de asistencia";
+    ViewData["EmptySubtitle"] = "Este postulante no tiene asistencias registradas para ninguna inscripción.";
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Historial de Asistencia</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Historial de <span class="font-serif font-normal text-primary-600">asistencia</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName</p>
+        </div>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver al expediente
+        </a>
+    </div>
+</section>
+
+@await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+
+@section Scripts {
+    <script>
+        window.AttendanceHistoryData = @Html.Raw(Json.Serialize(Model.Select(a => new {
+            codePostulant = a.CodePostulant,
+            fullName = a.FullName,
+            document = a.Document,
+            careerName = a.CareerName,
+            modalityName = a.ModalityName,
+            termName = a.TermName,
+            biometricStatus = a.BiometricStatus,
+            biometricScore = a.BiometricScore?.ToString(),
+            verifiedAt = a.VerifiedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
+            verifiedBy = a.VerifiedBy,
+            notes = a.Notes
+        })));
+
+        $(document).ready(function () {
+            DT.load('attendanceHistoryTable', { data: window.AttendanceHistoryData || [] });
+        });
+    </script>
+}

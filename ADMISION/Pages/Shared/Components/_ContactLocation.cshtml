@@ -1,0 +1,110 @@
+@using ADMISION.ENTITIES.Constants
+@inject ADMISION.Services.Interfaces.IConfigService ConfigService
+
+@*
+    Contact & Location en cards glass con lift.
+    Usage: <partial name="Components/_ContactLocation" />
+*@
+
+@{
+    var configs  = await ConfigService.GetAllConfigsAsync();
+    var phone    = configs.GetValueOrDefault(ConfigGeneral.Telefono,             ViewData["Phone"]?.ToString()    ?? "(01) 123-4567");
+    var email    = configs.GetValueOrDefault(ConfigGeneral.CorreoInstitucional,  ViewData["Email"]?.ToString()    ?? "admision@universidad.edu.pe");
+    var address  = configs.GetValueOrDefault(ConfigGeneral.Direccion,            ViewData["Address"]?.ToString()  ?? "Av. Universidad 123, Ciudad Universitaria, Lima - Perú");
+    var mapUrl = configs.GetValueOrDefault(ConfigGeneral.MapUrl, ViewData["MapUrl"]?.ToString() ?? "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1946.9537310505057!2d-69.21030156117385!3d-12.588350179189826!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x917b49441850fe49%3A0x2881b0658744e313!2sUniversidad%20Nacional%20Amaz%C3%B3nica%20de%20Madre%20de%20Dios%2C%20Puerto%20Maldonado%2017001!5e0!3m2!1ses-419!2spe!4v1782517052002!5m2!1ses-419!2spe");
+    var schedule = configs.GetValueOrDefault(ConfigGeneral.HorarioAtencion, ViewData["Schedule"]?.ToString() ?? "Lunes a Viernes: 8:00 AM - 6:00 PM<br>Sábados: 9:00 AM - 1:00 PM");
+    var whatsappPhone = phone?
+    .Replace(" ", "")
+    .Replace("-", "")
+    .Replace("(", "")
+    .Replace(")", "")
+    .Replace("+", "");
+}
+
+<section class="relative py-20 sm:py-24 md:py-28 overflow-hidden">
+
+    <!-- Decorative orbs -->
+
+    <div class="container mx-auto px-4 sm:px-6 relative">
+
+        <div class="max-w-2xl mx-auto text-center mb-12 sm:mb-14 fade-up">
+            <div class="inline-flex items-center gap-2 glass ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-secondary-700 mb-5">
+                <i class="ti ti-headset text-[10px]"></i>
+                Contáctanos
+            </div>
+            <h2 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+                Estamos para <span class="font-serif font-normal text-secondary-600">ayudarte</span>
+            </h2>
+            <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+                ¿Tienes dudas sobre el proceso de admisión? Comunícate con nosotros por el medio que prefieras.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-4 max-w-6xl mx-auto">
+
+            <!-- Contact Cards Grid -->
+            <div class="grid gap-4">
+
+                <a href="https://wa.me/@whatsappPhone"
+                   target="_blank"
+                   class="lift fade-up group bg-white ring-soft p-5 rounded-md flex items-center gap-4 relative overflow-hidden hover:ring-primary-300 transition-all">
+
+                    <div class="relative w-12 h-12 shrink-0 rounded-md bg-primary-50 ring-1 ring-primary-100 flex items-center justify-center group-hover:bg-primary-500 group-hover:ring-primary-600 transition-colors">
+                        <i class="ti ti-phone text-primary-600 group-hover:text-white text-lg transition-colors"></i>
+                    </div>
+
+                    <div class="relative">
+                        <p class="eyebrow text-[10px]">Teléfono</p>
+                        <p class="text-sm sm:text-base font-bold text-ink-900 break-words mt-1">@phone</p>
+                        <p class="text-[11px] text-ink-500 mt-1">Escríbenos por WhatsApp</p>
+                    </div>
+
+                </a>
+
+                <div class="lift fade-up group bg-white ring-soft p-5 rounded-md flex items-center gap-4 relative overflow-hidden">
+                    <div class="relative w-12 h-12 shrink-0 rounded-md bg-secondary-50 ring-1 ring-secondary-100 flex items-center justify-center group-hover:bg-secondary-500 group-hover:ring-secondary-600 transition-colors">
+                        <i class="ti ti-mail text-secondary-600 group-hover:text-white text-lg transition-colors"></i>
+                    </div>
+                    <div class="relative">
+                        <p class="eyebrow text-[10px]" style="color: #4a4399;">Correo</p>
+                        <p class="text-sm sm:text-base font-bold text-ink-900 break-all mt-1">@email</p>
+                        <p class="text-[11px] text-ink-500 mt-1">Respuesta en 24 horas</p>
+                    </div>
+                </div>
+
+                <div class="lift fade-up group bg-white ring-soft p-5 rounded-md flex items-center gap-4 relative overflow-hidden">
+                    <div class="relative w-12 h-12 shrink-0 rounded-md bg-primary-50 ring-1 ring-primary-100 flex items-center justify-center group-hover:bg-primary-500 group-hover:ring-primary-600 transition-colors">
+                        <i class="ti ti-map-pin text-primary-600 group-hover:text-white text-lg transition-colors"></i>
+                    </div>
+                    <div class="relative">
+                        <p class="eyebrow text-[10px]">Dirección</p>
+                        <p class="text-xs sm:text-sm font-semibold text-ink-900 leading-snug mt-1">@address</p>
+                    </div>
+                </div>
+
+                <div class="lift fade-up group bg-white ring-soft p-5 rounded-md flex items-center gap-4 relative overflow-hidden">
+                    <div class="relative w-12 h-12 shrink-0 rounded-md bg-secondary-50 ring-1 ring-secondary-100 flex items-center justify-center group-hover:bg-secondary-500 group-hover:ring-secondary-600 transition-colors">
+                        <i class="ti ti-clock text-secondary-600 group-hover:text-white text-lg transition-colors"></i>
+                    </div>
+                    <div class="relative">
+                        <p class="eyebrow text-[10px]" style="color: #4a4399;">Horario</p>
+                        <div class="text-xs sm:text-sm font-semibold text-ink-900 leading-relaxed mt-1">@Html.Raw(schedule)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="lift fade-up relative bg-white ring-soft rounded-md overflow-hidden h-[360px] sm:h-[440px] lg:h-auto lg:min-h-[500px]">
+                <iframe src="@mapUrl" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade" class="w-full h-full">
+                </iframe>
+                <div class="absolute top-3 left-3 bg-white ring-soft px-3 py-2 rounded-md flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-primary">
+                        <i class="ti ti-map-pin text-white text-xs"></i>
+                    </span>
+                    <span class="text-xs font-bold text-ink-800 tracking-tight">Cómo llegar</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

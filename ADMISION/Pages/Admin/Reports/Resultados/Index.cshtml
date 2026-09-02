@@ -1,0 +1,323 @@
+@model ADMISION.Models.ViewModels.Reports.ResultadosReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reporte de Resultados";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+    var modalities = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Modality>)(ViewBag.Modalities ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Modality>());
+    var typeModalities = (IEnumerable<ADMISION.Services.Interfaces.TypeModalityOption>)(ViewBag.TypeModalities ?? Enumerable.Empty<ADMISION.Services.Interfaces.TypeModalityOption>());
+    var typePostulants = (IEnumerable<ADMISION.Services.Interfaces.CatalogOption>)(ViewBag.TypePostulants ?? Enumerable.Empty<ADMISION.Services.Interfaces.CatalogOption>());
+    var careers = (IEnumerable<ADMISION.Services.Interfaces.CatalogOption>)(ViewBag.Careers ?? Enumerable.Empty<ADMISION.Services.Interfaces.CatalogOption>());
+    var options = (ADMISION.Services.Interfaces.ResultadosFilterOptions)(ViewBag.Options ?? new ADMISION.Services.Interfaces.ResultadosFilterOptions());
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Reporte de Resultados</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Reporte analítico</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Reporte de <span class="font-serif font-normal text-primary-600">resultados</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Resultados de los postulantes importados desde el reporte del examen de admisión.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros del reporte</h2>
+                <p class="text-[11.5px] text-ink-500">Refina los resultados por periodo, modalidad, carrera y puntajes</p>
+            </div>
+        </div>
+        <span class="badge b-primary">Resultados</span>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo Académico</label>
+                <select name="termId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.TermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Modalidad</label>
+                <select name="modalityId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" @(modalities.Any() ? "" : "disabled")>
+                    <option value="">-- Todas --</option>
+                    @foreach (var m in modalities)
+                    {
+                        <option value="@m.Id" selected="@(Model.ModalityId == m.Id)">@m.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Modalidad</label>
+                <select name="typeModalityId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" @(typeModalities.Any() ? "" : "disabled")>
+                    <option value="">-- Todos --</option>
+                    @foreach (var tm in typeModalities)
+                    {
+                        <option value="@tm.Id" selected="@(Model.TypeModalityId == tm.Id)">@tm.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Postulante</label>
+                <select name="typePostulantId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var tp in typePostulants)
+                    {
+                        <option value="@tp.Id" selected="@(Model.TypePostulantId == tp.Id)">@tp.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Carrera</label>
+                <select name="careerId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todas --</option>
+                    @foreach (var c in careers)
+                    {
+                        <option value="@c.Id" selected="@(Model.CareerId == c.Id)">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Condición</label>
+                <select name="condicion" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todas --</option>
+                    @foreach (var c in options.Condiciones)
+                    {
+                        <option value="@c" selected="@(Model.Condicion == c)">@c</option>
+                    }
+                </select>
+            </div>
+
+            <div class="md:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-ink-200/60 dark:border-ink-800/60">
+                <div class="flex flex-wrap gap-2">
+                    <button type="submit" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-filter text-xs"></i> Aplicar filtros
+                    </button>
+                    <a href="/admin/reportes/resultados" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-ink-700 hover:bg-ink-100 text-sm font-semibold transition-all">
+                        <i class="ti ti-rotate text-xs"></i> Limpiar
+                    </a>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition-all">
+                        <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- KPIs -->
+@if (Model.TermId.HasValue)
+{
+    <section class="fade-up grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 mb-6">
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalRecords.ToString("N0")</div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total de resultados</div>
+                </div>
+                <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                    <i class="ti ti-scoreboard"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+            <div class="flex items-start justify-between">
+                <div class="min-w-0">
+                    <div class="text-xl font-bold leading-tight text-ink-900 dark:text-ink-100 truncate">@(Model.TermName ?? "—")</div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Período reportado</div>
+                </div>
+                <div class="w-11 h-11 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center text-lg">
+                    <i class="ti ti-calendar"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Tabla de resultados -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-table text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Resultados</h2>
+                <p class="text-[11.5px] text-ink-500">Mostrando @Model.Items.Count de @Model.TotalRecords registro(s)</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.TermId.HasValue)
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-filter text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">Seleccione un periodo para generar el reporte.</p>
+        </div>
+    }
+    else if (!Model.Items.Any())
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-chart-bar text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">No hay resultados que coincidan con los filtros seleccionados.</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="whitespace-nowrap text-center">NRO</th>
+                        <th class="whitespace-nowrap">CÓDIGO</th>
+                        <th class="whitespace-nowrap">APELLIDOS Y NOMBRES</th>
+                        <th class="whitespace-nowrap">EXAMEN</th>
+                        <th class="whitespace-nowrap">TIPO MODALIDAD</th>
+                        <th class="whitespace-nowrap">TIPO POSTULANTE</th>
+                        <th class="whitespace-nowrap">CARRERA PROFESIONAL</th>
+                        <th class="whitespace-nowrap text-center">GRUPO</th>
+                        <th class="whitespace-nowrap text-center">CORRECTAS</th>
+                        <th class="whitespace-nowrap text-center">BLANCAS</th>
+                        <th class="whitespace-nowrap text-center">PUNTAJE</th>
+                        <th class="whitespace-nowrap text-center">NOTA</th>
+                        <th class="whitespace-nowrap">CONDICIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="whitespace-nowrap text-center font-mono">@item.Nro</td>
+                            <td class="whitespace-nowrap font-mono font-semibold">@item.Codigo</td>
+                            <td class="whitespace-nowrap font-semibold text-ink-900 dark:text-ink-100">@item.ApellidosNombres</td>
+                            <td class="whitespace-nowrap"><span class="badge b-blue font-mono">@item.Examen</span></td>
+                            <td class="whitespace-nowrap">@item.TipoModalidad</td>
+                            <td class="whitespace-nowrap">@item.TipoPostulante</td>
+                            <td class="max-w-[180px] truncate" title="@item.Carrera">@item.Carrera</td>
+                            <td class="whitespace-nowrap text-center font-mono">@item.Grupo</td>
+                            <td class="whitespace-nowrap text-center font-mono tabular-nums">@item.Correctas</td>
+                            <td class="whitespace-nowrap text-center font-mono tabular-nums">@item.Blancas</td>
+                            <td class="whitespace-nowrap text-center font-mono font-bold tabular-nums">@item.Puntaje</td>
+                            <td class="whitespace-nowrap text-center font-mono tabular-nums">@item.Nota</td>
+                            <td class="whitespace-nowrap">
+                                @if (item.Condicion.Trim().Equals("INGRESO", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge b-green">@item.Condicion</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-gray">@(item.Condicion == "" ? "—" : item.Condicion)</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div class="px-4 sm:px-5 py-3 border-t border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between text-xs text-ink-500">
+            <span>
+                Mostrando <strong class="text-ink-900">@((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalRecords))</strong>
+                de <strong class="text-ink-900">@Model.TotalRecords.ToString("N0")</strong> registro(s)
+            </span>
+            @if (Model.TotalPages > 1)
+            {
+                <div class="flex items-center gap-1" id="pagination">
+                    @{
+                        var baseUrl = $"/admin/reportes/resultados?termId={Model.TermId}&modalityId={Model.ModalityId}&typeModalityId={Model.TypeModalityId}&typePostulantId={Model.TypePostulantId}&careerId={Model.CareerId}&condicion={Model.Condicion}&pageSize={Model.PageSize}";
+                    }
+
+                    @if (Model.Page > 1)
+                    {
+                        <a href="@(baseUrl)&page=@(Model.Page - 1)"
+                           class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">
+                            <i class="ti ti-chevron-left text-[10px]"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1.5 rounded-md ring-soft text-ink-300 cursor-not-allowed">
+                            <i class="ti ti-chevron-left text-[10px]"></i>
+                        </span>
+                    }
+
+                    @{
+                        int startPage = Math.Max(1, Model.Page - 2);
+                        int endPage = Math.Min(Model.TotalPages, Model.Page + 2);
+
+                        if (startPage > 1)
+                        {
+                            <a href="@(baseUrl)&page=1" class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">1</a>
+                            if (startPage > 2)
+                            {
+                                <span class="px-2 py-1.5 text-ink-400">…</span>
+                            }
+                        }
+
+                        for (int p = startPage; p <= endPage; p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="px-3 py-1.5 rounded-md bg-primary-500 text-white font-semibold">@p</span>
+                            }
+                            else
+                            {
+                                <a href="@(baseUrl)&page=@p"
+                                   class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">@p</a>
+                            }
+                        }
+
+                        if (endPage < Model.TotalPages)
+                        {
+                            if (endPage < Model.TotalPages - 1)
+                            {
+                                <span class="px-2 py-1.5 text-ink-400">…</span>
+                            }
+                            <a href="@(baseUrl)&page=@Model.TotalPages"
+                               class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">@Model.TotalPages</a>
+                        }
+                    }
+
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a href="@(baseUrl)&page=@(Model.Page + 1)"
+                           class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">
+                            <i class="ti ti-chevron-right text-[10px]"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1.5 rounded-md ring-soft text-ink-300 cursor-not-allowed">
+                            <i class="ti ti-chevron-right text-[10px]"></i>
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/reports/resultados/index.js" asp-append-version="true"></script>
+}

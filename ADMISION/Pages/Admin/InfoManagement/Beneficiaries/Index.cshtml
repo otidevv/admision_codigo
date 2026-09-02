@@ -1,0 +1,91 @@
+﻿@model IEnumerable<ADMISION.ENTITIES.Models.Modality.Beneficiarie>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Beneficiarios";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Publicaciones</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Beneficiarios</span>
+        </div>
+        <div class="eyebrow">Portal público</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Beneficiarios
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Administra los descuentos y tipos de beneficiarios.</p>
+    </div>
+    <a asp-action="Create"
+       class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i> Nuevo beneficiario
+    </a>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="atlas w-full">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Descuento</th>
+                    <th>Estado</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="font-semibold text-ink-900 dark:text-ink-100">@Html.DisplayFor(m => item.Name)</td>
+                        <td class="text-ink-600 dark:text-ink-300 truncate max-w-xs" title="@item.Description">@Html.DisplayFor(m => item.Description)</td>
+                        <td class="text-ink-700 dark:text-ink-200 font-mono">@Html.DisplayFor(m => item.PercentageDiscount)%</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="badge b-green">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge b-gray">Inactivo</span>
+                            }
+                        </td>
+                        <td class="text-right">
+                            <div class="flex justify-end gap-2">
+                                <a asp-action="Edit" asp-route-id="@item.Id"
+                                   class="inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                   title="Editar">
+                                    <i class="ti ti-edit text-xs"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="inline delete-form">
+                                    <button type="button"
+                                            class="btn-delete inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                            data-name="@item.Name"
+                                            title="Eliminar">
+                                        <i class="ti ti-trash text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (!Model.Any())
+    {
+        <div class="py-14 text-center">
+            <i class="ti ti-heart-handshake text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 text-sm font-medium">No hay beneficiarios registrados.</p>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/info-management/beneficiaries/index.js" asp-append-version="true"></script>
+}

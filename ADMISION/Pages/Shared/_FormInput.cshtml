@@ -1,0 +1,134 @@
+@*
+================================================================================
+  _FormInput.cshtml  —  Input genérico con label, icon, error y helper.
+
+  Soporta: text | number | email | tel | password | date | datetime-local | search | url
+
+  Uso (sin model binding):
+    <partial name="_FormInput" model='new {
+        Id = "email", Name = "email", Type = "email",
+        Label = "Correo institucional", Placeholder = "tu@correo.edu",
+        Required = true, IconLeft = "ti-mail",
+        Helper = "Te enviaremos un código de verificación."
+    }' />
+
+  Uso (con asp-for):
+    Cuando uses asp-for directamente, escribe el input plano con `class="form-input"`
+    y el label con `class="form-label"`. Mantiene el mismo aspecto.
+
+  Combina con .input-group para prefijos/sufijos (ver _InputGroup.cshtml).
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    bool B(string p, bool d = false) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        return v is bool b ? b : d;
+    }
+
+    var id          = V("Id", "input-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var name        = V("Name", id);
+    var type        = V("Type", "text");
+    var label       = V("Label");
+    var placeholder = V("Placeholder");
+    var value       = V("Value");
+    var helperText  = V("Helper");
+    var error       = V("Error");
+    var iconLeft    = V("IconLeft");
+    var iconRight   = V("IconRight");
+    var addonLeft   = V("AddonLeft");
+    var addonRight  = V("AddonRight");
+    var min         = V("Min");
+    var max         = V("Max");
+    var step        = V("Step");
+    var maxLength   = V("MaxLength");
+    var pattern     = V("Pattern");
+    var autocomplete= V("Autocomplete");
+    var inputMode   = V("InputMode");
+    var required    = B("Required");
+    var disabled    = B("Disabled");
+    var readonlyInput = B("Readonly");
+
+    var useGroup = !string.IsNullOrEmpty(addonLeft) || !string.IsNullOrEmpty(addonRight);
+    var useIcon  = !useGroup && (!string.IsNullOrEmpty(iconLeft) || !string.IsNullOrEmpty(iconRight));
+
+    // Construimos los atributos opcionales en una cadena única para evitar
+    // problemas del parser de Razor con atributos condicionales multi-línea.
+    var extraAttrs = new List<string>();
+    if (required)                                  extraAttrs.Add("required");
+    if (disabled)                                  extraAttrs.Add("disabled");
+    if (readonlyInput)                             extraAttrs.Add("readonly");
+    if (!string.IsNullOrEmpty(min))                extraAttrs.Add($"min=\"{min}\"");
+    if (!string.IsNullOrEmpty(max))                extraAttrs.Add($"max=\"{max}\"");
+    if (!string.IsNullOrEmpty(step))               extraAttrs.Add($"step=\"{step}\"");
+    if (!string.IsNullOrEmpty(maxLength))          extraAttrs.Add($"maxlength=\"{maxLength}\"");
+    if (!string.IsNullOrEmpty(pattern))            extraAttrs.Add($"pattern=\"{pattern}\"");
+    if (!string.IsNullOrEmpty(autocomplete))       extraAttrs.Add($"autocomplete=\"{autocomplete}\"");
+    if (!string.IsNullOrEmpty(inputMode))          extraAttrs.Add($"inputmode=\"{inputMode}\"");
+    var attrStr = string.Join(" ", extraAttrs);
+
+    var inputClass = useGroup
+        ? ""
+        : ("form-input" +
+           (!string.IsNullOrEmpty(iconRight) ? " form-input--suffix" : "") +
+           (!string.IsNullOrEmpty(error) ? " is-invalid" : ""));
+}
+
+<div class="form-field">
+    @if (!string.IsNullOrEmpty(label))
+    {
+        <label for="@id" class="form-label">
+            @label
+            @if (required)
+            {
+                <span class="required">*</span>
+            }
+        </label>
+    }
+
+    @if (useGroup)
+    {
+        <div class="input-group">
+            @if (!string.IsNullOrEmpty(addonLeft))
+            {
+                <span class="input-group__addon">@addonLeft</span>
+            }
+            <input id="@id" name="@name" type="@type" value="@value" placeholder="@placeholder" @Html.Raw(attrStr) />
+            @if (!string.IsNullOrEmpty(addonRight))
+            {
+                <span class="input-group__addon input-group__addon--right">@addonRight</span>
+            }
+        </div>
+    }
+    else if (useIcon)
+    {
+        <div class="form-input-wrapper">
+            @if (!string.IsNullOrEmpty(iconLeft))
+            {
+                <i class="ti @iconLeft form-input-icon"></i>
+            }
+            <input id="@id" name="@name" type="@type" value="@value" placeholder="@placeholder" class="@inputClass" @Html.Raw(attrStr) />
+            @if (!string.IsNullOrEmpty(iconRight))
+            {
+                <i class="ti @iconRight form-input-icon form-input-icon--right"></i>
+            }
+        </div>
+    }
+    else
+    {
+        <input id="@id" name="@name" type="@type" value="@value" placeholder="@placeholder" class="@inputClass" @Html.Raw(attrStr) />
+    }
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <span class="form-error"><i class="ti ti-alert-circle mr-1 text-[12px]"></i>@error</span>
+    }
+    else if (!string.IsNullOrEmpty(helperText))
+    {
+        <span class="form-helper">@helperText</span>
+    }
+</div>

@@ -1,0 +1,143 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Exam.ScoringProfile>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Perfiles de Calificación";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Nombre", Field = "name", Type = "text", Sortable = true },
+        new() { Label = "Modo", Field = "modo", Type = "badge", BadgeMap = new Dictionary<string, string> { { "Ponderado", "primary" }, { "Simple", "gray" } } },
+        new() { Label = "Pts. correcta", Field = "puntosCorrecta", Type = "text", Sortable = true, Align = "right" },
+        new() { Label = "Periodo", Field = "term.name", Type = "text" },
+        new() { Label = "Rangos", Field = "rangeCount", Type = "text", Align = "center", Width = "5rem" },
+        new() { Label = "Estado", Field = "isActive", Type = "boolean", Align = "center" }
+    };
+
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "edit", Label = "Editar", Icon = "ti-edit", Href = "/admin/exam-management/scoring-profiles/editar/{id}" },
+        new() { Key = "delete", Label = "Eliminar", Icon = "ti-trash", Danger = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["AjaxUrl"] = Url.Action("Index");
+    ViewData["TableId"] = "scoringProfilesTable";
+
+    var idxTerms = (ViewBag.Terms as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var idxModalities = (ViewBag.Modalities as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Perfiles de calificación</span>
+        </div>
+        <div class="eyebrow">Evaluación</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Perfiles de <span class="font-serif font-normal text-primary-600">calificación</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Reutiliza configuraciones de puntaje (simple o ponderado por rangos) en el procesado de exámenes.</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="DT.refresh('scoringProfilesTable')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-refresh text-xs"></i> Actualizar
+        </button>
+        <a asp-action="Create" class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i>
+            Nuevo perfil
+        </a>
+    </div>
+</section>
+
+<!-- Cascading Filters -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros de búsqueda</h2>
+            <p class="text-[11.5px] text-ink-500">Encuentra perfiles por alcance, modo y estado</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div class="lg:col-span-2">
+                <partial name="_CustomSelect" model='new {
+                    Id = "TermId",
+                    Label = "1. Periodo académico",
+                    Placeholder = "Todos los periodos...",
+                    Options = idxTerms.Select(t => new { id = t.Id, name = t.Name })
+                }' />
+            </div>
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "ModalityId",
+                    Label = "2. Modalidad",
+                    Placeholder = "Elija un periodo...",
+                    Options = idxModalities.Select(m => new { id = m.Id, name = m.Name })
+                }' />
+            </div>
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "TypeModalityId",
+                    Label = "3. Tipo de modalidad",
+                    Placeholder = "Elija una modalidad...",
+                    Options = Enumerable.Empty<dynamic>()
+                }' />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">4. Modo</label>
+                <select id="filterWeighted" class="form-input">
+                    <option value="">Todos</option>
+                    <option value="true">Ponderado</option>
+                    <option value="false">Simple</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">5. Estado</label>
+                <select id="filterActive" class="form-input">
+                    <option value="">Todos</option>
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                </select>
+            </div>
+            <div class="lg:col-span-2">
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">6. Nombre</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-ink-400 group-focus-within:text-primary-600 transition-colors">
+                        <i class="ti ti-search text-sm"></i>
+                    </div>
+                    <input type="text" id="filterSearch"
+                           class="w-full h-9 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md pl-12 pr-4 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                           placeholder="Buscar perfil...">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Table -->
+<section class="fade-up">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        window.ScoringProfilesIndexConfig = {
+            defaultTermId: '@ViewBag.DefaultTermId',
+            terms: @Html.Raw(Json.Serialize(idxTerms.Select(t => new { t.Id, t.Name })))
+        };
+    </script>
+    <script src="~/js/admin/exam-management/scoring-profiles/index.js" asp-append-version="true"></script>
+}

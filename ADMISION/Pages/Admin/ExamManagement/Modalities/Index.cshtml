@@ -1,0 +1,168 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Modality.Modality>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Modalidades";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Nombre", Field = "name"},
+        new() { Label = "Descripción", Field = "description"},
+        new() { Label = "Periodo", Field = "term.name", Sortable = true },
+        new() { Label = "Fechas", Field = "startDate", Type = "custom", RenderFn = "renderDates" },
+        new() {
+            Label = "Foto",
+            Field = "requiresProfilePhoto",
+            Type = "badge",
+            Sortable = false,
+            BadgeMap = new() {
+                { "true", "primary" },
+                { "false", "gray" }
+            }
+        },
+        new() {
+            Label = "Simulacro",
+            Field = "isMockExam",
+            Type = "badge",
+            Sortable = false,
+            BadgeMap = new() {
+                { "true", "amber" },
+                { "false", "gray" }
+            }
+        },
+        new() {
+            Label = "Nivel",
+            Field = "requiresEducationalLevel",
+            Type = "badge",
+            Sortable = false,
+            BadgeMap = new() {
+                { "true", "primary" },
+                { "false", "gray" }
+            }
+        },
+        new() {
+            Label = "Grado",
+            Field = "requiresGrade",
+            Type = "badge",
+            Sortable = false,
+            BadgeMap = new() {
+                { "true", "primary" },
+                { "false", "gray" }
+            }
+        },
+        new() {
+            Label = "Estado",
+            Field = "isActive",
+            Type = "badge",
+            Sortable = true,
+            BadgeMap = new() {
+                { "true", "green" },
+                { "false", "gray" }
+            }
+        },
+        new() {
+            Label = "Orden",
+            Field = "orden",
+            Sortable = true
+        },
+        new() {
+            Label = "CEPRE",
+            Field = "isCepreExam",
+            Type = "badge",
+            Sortable = false,
+            BadgeMap = new() {
+                { "true", "amber" },
+                { "false", "gray" }
+            }
+        }
+    };
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "edit", Label = "Editar", Icon = "ti-edit", Href = "/admin/exam-management/modalities/editar/{id}" },
+        new() { Key = "delete", Label = "Eliminar", Icon = "ti-trash", Danger = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["AjaxUrl"] = Url.Action("Index");
+    ViewData["TableId"] = "modalitiesTable";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Modalidades</span>
+        </div>
+        <div class="eyebrow">Configuración de examen</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Modalidades de <span class="font-serif font-normal text-primary-600">examen</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Administra los tipos de examen y sus cronogramas por periodo.</p>
+    </div>
+    <div class="flex gap-2">
+        <button onclick="DT.refresh('modalitiesTable')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-refresh text-xs"></i> Actualizar
+        </button>
+        <a asp-action="Create" class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i>
+            Nueva modalidad
+        </a>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros de búsqueda</h2>
+            <p class="text-[11.5px] text-ink-500">Refina el listado por periodo o por nombre</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-4">
+            <div class="md:col-span-1">
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterTerm",
+                    Label = "Periodo académico",
+                    Placeholder = "Seleccione un periodo",
+                    Options = ((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { id = t.Id, name = t.Name })
+                }' />
+            </div>
+            <div class="md:col-span-3">
+                <partial name="_FormInput" model='@(new {
+                    Id = "filterSearch", Name = "filterSearch",
+                    Label = "Buscar por modalidad",
+                    Placeholder = "Escriba el nombre o descripción de la modalidad...",
+                    IconLeft = "ti-search"
+                })' />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div id="tableContainer">
+        @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+    </div>
+</section>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        window.ModalitiesIndexConfig = {
+            defaultTermId: '@ViewBag.DefaultTermId',
+            terms: @Html.Raw(Json.Serialize(((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { t.Id, t.Name })))
+        };
+    </script>
+    <script src="~/js/admin/exam-management/modalities/index.js" asp-append-version="true"></script>
+}

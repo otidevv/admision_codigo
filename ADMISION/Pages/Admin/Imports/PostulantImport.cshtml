@@ -1,0 +1,267 @@
+@model ADMISION.Models.ViewModels.Admin.PostulantImportPreview
+@using System.Text.Json
+@using ADMISION.Models.Shared
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Importar Postulantes";
+    var hasPreview = Model?.Rows?.Count > 0;
+    var validCount = Model?.Rows?.Count(r => r.IsValid) ?? 0;
+    var errorCount = Model?.Rows?.Count(r => !r.IsValid) ?? 0;
+    var isImporting = Model is not null && Model.JobId != Guid.Empty;
+
+    const string TableId = "previewTable";
+
+    if (hasPreview)
+    {
+        ViewData["TableId"] = TableId;
+        ViewData["ClientSide"] = true;
+        ViewData["ShowActions"] = false;
+        ViewData["PageSize"] = 20;
+        ViewData["Columns"] = new List<DataTableColumn>
+        {
+            new() { Field = "rowNumber", Label = "#", Sortable = true, Width = "50px", Align = "center" },
+            new() { Field = "dni", Label = "DNI", Sortable = true, Width = "110px" },
+            new() { Field = "fullName", Label = "Postulante", Sortable = true },
+            new() { Field = "periodo", Label = "Periodo", Sortable = true, Width = "90px" },
+            new() { Field = "modalidad", Label = "Modalidad", Sortable = true, Width = "120px" },
+            new() { Field = "codigoCarrera", Label = "Carrera", Sortable = true },
+            new() { Field = "isValid", Label = "Estado", Width = "180px", Type = "custom", RenderFn = "renderEstado" },
+        };
+    }
+}
+
+<section class="fade-up mb-5">
+    <nav class="flex items-center gap-2 text-xs text-ink-400 mb-2" aria-label="Breadcrumb">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Postulantes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Importar</span>
+    </nav>
+    <div class="eyebrow">Carga masiva</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Importar <span class="font-serif font-normal text-primary-600">postulantes</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1.5 max-w-2xl">
+        Sube un archivo Excel con los datos de postulantes de periodos académicos pasados.
+    </p>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-sm">@TempData["Success"]</div>
+}
+@if (TempData["Warning"] != null)
+{
+    <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">@TempData["Warning"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-md text-rose-800 text-sm">@TempData["Error"]</div>
+}
+
+@if (!isImporting)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-upload text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Seleccionar archivo</h2>
+                <p class="text-[11.5px] text-ink-500">Archivo Excel (.xlsx) con las columnas requeridas</p>
+            </div>
+        </div>
+        <div class="p-4 sm:p-5">
+            <form id="uploadForm" method="post" enctype="multipart/form-data"
+                  asp-controller="Imports" asp-action="Preview">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <input type="file" name="file" accept=".xlsx" required
+                           class="block w-full sm:w-auto text-sm text-ink-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-all" />
+                    <button type="submit"
+                            class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold whitespace-nowrap">
+                        <i class="ti ti-eye text-xs"></i> Vista previa
+                    </button>
+                </div>
+                <p class="text-[11px] text-ink-400 mt-3">
+                    Columnas: periodo, fechainicio, fechafin, modalidad, tipomodalidad, codigo_postulante, codigo_carrera,
+                    fecha_inscripcion, dni, apaterno, amaterno, nombres, Sexo, fechanacimiento, direccion, estadocivil,
+                    correo, celular, colegio, tipopostulante, tipodiscapacidad, pais, CodUbigeo, dniApoderado,
+                    apellidosApoderado, nombresApoderado, telf_celApoderado.
+                </p>
+                <a href="/admin/importaciones/postulantes/template"
+                   class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mt-2">
+                    <i class="ti ti-download text-xs"></i> Descargar plantilla de ejemplo
+                </a>
+            </form>
+        </div>
+    </section>
+
+    @if (hasPreview)
+    {
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-table text-sm"></i>
+                </span>
+                <div class="flex-1 min-w-0">
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Vista previa</h2>
+                    <p class="text-[11.5px] text-ink-500">@Model.FileName — @Model.Rows.Count fila(s)</p>
+                </div>
+                <div class="flex items-center gap-3 text-xs font-semibold shrink-0">
+                    <span class="text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-md">@validCount válida(s)</span>
+                    @if (errorCount > 0)
+                    {
+                        <span class="text-rose-600 bg-rose-50 px-3 py-1.5 rounded-md">@errorCount error(es)</span>
+                    }
+                </div>
+            </div>
+
+            <partial name="_DataTable" />
+
+            @if (validCount > 0)
+            {
+                <div class="p-4 sm:p-5 border-t border-ink-200/60 flex items-center justify-between">
+                    <p class="text-xs text-ink-400">
+                        Se importarán <strong class="text-ink-700">@validCount</strong> postulante(s) en total.
+                    </p>
+                    <form method="post" action="/admin/importaciones/postulantes/execute"
+                          onsubmit="return confirm('¿Confirmas la importación de @validCount postulante(s)?')">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="token" value="@Model.TempToken" />
+                        <button type="submit"
+                                class="btn-grad inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold">
+                            <i class="ti ti-database-import text-xs"></i> Importar @validCount postulante(s)
+                        </button>
+                    </form>
+                </div>
+            }
+        </section>
+    }
+}
+
+@if (isImporting)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6" id="importProgressSection">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-loader text-sm animate-spin"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Importando...</h2>
+                <p class="text-[11.5px] text-ink-500">No cierres esta página hasta que termine.</p>
+            </div>
+        </div>
+        <div class="p-5">
+            <div class="mb-4">
+                <div class="flex justify-between text-sm mb-1.5">
+                    <span class="text-ink-700 font-medium" id="progressLabel">Iniciando...</span>
+                    <span class="text-ink-500" id="percentLabel">0%</span>
+                </div>
+                <div class="w-full bg-ink-100 dark:bg-ink-800 rounded-full h-3 overflow-hidden">
+                    <div id="progressBar" class="bg-primary-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-4 text-center text-sm" id="statsGrid">
+                <div class="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-md">
+                    <div class="text-emerald-700 dark:text-emerald-400 text-lg font-semibold" id="insertedCount">0</div>
+                    <div class="text-emerald-600/70 dark:text-emerald-400/70 text-[11px]">Insertados</div>
+                </div>
+                <div class="p-3 bg-amber-50 dark:bg-amber-500/10 rounded-md">
+                    <div class="text-amber-700 dark:text-amber-400 text-lg font-semibold" id="skippedCount">0</div>
+                    <div class="text-amber-600/70 dark:text-amber-400/70 text-[11px]">Omitidos</div>
+                </div>
+                <div class="p-3 bg-rose-50 dark:bg-rose-500/10 rounded-md">
+                    <div class="text-rose-700 dark:text-rose-400 text-lg font-semibold" id="failedCount">0</div>
+                    <div class="text-rose-600/70 dark:text-rose-400/70 text-[11px]">Errores</div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (hasPreview)
+    {
+        <script>
+            DT.registerRenderer('renderEstado', function(val, col, row) {
+                var wrap = document.createElement('div');
+                wrap.className = 'flex flex-col gap-0.5';
+                if (row.isValid) {
+                    wrap.innerHTML = '<span class="badge b-green"><i class="ti ti-circle-check text-[9px]"></i> OK</span>';
+                } else {
+                    wrap.innerHTML = '<span class="badge b-red"><i class="ti ti-alert-circle text-[9px]"></i> Error</span>';
+                    var errors = row.errors || [];
+                    if (errors.length) {
+                        var errDiv = document.createElement('div');
+                        errDiv.className = 'text-[10px] text-rose-500 mt-0.5 max-w-[200px] truncate leading-tight';
+                        errDiv.textContent = errors.join('; ');
+                        wrap.appendChild(errDiv);
+                    }
+                }
+                return wrap;
+            });
+
+            (function() {
+                var data = @Html.Raw(JsonSerializer.Serialize(Model.Rows.Select(r => new {
+                    rowNumber = r.RowNumber,
+                    dni = r.Dni,
+                    fullName = string.Join(" ", new[] { r.Nombres, r.Apaterno, r.Amaterno }.Where(x => !string.IsNullOrEmpty(x))),
+                    periodo = r.Periodo,
+                    modalidad = r.Modalidad,
+                    codigoCarrera = r.CodigoCarrera,
+                    isValid = r.IsValid,
+                    errors = r.Errors
+                })));
+                data.sort(function(a, b) { return (a.isValid === b.isValid) ? 0 : a.isValid ? 1 : -1; });
+                DT.load('@TableId', { data: data, totalItems: data.length });
+            })();
+        </script>
+    }
+    @if (isImporting)
+    {
+        <script>
+            (function() {
+                const jobId = '@Model.JobId';
+                const pollUrl = '/admin/importaciones/postulantes/progress/' + jobId;
+                const resultUrl = '/admin/importaciones/postulantes/result/' + jobId;
+                let pollCount = 0;
+
+                function poll() {
+                    fetch(pollUrl)
+                        .then(r => r.json())
+                        .then(job => {
+                            pollCount++;
+
+                            const pct = job.percent || 0;
+                            document.getElementById('progressBar').style.width = pct + '%';
+                            document.getElementById('percentLabel').textContent = pct + '%';
+                            document.getElementById('progressLabel').textContent =
+                                job.processedRows + ' / ' + job.totalRows + ' registros';
+                            document.getElementById('insertedCount').textContent = job.inserted;
+                            document.getElementById('skippedCount').textContent = job.skipped;
+                            document.getElementById('failedCount').textContent = job.failedRows;
+
+                            if (job.status === 'Completed' || job.status === 'Failed') {
+                                window.location.href = resultUrl;
+                                return;
+                            }
+
+                            if (pollCount > 600) {
+                                document.getElementById('progressLabel').textContent = 'El proceso está tomando demasiado tiempo. Revisa el panel de Hangfire.';
+                                return;
+                            }
+
+                            setTimeout(poll, 2000);
+                        })
+                        .catch(() => {
+                            setTimeout(poll, 3000);
+                        });
+                }
+
+                setTimeout(poll, 1000);
+            })();
+        </script>
+    }
+}

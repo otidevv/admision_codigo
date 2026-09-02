@@ -1,0 +1,636 @@
+@*
+================================================================================
+  _DataTable.cshtml  —  DataTable genérico (atlas style, sin gradientes)
+  Compatible con la API JS existente (DT.load / DT.refresh / DT.filter / DT.on).
+================================================================================
+*@
+
+@using System.Text.Json
+@using ADMISION.Models.Shared
+@{
+    /* ── Leer configuración ─────────────────────── */
+    var columns      = ViewData["Columns"]      as List<DataTableColumn>  ?? new();
+    var actions      = ViewData["Actions"]      as List<DataTableAction>  ?? DefaultActions();
+    bool showActions = ViewData["ShowActions"]  as bool?   ?? true;
+    bool isCompact   = ViewData["IsCompact"]    as bool?   ?? false;
+    bool clientSide  = ViewData["ClientSide"]   as bool?   ?? false;
+    string tableId   = ViewData["TableId"]      as string  ?? "dt-table";
+    string ajaxUrl   = ViewData["AjaxUrl"]      as string;
+    int    pageSize  = ViewData["PageSize"]      as int?    ?? 20;
+    int[]  psOpts    = ViewData["PageSizeOpts"]  as int[]   ?? new[]{ 10, 20, 50, 100 };
+    string emptyIcon = ViewData["EmptyIcon"]    as string  ?? "ti-table";
+    string emptyTitle= ViewData["EmptyTitle"]   as string  ?? "Sin resultados";
+    string emptySub  = ViewData["EmptySubtitle"]as string  ?? "No hay datos para mostrar.";
+
+    int colCount = columns.Count + (showActions ? 1 : 0);
+
+    var colsOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    var colsJson    = JsonSerializer.Serialize(columns, colsOptions);
+    var actionsJson = JsonSerializer.Serialize(actions, colsOptions);
+}
+
+@functions {
+    static List<DataTableAction> DefaultActions() => new()
+    {
+        new() { Key="edit",   Label="Editar",   Icon="ti-edit"      },
+        new() { Key="delete", Label="Eliminar", Icon="ti-trash", Danger=true },
+    };
+}
+
+<div id="@(tableId)-wrapper" class="relative group/dt w-full">
+    <div class="bg-white dark:bg-ink-900 ring-soft rounded-md overflow-hidden relative">
+
+        <!-- Loader Overlay -->
+        <div id="@(tableId)-loader"
+             class="absolute inset-0 bg-white/70 dark:bg-ink-900/70 backdrop-blur-[2px] z-30 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 [&.on]:opacity-100 [&.on]:pointer-events-auto">
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full border-[3px] border-primary-100 border-t-primary animate-spin"></div>
+                <span class="text-[10px] font-bold text-primary-600 mt-2 uppercase tracking-[0.16em]">Procesando…</span>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto @(isCompact ? "max-h-[480px] overflow-y-auto" : "")">
+            <table class="atlas"
+                   id="@tableId"
+                   data-ajax-url="@ajaxUrl"
+                   data-page-size="@pageSize"
+                   data-client-side="@clientSide.ToString().ToLower()"
+                   data-show-actions="@showActions.ToString().ToLower()"
+                   data-col-count="@colCount"
+                   data-cols='@Html.Raw(colsJson)'
+                   data-actions='@Html.Raw(actionsJson)'>
+
+                <thead>
+                    <tr>
+                        @foreach (var col in columns)
+                        {
+                            string alignCls = col.Align == "center" ? "text-center" : col.Align == "right" ? "text-right" : "text-left";
+                            string hideCls  = col.Hidden ? "hidden lg:table-cell" : "";
+                            string sortCls  = col.Sortable ? "sortable" : "";
+
+                            <th scope="col"
+                                class="@alignCls @hideCls @sortCls whitespace-nowrap"
+                                style="@(string.IsNullOrEmpty(col.Width) ? "" : $"width: {col.Width}")"
+                                data-field="@col.Field">
+
+                                <div class="flex items-center gap-1.5 @(col.Align == "center" ? "justify-center" : col.Align == "right" ? "justify-end" : "")">
+                                    <span>@col.Label</span>
+
+                                    @if (col.Sortable)
+                                    {
+                                        <div class="flex flex-col text-[8px] opacity-30 group-hover/th:opacity-100 transition-opacity js-sort-icons">
+                                            <i class="ti ti-caret-up leading-[6px] js-up"></i>
+                                            <i class="ti ti-caret-down leading-[6px] -mt-1 js-down"></i>
+                                        </div>
+                                    }
+                                </div>
+                            </th>
+                        }
+
+                        @if (showActions)
+                        {
+                            var actsHeader = (actions ?? DefaultActions());
+                            var actsWidth = Math.Max(60, actsHeader.Count * 40);
+                            <th scope="col" class="text-center" style="width:@(actsWidth)px">
+                                <span class="sr-only">Acciones</span>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+
+                <tbody id="@(tableId)-tbody">
+                    @if (!string.IsNullOrEmpty(ajaxUrl) || clientSide)
+                    {
+                        @for (int i = 0; i < 6; i++)
+                        {
+                            <tr>
+                                @for (int c = 0; c < colCount; c++)
+                                {
+                                    <td>
+                                        <div class="skeleton h-3.5 rounded @(c == 0 ? "w-48" : "w-24")"></div>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="@colCount" class="py-16 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center mb-3 text-ink-300">
+                                        <i class="ti @emptyIcon text-[18px]"></i>
+                                    </div>
+                                    <h3 class="text-ink-800 dark:text-ink-100 font-semibold text-[13px] tracking-tight">@emptyTitle</h3>
+                                    <p class="text-ink-400 text-[11.5px] mt-1 max-w-[280px] mx-auto leading-relaxed">@emptySub</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer: count + page size + pagination -->
+        <div id="@(tableId)-footer"
+             class="px-3 sm:px-4 py-2.5 border-t border-ink-200/60 dark:border-ink-800 flex flex-wrap items-center justify-between gap-2 text-[12px]">
+
+            <div id="@(tableId)-count" class="text-[11px] text-ink-500">
+                <!-- "Mostrando X – Y de Z" (JS) -->
+            </div>
+
+            <div class="flex items-center gap-3">
+
+                <!-- Page Size Selector -->
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[9.5px] font-semibold text-ink-500 uppercase tracking-[0.12em]">Ver</span>
+                    <div class="relative">
+                        <select id="@(tableId)-ps"
+                                class="appearance-none bg-ink-50 dark:bg-ink-800 ring-1 ring-ink-200/60 dark:ring-ink-700 hover:ring-ink-300 text-ink-800 dark:text-ink-100 text-[11.5px] font-semibold rounded-md pl-2.5 pr-7 py-1 outline-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
+                            @foreach (var opt in psOpts)
+                            {
+                                if (pageSize == opt)
+                                {
+                                    <option value="@opt" selected="selected">@opt</option>
+                                }
+                                else
+                                {
+                                    <option value="@opt">@opt</option>
+                                }
+                            }
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-ink-400 text-[9px]">
+                            <i class="ti ti-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination Nav -->
+                <nav id="@(tableId)-nav"
+                     class="flex items-center gap-0.5 p-0.5 bg-ink-50 dark:bg-ink-800 rounded-md ring-1 ring-ink-200/60 dark:ring-ink-700"
+                     aria-label="Paginación">
+                    <!-- JS populated -->
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    'use strict';
+
+    window.DT = window.DT || {};
+    const _state = {};
+    const _renderers = {};
+    const _listeners = {};
+
+    const $ = (id) => document.getElementById(id);
+    const get = (id) => {
+        if (!_state[id]) {
+            const el = $(id);
+            if (!el) return null;
+            _state[id] = {
+                page: 1,
+                pageSize: parseInt(el.dataset.pageSize || 20),
+                total: 0,
+                pages: 0,
+                allData: null,
+                ajaxUrl: el.dataset.ajaxUrl || null,
+                client: el.dataset.clientSide === 'true',
+                cols: JSON.parse(el.dataset.cols || '[]'),
+                acts: JSON.parse(el.dataset.actions || '[]'),
+                showActs: el.dataset.showActions !== 'false',
+                colCount: parseInt(el.dataset.colCount || 1),
+                sortField: null,
+                sortDir: 'asc',
+                extraParams: {},
+            };
+        }
+        return _state[id];
+    };
+
+    /* ══ Renderers (atlas style, sin gradientes) ══════════════ */
+    const RENDERERS = {
+        text: (val) => {
+            const span = document.createElement('span');
+            span.className = 'text-ink-800 dark:text-ink-200';
+            span.textContent = val ?? '—';
+            return span;
+        },
+        combined: (val, col, row) => {
+            const sub = deepGet(row, col.subField);
+            const wrap = document.createElement('div');
+            wrap.className = 'flex flex-col py-0.5 max-w-[320px]';
+            wrap.innerHTML = `
+                <div class="font-semibold text-ink-900 dark:text-ink-100 leading-snug truncate tracking-tight">${esc(val)}</div>
+                ${sub ? `<div class="text-[10.5px] text-ink-400 dark:text-ink-500 font-semibold truncate uppercase tracking-[0.14em] mt-0.5">${esc(sub)}</div>` : ''}
+            `;
+            return wrap;
+        },
+        badge: (val, col) => {
+            // Mapeo color usuario → clase del design system (.badge.b-*)
+            const map = col.badgeMap || {};
+            const requested = map[val] || 'gray';
+            const aliases = {
+                green: 'green',  emerald: 'green',
+                amber: 'amber',  yellow:  'amber', orange: 'amber',
+                red:   'red',    rose:    'red',
+                violet:'violet', purple:  'violet',
+                blue:  'blue',
+                gray:  'gray',   slate:   'gray',
+                primary: 'primary', secondary: 'secondary'
+            };
+            const variant = aliases[requested] || 'gray';
+            const span = document.createElement('span');
+            span.className = `badge b-${variant}`;
+            span.textContent = val ?? '—';
+            return span;
+        },
+        image: (val, col) => {
+            const size = col.imageSize || 32;
+            const round = col.imageRound ? 'rounded-full' : 'rounded-md';
+            const img = document.createElement('img');
+            img.src = val || 'https://via.placeholder.com/150';
+            img.className = `object-cover ring-1 ring-ink-200/60 dark:ring-ink-700 ${round}`;
+            img.style.width = `${size}px`;
+            img.style.height = `${size}px`;
+            return img;
+        },
+        boolean: (val) => {
+            const span = document.createElement('span');
+            span.className = `badge ${val ? 'b-green' : 'b-gray'}`;
+            span.innerHTML = val
+                ? '<i class="ti ti-check text-[9px]"></i> Sí'
+                : '<i class="ti ti-x text-[9px]"></i> No';
+            return span;
+        },
+        date: (val, col) => {
+            const span = document.createElement('span');
+            span.className = 'text-ink-700 dark:text-ink-200 tabular-nums';
+            if (!val) { span.textContent = '—'; return span; }
+            try {
+                const parts = String(val).split('T')[0].split('-');
+                if (parts.length === 3) {
+                    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    span.textContent = d.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' });
+                } else {
+                    const d = new Date(val);
+                    span.textContent = d.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' });
+                }
+            } catch { span.textContent = val; }
+            return span;
+        },
+        currency: (val, col) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'flex items-baseline gap-1 font-semibold tabular-nums';
+            const num = parseFloat(val);
+            if (isNaN(num)) { wrap.textContent = '—'; return wrap; }
+            wrap.innerHTML = `<span class="text-[10px] text-ink-400 dark:text-ink-500 font-semibold">${col.currencySymbol || 'S/'}</span><span class="text-ink-900 dark:text-ink-100">${num.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>`;
+            return wrap;
+        },
+        code: (val) => {
+            const span = document.createElement('span');
+            span.className = 'px-2 py-0.5 bg-ink-50 dark:bg-ink-800 text-ink-600 dark:text-ink-300 ring-1 ring-ink-200/60 dark:ring-ink-700 rounded-md text-[11px] font-mono';
+            span.textContent = val ?? '—';
+            return span;
+        },
+        progress: (val) => {
+            const pct = Math.min(100, Math.max(0, parseFloat(val) || 0));
+            const color = pct >= 80 ? '#10b981' : pct >= 40 ? '#f54477' : '#f43f5e';
+            const wrap = document.createElement('div');
+            wrap.className = 'flex items-center gap-2.5 max-w-[160px]';
+            wrap.innerHTML = `
+                <div class="pbar flex-1"><div style="width:${pct}%; background-color:${color}"></div></div>
+                <span class="text-[11px] font-semibold text-ink-500 dark:text-ink-400 tabular-nums w-9 text-right">${pct}%</span>
+            `;
+            return wrap;
+        },
+        custom: (val, col, row) => {
+            const fn = _renderers[col.renderFn] || window[col.renderFn];
+            if (typeof fn === 'function') {
+                const node = fn(val, col, row);
+                if (node instanceof Node) return node;
+                const wrap = document.createElement('div');
+                wrap.innerHTML = node ?? '';
+                return wrap;
+            }
+            return RENDERERS.text(val);
+        }
+    };
+
+    /* ── Helpers ───────────────────────────────── */
+    function deepGet(obj, path) {
+        if (!path || !obj) return undefined;
+        return path.split('.').reduce((o, k) => o?.[k], obj);
+    }
+    function esc(str) {
+        return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function setLoading(id, on) {
+        $(`${id}-loader`)?.classList.toggle('on', on);
+    }
+
+    /* ══ Render filas ════════════════════════════ */
+    function renderRows(id, data) {
+        const s = get(id);
+        const tbody = $(`${id}-tbody`);
+        if (!tbody || !s) return;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${s.colCount}" class="py-16 text-center">
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center mb-3 text-ink-300">
+                        <i class="ti ti-inbox text-[18px]"></i>
+                    </div>
+                    <h3 class="text-ink-800 dark:text-ink-100 font-semibold text-[13px] tracking-tight">Sin resultados</h3>
+                    <p class="text-ink-400 text-[11.5px] mt-1 max-w-[280px] mx-auto">Ajusta los filtros o crea un registro nuevo.</p>
+                </div></td></tr>`;
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'group/tr';
+            tr.dataset.row = JSON.stringify(row);
+
+            s.cols.forEach(col => {
+                const td = document.createElement('td');
+                const alignCls = col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left';
+                const hideCls  = col.hidden ? 'hidden lg:table-cell' : '';
+                td.className   = `${alignCls} ${hideCls}`.trim();
+
+                const val = deepGet(row, col.field);
+                const renderer = RENDERERS[col.type || 'text'] || RENDERERS.text;
+                td.appendChild(renderer(val, col, row));
+                tr.appendChild(td);
+            });
+
+            if (s.showActs) {
+                const td = document.createElement('td');
+                td.className = 'text-center whitespace-nowrap';
+                const group = document.createElement('div');
+                group.className = 'inline-flex items-center gap-0.5';
+                s.acts.forEach(act => {
+                    const baseCls = `w-7 h-7 rounded-md ring-1 ring-ink-200/60 dark:ring-ink-700 text-ink-500 dark:text-ink-300 transition-all inline-flex items-center justify-center ${act.danger ? 'hover:text-rose-600 hover:ring-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 dark:hover:text-rose-400' : 'hover:text-primary-600 hover:ring-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 dark:hover:text-primary-300'}`;
+                    const iconHtml = `<i class="ti ${act.icon} text-[11px]"></i>`;
+                    const btn = act.href
+                        ? (() => {
+                            const a = document.createElement('a');
+                            a.className = baseCls;
+                            a.href = act.href.replace(/{([\w.]+)}/g, (_, key) => {
+                                const val = deepGet(row, key);
+                                return val !== undefined && val !== null ? val : _;
+                            });
+                            if (act.target) a.target = act.target;
+                            a.innerHTML = iconHtml;
+                            a.setAttribute('data-tip', act.label);
+                            return a;
+                        })()
+                        : (() => {
+                            const b = document.createElement('button');
+                            b.type = 'button';
+                            b.className = baseCls;
+                            b.innerHTML = iconHtml;
+                            b.setAttribute('data-tip', act.label);
+                            b.onclick = (e) => {
+                                e.preventDefault(); e.stopPropagation();
+                                emit(id, 'action', { key: act.key, row });
+                            };
+                            return b;
+                        })();
+                    group.appendChild(btn);
+                });
+                td.appendChild(group);
+                tr.appendChild(td);
+            }
+            frag.appendChild(tr);
+        });
+
+        tbody.innerHTML = '';
+        tbody.appendChild(frag);
+        bindRows(id);
+    }
+
+    function renderFooter(id) {
+        const s = get(id);
+        const countEl = $(`${id}-count`);
+        const navEl   = $(`${id}-nav`);
+        if (!s) return;
+
+        if (countEl) {
+            const from = s.total === 0 ? 0 : (s.page - 1) * s.pageSize + 1;
+            const to = Math.min(s.page * s.pageSize, s.total);
+            countEl.innerHTML = `Mostrando <span class="text-ink-900 dark:text-ink-100 font-semibold tabular-nums">${from}</span> – <span class="text-ink-900 dark:text-ink-100 font-semibold tabular-nums">${to}</span> de <span class="text-ink-900 dark:text-ink-100 font-semibold tabular-nums">${s.total}</span>`;
+        }
+
+        if (navEl) {
+            navEl.innerHTML = '';
+            if (s.pages <= 1) return;
+
+            const createBtn = (label, targetPage, isActive, isDisabled, isIcon) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = [
+                    'min-w-[30px] h-[30px] inline-flex items-center justify-center rounded-md text-[13px] font-semibold transition-all',
+                    isActive
+                        ? 'bg-primary text-white cursor-default'
+                        : (isDisabled
+                            ? 'text-ink-300 dark:text-ink-600 cursor-not-allowed'
+                            : 'text-ink-600 dark:text-ink-300 hover:bg-white dark:hover:bg-ink-900 hover:text-primary-600 dark:hover:text-primary-300')
+                ].join(' ');
+                if (!isDisabled && !isActive) b.onclick = () => changePage(id, targetPage);
+                b.innerHTML = isIcon ? `<i class="ti ${label} text-[12px]"></i>` : label;
+                return b;
+            };
+
+            navEl.appendChild(createBtn('ti-chevron-left', s.page - 1, false, s.page === 1, true));
+            computeRange(s.page, s.pages).forEach(p => {
+                if (p === '...') {
+                    const span = document.createElement('span');
+                    span.className = 'w-6 text-center text-[10px] font-semibold text-ink-300 dark:text-ink-600';
+                    span.textContent = '…';
+                    navEl.appendChild(span);
+                } else {
+                    navEl.appendChild(createBtn(p, p, p === s.page, false, false));
+                }
+            });
+            navEl.appendChild(createBtn('ti-chevron-right', s.page + 1, false, s.page === s.pages, true));
+        }
+    }
+
+    function computeRange(cur, total) {
+        if (total <= 6) return Array.from({length:total},(_,i)=>i+1);
+        const r = [1];
+        if (cur > 3) r.push('...');
+        for (let p=Math.max(2,cur-1); p<=Math.min(total-1,cur+1); p++) r.push(p);
+        if (cur < total-2) r.push('...');
+        r.push(total);
+        return r;
+    }
+
+    function fetchData(id) {
+        const s = get(id);
+        if (!s || !s.ajaxUrl) return;
+        setLoading(id, true);
+
+        // La ajaxUrl puede traer parámetros (ej. filtros); los reutilizamos y añadimos
+        // paginación/orden sin romper la query existente.
+        const url = new URL(s.ajaxUrl, window.location.origin);
+
+        const params = new URLSearchParams({
+            page: s.page,
+            pageSize: s.pageSize,
+            sortBy: s.sortField || '',
+            sortDir: s.sortDir || 'asc',
+            ...s.extraParams
+        });
+
+        params.forEach((v, k) => {
+            if (v === 'null' || v === 'undefined' || v === '') {
+                url.searchParams.delete(k);
+            } else {
+                url.searchParams.set(k, v);
+            }
+        });
+
+        fetch(url.toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        })
+        .then(resp => {
+            const data = resp.data || resp.items || resp.Data || [];
+            s.total = resp.totalItems || data.length;
+            s.pages = resp.totalPages || Math.ceil(s.total / s.pageSize);
+            renderRows(id, data);
+            renderFooter(id);
+        })
+        .catch(err => {
+            console.error('[DT] Error fetching:', err);
+            const tbody = $(`${id}-tbody`);
+            if(tbody) tbody.innerHTML = `<tr><td colspan="${s.colCount}" class="py-16 text-center text-rose-600 font-semibold text-xs"><i class="ti ti-alert-triangle mr-2"></i> Error al cargar datos</td></tr>`;
+        })
+        .finally(() => setLoading(id, false));
+    }
+
+    function changePage(id, page) {
+        const s = get(id);
+        if (!s || page < 1 || (s.pages && page > s.pages) || page === s.page) return;
+        s.page = page;
+        if (s.client && s.allData) {
+            renderRows(id, slice(s.allData, s.page, s.pageSize));
+            renderFooter(id);
+        } else {
+            fetchData(id);
+        }
+    }
+
+    function slice(data, page, size) {
+        const from = (page - 1) * size;
+        return data.slice(from, from + size);
+    }
+
+    function bindRows(id) {
+        // Las acciones ahora son inline — sin popover.
+    }
+
+    function emit(id, event, detail) {
+        const el = $(id);
+        el?.dispatchEvent(new CustomEvent(`dt:${event}`, { detail, bubbles: true }));
+        (_listeners[id]?.[event] || []).forEach(fn => fn(detail));
+    }
+
+    /* ══ API pública (compatible con la anterior) ═══ */
+    DT.load = (id, options) => {
+        const s = get(id); if (!s) return;
+        const data = options.data || options.Data || [];
+        s.total = options.totalItems || data.length;
+        s.pages = Math.ceil(s.total / s.pageSize);
+        s.page = options.page || 1;
+        if (s.client) s.allData = data;
+        renderRows(id, s.client ? slice(data, s.page, s.pageSize) : data);
+        renderFooter(id);
+    };
+
+    DT.refresh = (id) => fetchData(id);
+    DT.filter = (id, params) => {
+        const s = get(id); if(!s) return;
+        s.extraParams = params;
+        s.page = 1;
+        fetchData(id);
+    };
+    DT.on = (id, event, fn) => {
+        if (!_listeners[id]) _listeners[id] = {};
+        if (!_listeners[id][event]) _listeners[id][event] = [];
+        _listeners[id][event].push(fn);
+    };
+    DT.registerRenderer = (name, fn) => { _renderers[name] = fn; };
+
+    /* ══ Init ══════════════════════════════════════ */
+    document.addEventListener('DOMContentLoaded', () => {
+        const tables = document.querySelectorAll('table[data-cols]');
+        tables.forEach(t => {
+            const id = t.id;
+            const s = get(id);
+
+            // Page size change
+            $(`${id}-ps`)?.addEventListener('change', function() {
+                s.pageSize = parseInt(this.value); s.page = 1;
+                if (s.client && s.allData) {
+                    s.pages = Math.ceil(s.total / s.pageSize);
+                    renderRows(id, slice(s.allData, s.page, s.pageSize));
+                    renderFooter(id);
+                } else {
+                    fetchData(id);
+                }
+            });
+
+            // Sortable headers
+            t.querySelectorAll('th.sortable[data-field]').forEach(th => {
+                th.onclick = () => {
+                    const field = th.dataset.field;
+                    if (s.sortField === field) s.sortDir = s.sortDir === 'asc' ? 'desc' : 'asc';
+                    else { s.sortField = field; s.sortDir = 'asc'; }
+
+                    t.querySelectorAll('.js-sort-icons').forEach(icons => icons.classList.add('opacity-30'));
+                    t.querySelectorAll('.js-sort-icons i').forEach(i => i.classList.remove('text-primary-600'));
+
+                    const icons = th.querySelector('.js-sort-icons');
+                    if (icons) {
+                        icons.classList.remove('opacity-30');
+                        icons.querySelector(s.sortDir === 'asc' ? '.js-up' : '.js-down').classList.add('text-primary-600');
+                    }
+                    if (s.client && s.allData) {
+                        const sorted = [...s.allData].sort((a, b) => {
+                            const av = deepGet(a, field);
+                            const bv = deepGet(b, field);
+                            if (av == null && bv == null) return 0;
+                            if (av == null) return 1;
+                            if (bv == null) return -1;
+                            const cmp = (typeof av === 'number' && typeof bv === 'number')
+                                ? av - bv
+                                : String(av).localeCompare(String(bv), 'es', { numeric: true });
+                            return s.sortDir === 'asc' ? cmp : -cmp;
+                        });
+                        s.allData = sorted;
+                        s.page = 1;
+                        renderRows(id, slice(sorted, 1, s.pageSize));
+                        renderFooter(id);
+                    } else if (s.ajaxUrl) {
+                        s.page = 1;
+                        fetchData(id);
+                    }
+                };
+            });
+
+            if (s.ajaxUrl) fetchData(id);
+        });
+    });
+
+})();
+</script>

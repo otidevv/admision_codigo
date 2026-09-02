@@ -1,0 +1,156 @@
+﻿@using ADMISION.ENTITIES.Constants
+@model IEnumerable<ADMISION.ENTITIES.Models.Modality.ScheduleEvent>
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Cronograma de Admisión";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)ViewBag.Terms;
+    var selected = (ADMISION.ENTITIES.Models.Modality.Term?)ViewBag.SelectedTerm;
+    var labels = (Dictionary<string, string>)ViewBag.PhaseLabels;
+    var order = (string[])ViewBag.PhaseOrder;
+    var groups = Model.GroupBy(e => e.Phase).ToDictionary(g => g.Key, g => g.ToList());
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Cronograma</span>
+        </div>
+        <div class="eyebrow">Calendario académico</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Cronograma de <span class="font-serif font-normal text-primary-600">admisión</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Gestiona fases, fechas y horarios por período académico.</p>
+    </div>
+    <a asp-action="Create" asp-route-termId="@selected?.Id"
+       class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i>
+        Nuevo evento
+    </a>
+</section>
+
+<!-- Filtro de período -->
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-4 sm:p-5 mb-6">
+    <form method="get" class="flex flex-wrap items-end gap-4">
+        <div class="flex-1 min-w-[240px] max-w-md">
+            <label for="termId" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Período académico</label>
+            <select id="termId" name="termId" onchange="this.form.submit()"
+                    class="form-input w-full">
+                @foreach (var t in terms)
+                {
+                    <option value="@t.Id" selected="@(selected?.Id == t.Id)">@t.Name @(t.IsActive ? "(Activo)" : "")</option>
+                }
+            </select>
+        </div>
+        <div class="text-xs text-ink-500 dark:text-ink-400 pb-2 flex items-center gap-1.5">
+            <i class="ti ti-info-circle text-primary-500"></i>
+            Eventos agrupados por fase y ordenados por <strong class="text-ink-700 dark:text-ink-200">DisplayOrder</strong>.
+        </div>
+    </form>
+</section>
+
+@if (selected == null)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md px-5 py-6 flex items-center gap-3">
+        <span class="w-10 h-10 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-600 inline-flex items-center justify-center">
+            <i class="ti ti-alert-triangle"></i>
+        </span>
+        <p class="text-sm text-ink-700 dark:text-ink-200">
+            No hay períodos académicos registrados.
+            <a class="text-primary-600 hover:text-primary-700 font-semibold ml-1" href="/admin/periodos/crear">Crear uno</a>.
+        </p>
+    </section>
+}
+else if (!Model.Any())
+{
+    <section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md py-14 text-center">
+        <i class="ti ti-calendar-x text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 text-sm font-medium">No hay eventos cargados para <strong class="text-ink-700 dark:text-ink-200">@selected.Name</strong>.</p>
+    </section>
+}
+else
+{
+    <div class="space-y-5">
+        @foreach (var phase in order)
+        {
+            if (!groups.ContainsKey(phase)) continue;
+            var items = groups[phase].OrderBy(x => x.DisplayOrder).ThenBy(x => x.StartDate).ToList();
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="@(AppConstants.SchedulePhase.Icons.TryGetValue(phase, out var icn) ? icn : "ti ti-circle") text-sm"></i>
+                    </span>
+                    <div class="flex-1">
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">@(labels.TryGetValue(phase, out var lbl) ? lbl : phase)</h2>
+                        <p class="text-[11.5px] text-ink-500">@items.Count evento(s)</p>
+                    </div>
+                    <span class="badge b-blue">@items.Count</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="atlas w-full">
+                        <thead>
+                            <tr>
+                                <th class="w-12">#</th>
+                                <th>Descripción</th>
+                                <th class="text-center">Inicio</th>
+                                <th class="text-center">Fin</th>
+                                <th class="text-center">Horario</th>
+                                <th>Lugar</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ev in items)
+                            {
+                                <tr>
+                                    <td class="text-ink-500 font-mono">@ev.DisplayOrder</td>
+                                    <td class="font-semibold text-ink-900 dark:text-ink-100">@ev.Description</td>
+                                    <td class="text-center text-ink-600 dark:text-ink-300">@ev.StartDate.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center text-ink-600 dark:text-ink-300">@(ev.EndDate?.ToString("dd/MM/yyyy") ?? "—")</td>
+                                    <td class="text-center text-ink-600 dark:text-ink-300">@(string.IsNullOrEmpty(ev.Schedule) ? "—" : ev.Schedule)</td>
+                                    <td class="text-ink-600 dark:text-ink-300">@(string.IsNullOrEmpty(ev.Location) ? "—" : ev.Location)</td>
+                                    <td class="text-center">
+                                        @if (ev.IsActive)
+                                        {
+                                            <span class="badge b-green">Activo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge b-gray">Inactivo</span>
+                                        }
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="flex justify-end gap-2">
+                                            <a asp-action="Edit" asp-route-id="@ev.Id"
+                                               class="inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                               title="Editar">
+                                                <i class="ti ti-pencil text-xs"></i>
+                                            </a>
+                                            <form asp-action="Delete" asp-route-id="@ev.Id" method="post" class="inline delete-form">
+                                                @Html.AntiForgeryToken()
+                                                <button type="button"
+                                                        class="btn-delete inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                                        data-name="@ev.Description"
+                                                        title="Eliminar">
+                                                    <i class="ti ti-trash text-xs"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/admin/info-management/schedule/index.js" asp-append-version="true"></script>
+}

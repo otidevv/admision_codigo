@@ -1,0 +1,259 @@
+@model List<ADMISION.ENTITIES.Models.Postulante.Inscription>
+@using ADMISION.ENTITIES.Constants
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+    var userObservations = (List<ADMISION.ENTITIES.Models.Users.Observations>?)ViewBag.UserObservations ?? new();
+
+    ViewData["Title"] = "Observaciones - " + fullName;
+
+    var canEditObs = User.IsInRole(AppConstants.Roles.SuperAdmin);
+
+    var inscriptionObs = Model
+        .SelectMany(i => i.Observations?.Select(o => new {
+            Kind = "inscription",
+            Id = o.Id,
+            Observation = o.Observation,
+            TipoObservacion = o.TipoObservacion,
+            CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt,
+            CreatedBy = o.CreatedBy,
+            Context = i.Modality?.Term?.Name ?? "Sin periodo",
+            CodePostulant = i.CodePostulant
+        }) ?? Enumerable.Empty<dynamic>());
+
+    var userObs = userObservations.Select(o => new {
+        Kind = "user",
+        Id = o.Id,
+        Observation = o.Observation,
+        TipoObservacion = (string?)null,
+        CreatedAt = o.CreatedAt,
+        UpdatedAt = o.UpdatedAt,
+        CreatedBy = o.CreatedBy,
+        Context = (string?)"General del usuario",
+        CodePostulant = (string?)null
+    }).Cast<dynamic>();
+
+    var allObservations = inscriptionObs
+        .Concat(userObs)
+        .OrderByDescending(x => x.CreatedAt)
+        .ToList();
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Observaciones</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Observaciones del <span class="font-serif font-normal text-primary-600">expediente</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName</p>
+        </div>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver al expediente
+        </a>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-circle-check"></i> @TempData["Success"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-alert-triangle"></i> @TempData["Error"]
+    </div>
+}
+
+<!-- Search / filter bar -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-4">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter-search text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtrar observaciones</h2>
+            <p class="text-[11.5px] text-ink-500">Busque por texto o registre una nueva observación</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <input id="obsSearchInput" type="text" class="form-input !pl-9" placeholder="Buscar por texto de observación..." autocomplete="off" />
+            </div>
+            <button id="obsNewBtn" type="button"
+                    class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all whitespace-nowrap">
+                <i class="ti ti-plus text-xs"></i> Nueva observación
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Observations table -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="overflow-x-auto">
+        <table id="obsTable" class="w-full text-sm" data-can-edit="@(canEditObs ? "true" : "false")">
+            <thead>
+                <tr class="border-b border-ink-200/60 dark:border-ink-800/60 bg-ink-50/50 dark:bg-ink-800/50">
+                    <th class="text-left px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Fecha</th>
+                    <th class="text-left px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Tipo</th>
+                    <th class="text-left px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Tipo obs.</th>
+                    <th class="text-left px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Contexto</th>
+                    <th class="text-left px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Observación</th>
+                    <th class="text-left px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Registrado por</th>
+                    @if (canEditObs)
+                    {
+                        <th class="text-center px-4 py-3 font-semibold text-ink-600 dark:text-ink-300 text-xs uppercase tracking-wider">Acciones</th>
+                    }
+                </tr>
+            </thead>
+            <tbody id="obsTableBody">
+                @if (allObservations.Any())
+                {
+                    foreach (var obs in allObservations)
+                    {
+                        var isUser = obs.Kind == "user";
+                        var badgeCls = isUser ? "badge b-violet" : "badge b-amber";
+                        var badgeText = isUser ? "Usuario" : "Inscripción";
+                        <tr class="border-b border-ink-100/60 dark:border-ink-800/60 hover:bg-ink-50/40 dark:hover:bg-ink-800/40 transition-colors">
+                            <td class="px-4 py-3 text-ink-500 tabular-nums text-xs whitespace-nowrap">@(((DateTimeOffset)obs.CreatedAt).LocalDateTime.ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td class="px-4 py-3"><span class="@badgeCls">@badgeText</span></td>
+                            <td class="px-4 py-3 text-xs whitespace-nowrap">
+                                @{
+                                    var tipoObsKey = (string?)obs.TipoObservacion;
+                                    var tipoObsLabel = tipoObsKey != null && AppConstants.ConsolidadoMapping.TipoObservacion.Labels.TryGetValue(tipoObsKey, out var lbl) ? lbl : "—";
+                                }
+                                <span class="badge @(tipoObsKey != null ? "b-red" : "b-gray")">@tipoObsLabel</span>
+                            </td>
+                            <td class="px-4 py-3 text-ink-700 dark:text-ink-200">
+                                <span class="text-[11px] font-bold tracking-[0.14em] uppercase text-primary-600">@obs.Context</span>
+                                @if (obs.CodePostulant != null)
+                                {
+                                    <span class="ml-2 text-[10px] font-mono text-ink-400 tabular-nums">@obs.CodePostulant</span>
+                                }
+                            </td>
+                            <td class="px-4 py-3 text-ink-700 dark:text-ink-200 max-w-xs">
+                                <p class="truncate" title="@obs.Observation">@obs.Observation</p>
+                                @if (((DateTimeOffset?)obs.UpdatedAt).HasValue)
+                                {
+                                    <p class="text-[10px] text-ink-400 mt-0.5 tabular-nums">Editada: @(((DateTimeOffset)obs.UpdatedAt).LocalDateTime.ToString("dd/MM/yyyy HH:mm"))</p>
+                                }
+                            </td>
+                            <td class="px-4 py-3 text-ink-500 text-xs whitespace-nowrap">@(obs.CreatedBy)</td>
+                            @if (canEditObs && !isUser)
+                            {
+                                <td class="px-4 py-3 text-center">
+                                    <button type="button"
+                                            class="obs-edit-btn inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                            title="Editar observación"
+                                            data-obs-id="@obs.Id"
+                                            data-obs-text="@System.Text.Encodings.Web.HtmlEncoder.Default.Encode(obs.Observation)"
+                                            data-obs-tipo="@obs.TipoObservacion">
+                                        <i class="ti ti-edit text-[10px]"></i>
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr id="obsEmptyRow">
+                        <td colspan="@(canEditObs ? 7 : 6)" class="px-4 py-10 text-center">
+                            <i class="ti ti-message-off text-3xl text-ink-300 mb-2 block"></i>
+                            <p class="text-ink-400 text-sm font-medium">Sin observaciones registradas.</p>
+                            <p class="text-ink-400 text-xs mt-1">Haga clic en "Nueva observación" para registrar la primera.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Modal: nueva observación -->
+<div id="obsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/40 dark:bg-black/60 transition-opacity" id="obsModalBackdrop"></div>
+    <div class="relative bg-white dark:bg-ink-900 rounded-md ring-soft shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-edit text-sm"></i>
+                </span>
+                <div>
+                    <h2 id="obsModalTitle" class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Nueva observación</h2>
+                    <p id="obsModalSubtitle" class="text-[11.5px] text-ink-500">A nivel de usuario o asociada a una inscripción</p>
+                </div>
+            </div>
+            <button type="button" id="obsModalClose" class="w-8 h-8 rounded-md flex items-center justify-center text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <form id="obsForm" action="/admin/info-postulant/postulant/postulant-resum/@postulantId/observations/add" method="post" class="p-4 sm:p-5 space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="postulantId" value="@postulantId" />
+            <input type="hidden" name="observationId" id="modalObsId" value="" />
+
+            <div id="modalObsScopeWrap">
+                <label class="form-label" for="modalObsScope">Ámbito</label>
+                <select name="scope" id="modalObsScope" class="form-input">
+                    <option value="user">Usuario (general)</option>
+                    <option value="inscription">Inscripción específica</option>
+                </select>
+            </div>
+            <div id="modalObsInscriptionWrap" style="display:none">
+                <label class="form-label" for="modalObsInscriptionId">Inscripción</label>
+                <select name="inscriptionId" id="modalObsInscriptionId" class="form-input">
+                    <option value="">-- Seleccione --</option>
+                    @foreach (var insc in Model.OrderByDescending(i => i.CreatedAt))
+                    {
+                        <option value="@insc.Id">@(insc.Modality?.Term?.Name) · @insc.Modality?.Name · @insc.CodePostulant</option>
+                    }
+                </select>
+            </div>
+            <div id="modalObsTipoWrap" style="display:none">
+                <label class="form-label" for="modalObsTipo">Tipo de observación <span class="text-ink-400">(opcional)</span></label>
+                <select name="tipoObservacion" id="modalObsTipo" class="form-input">
+                    <option value="">-- Sin tipo --</option>
+                    @foreach (var opt in AppConstants.ConsolidadoMapping.TipoObservacion.GetOptions())
+                    {
+                        <option value="@opt.Value">@opt.Label</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="modalObsObservation">Observación</label>
+                <textarea name="observation" id="modalObsObservation" required rows="3" placeholder="Describa la observación" class="form-input resize-none"></textarea>
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" id="obsModalCancel" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    Cancelar
+                </button>
+                <button type="submit" id="obsSubmitBtn" class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-device-floppy text-xs"></i> Registrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin/info-postulant/postulant-resum/observations.js" asp-append-version="true"></script>
+}

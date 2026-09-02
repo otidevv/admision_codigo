@@ -1,0 +1,138 @@
+@*
+    Sticky header transparente:
+    - Sin contenedor blanco. Sin gradientes.
+    - Al hacer scroll, agrega blur + borde sutil para legibilidad.
+    - Underline animado en links (.nav-underline).
+    - CTA con color sólido institucional (.btn-grad ya es plano).
+*@
+
+<header id="public-nav" class="nav-sticky">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2">
+
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-2.5 pr-3 pl-1 group shrink-0">
+            <span class="w-9 h-9  inline-flex items-center justify-center shrink-0 shadow-glow group-hover:scale-[1.03] transition-transform">
+                <img src="~/img/unamad.png" alt="Logo unamad" />
+            </span>
+            <div class="leading-none">
+                <div class="text-[15px] font-semibold tracking-tight text-primary-600">UNAMAD</div>
+                <div class="text-[10px] uppercase tracking-[0.2em] text-ink-500 mt-0.5">Admisión</div>
+            </div>
+        </a>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden lg:flex items-center gap-0.5 ml-2 text-sm">
+            <a href="/modalidad"
+               class="nav-underline px-3.5 py-2 rounded-md font-medium text-ink-700 hover:text-primary-600 transition-colors">
+                Modalidades
+            </a>
+            <a href="/carreras"
+               class="nav-underline px-3.5 py-2 rounded-md font-medium text-ink-700 hover:text-primary-600 transition-colors">
+                Carreras
+            </a>
+            <a href="/vacantes"
+               class="nav-underline px-3.5 py-2 rounded-md font-medium text-ink-700 hover:text-primary-600 transition-colors">
+                Vacantes
+            </a>
+            <a href="/cronograma"
+               class="nav-underline px-3.5 py-2 rounded-md font-medium text-ink-700 hover:text-primary-600 transition-colors">
+                Cronograma
+            </a>
+            <a href="/resultados"
+               class="nav-underline px-3.5 py-2 rounded-md font-medium text-ink-700 hover:text-primary-600 transition-colors">
+                Resultados
+            </a>
+            <a href="/preguntas-frecuentes"
+               class="nav-underline px-3.5 py-2 rounded-md font-medium text-ink-700 hover:text-primary-600 transition-colors">
+                FAQ
+            </a>
+        </div>
+
+        <!-- CTA + Mobile toggle -->
+        <div class="ml-auto flex items-center gap-2">
+            <a href="/resultados"
+               class="hidden md:inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-md text-ink-700 hover:bg-ink-100 transition">
+                <i class="ti ti-search text-xs"></i>
+                <span class="hidden lg:inline">Ver resultados</span>
+                <span class="lg:hidden">Resultados</span>
+            </a>
+            <a href="/Login"
+               class="btn-grad text-sm font-medium px-4 py-2 rounded-md inline-flex items-center gap-2">
+                <i class="ti ti-login text-xs"></i>
+                <span>Ingresar</span>
+            </a>
+
+            <button id="mobileMenuBtn"
+                    class="lg:hidden w-9 h-9 rounded-md flex items-center justify-center text-ink-700 hover:bg-ink-100 transition"
+                    aria-label="Abrir menú">
+                <i class="ti ti-menu-2"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation -->
+    <div id="mobileMenu" class="hidden lg:hidden border-t border-ink-200/60 bg-ink-50/95 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-0.5">
+            <a href="/modalidad" class="px-3 py-2.5 rounded-md text-ink-700 hover:bg-ink-100 hover:text-primary-600 transition text-sm font-medium">
+                <i class="ti ti-stack-2 w-5 text-ink-400 text-xs"></i> Modalidades
+            </a>
+            <a href="/carreras" class="px-3 py-2.5 rounded-md text-ink-700 hover:bg-ink-100 hover:text-primary-600 transition text-sm font-medium">
+                <i class="ti ti-school w-5 text-ink-400 text-xs"></i> Carreras
+            </a>
+            <a href="/vacantes" class="px-3 py-2.5 rounded-md text-ink-700 hover:bg-ink-100 hover:text-primary-600 transition text-sm font-medium">
+                <i class="ti ti-list-check w-5 text-ink-400 text-xs"></i> Vacantes
+            </a>
+            <a href="/cronograma" class="px-3 py-2.5 rounded-md text-ink-700 hover:bg-ink-100 hover:text-primary-600 transition text-sm font-medium">
+                <i class="ti ti-calendar-event w-5 text-ink-400 text-xs"></i> Cronograma
+            </a>
+            <a href="/resultados" class="px-3 py-2.5 rounded-md text-ink-700 hover:bg-ink-100 hover:text-primary-600 transition text-sm font-medium">
+                <i class="ti ti-trophy w-5 text-ink-400 text-xs"></i> Resultados
+            </a>
+            <a href="/preguntas-frecuentes" class="px-3 py-2.5 rounded-md text-ink-700 hover:bg-ink-100 hover:text-primary-600 transition text-sm font-medium">
+                <i class="ti ti-help-circle w-5 text-ink-400 text-xs"></i> Preguntas frecuentes
+            </a>
+        </div>
+    </div>
+</header>
+
+<script>
+    (function () {
+        var nav      = document.getElementById('public-nav');
+        var btn      = document.getElementById('mobileMenuBtn');
+        var menu     = document.getElementById('mobileMenu');
+
+        if (btn && menu) {
+            btn.addEventListener('click', function () {
+                menu.classList.toggle('hidden');
+            });
+
+            // Cerrar menú móvil al hacer click en un enlace.
+            menu.querySelectorAll('a').forEach(function (a) {
+                a.addEventListener('click', function () { menu.classList.add('hidden'); });
+            });
+
+            // Cerrar al pasar a desktop.
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 1024) menu.classList.add('hidden');
+            });
+        }
+
+        // Activa estilo "scrolled" al pasar 8px de scroll vertical.
+        function onScroll() {
+            if (!nav) return;
+            if (window.scrollY > 8) nav.classList.add('is-scrolled');
+            else nav.classList.remove('is-scrolled');
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        // Marca activo el link según la ruta actual.
+        var path = window.location.pathname.replace(/\/$/, '') || '/';
+        document.querySelectorAll('#public-nav a[href]').forEach(function (a) {
+            var href = a.getAttribute('href').replace(/\/$/, '') || '/';
+            if (href !== '/' && (path === href || path.startsWith(href + '/'))) {
+                a.classList.add('active');
+            }
+        });
+    })();
+</script>

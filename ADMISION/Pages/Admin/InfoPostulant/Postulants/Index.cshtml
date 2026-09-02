@@ -1,0 +1,159 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Postulante.Inscription>
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Gestión de Postulantes";
+
+    // Configuración del DataTable
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Código / Postulante", Field = "codePostulant", Type = "combined", SubField = "postulant.user.fullName", Sortable = true },
+        new() { Label = "Documento", Field = "postulant.user.document", Type = "combined", SubField = "postulant.user.documentType", Align = "center" },
+        new() { Label = "Carrera / Área", Field = "career.name", Type = "combined", SubField = "career.tematicArea", Sortable = true },
+        new() { Label = "Modalidad", Field = "modality.name", Type = "text" },
+        new() { Label = "Fecha Insc.", Field = "createdAt", Type = "date", Sortable = true },
+        new() {
+            Label = "Estado",
+            Field = "state",
+            Type = "badge",
+            Sortable = true,
+            BadgeMap = new() {
+                { "Aprobado", "green" },
+                { "Pendiente", "yellow" },
+                { "Observado", "orange" },
+                { "Rechazado", "red" },
+                { "Retirado", "gray" }
+            }
+        }
+    };
+
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "view", Label = "Ver Expediente", Icon = "ti-folder-open", Href = "/admin/info-postulant/postulant/postulant-resum/{postulantId}" },
+        
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    var defaultTermId = ViewBag.DefaultTermId as Guid?;
+    ViewData["AjaxUrl"] = Url.Action("Index")
+        + (defaultTermId.HasValue ? "?termId=" + defaultTermId.Value : string.Empty);
+    ViewData["TableId"] = "postulantsTable";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Información del postulante</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Postulantes</span>
+        </div>
+        <div class="eyebrow">Gestión académica</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Panel de <span class="font-serif font-normal text-primary-600">postulantes</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Gestión integral de inscripciones y expedientes de admisión.</p>
+    </div>
+    <button onclick="DT.refresh('postulantsTable')"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+        <i class="ti ti-refresh text-xs"></i> Actualizar
+    </button>
+</section>
+
+<!-- Advanced Filters -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros avanzados</h2>
+            <p class="text-[11.5px] text-ink-500">Refina por periodo, modalidad, área, facultad y estado</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-4">
+            <!-- Periodo -->
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterTerm",
+                    Label = "Periodo Académico",
+                    Placeholder = "Todos los periodos",
+                    SelectedValue = ViewBag.DefaultTermId?.ToString(),
+                    Options = ((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { id = t.Id, name = t.Name })
+                }' />
+            </div>
+
+            <!-- Modalidad (Cascada de Periodo) -->
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterModality",
+                    Label = "Modalidad",
+                    Placeholder = "Seleccione periodo primero"
+                }' />
+            </div>
+
+            <!-- Area Temática -->
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterArea",
+                    Label = "Área Temática",
+                    Placeholder = "Seleccione periodo primero"
+                }' />
+            </div>
+
+            <!-- Facultad -->
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterFaculty",
+                    Label = "Facultad",
+                    Placeholder = "Todas las facultades",
+                    Options = ((IEnumerable<dynamic>)ViewBag.Faculties).Select(f => new { id = f.Id, name = f.Name })
+                }' />
+            </div>
+
+            <!-- Carrera (Cascada de Facultad) -->
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterCareer",
+                    Label = "Carrera",
+                    Placeholder = "Seleccione facultad primero",
+                    Searchable = true
+                }' />
+            </div>
+
+            <!-- Estado -->
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "filterState",
+                    Label = "Estado",
+                    Placeholder = "Todos los estados",
+                    Options = ((IEnumerable<string>)ViewBag.States).Select(s => new { id = s, name = s })
+                }' />
+            </div>
+
+            <!-- Búsqueda Rápida -->
+            <div class="lg:col-span-2">
+                <partial name="_FormInput" model='@(new {
+                    Id = "filterSearch", Name = "filterSearch",
+                    Label = "Búsqueda Global",
+                    Placeholder = "Nombre completo o DNI del postulante...",
+                    IconLeft = "ti-search",
+                    Autocomplete = "off"
+                })' />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Table Section -->
+<section class="fade-up" id="tableContainer">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/info-postulant/postulants/index.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,356 @@
+@model ADMISION.Models.ViewModels.Admin.UserProfileDetailViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = $"Perfil — {Model.UserName}";
+    var initial = !string.IsNullOrEmpty(Model.FullName) ? Model.FullName.Trim().Substring(0, 1).ToUpper()
+                : !string.IsNullOrEmpty(Model.UserName) ? Model.UserName.Substring(0, 1).ToUpper() : "U";
+    var isBlocked = string.Equals(Model.Status, "Bloqueado", StringComparison.OrdinalIgnoreCase);
+    var monthNames = new[] { "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic" };
+    var longMonthNames = new[] { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+}
+
+<link rel="stylesheet" href="~/css/admin/users/profile.css" asp-append-version="true" />
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/usuarios" class="hover:text-primary-600 transition-colors">Gestión de Usuarios</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Perfil</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Cuenta administrativa</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Perfil de <span class="font-serif font-normal text-primary-600">@Model.UserName</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Accesos de sesión, notificaciones visualizadas y estadísticas de actividad.</p>
+        </div>
+        <a href="/admin/usuarios"
+           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-white ring-soft text-ink-700 text-sm font-semibold hover:bg-ink-100 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver
+        </a>
+    </div>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <!-- Identidad -->
+    <div class="lg:col-span-1">
+        <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden sticky top-4">
+            <!-- Cabecera sólida (sin gradiente) -->
+            <div class="relative bg-secondary-1000 text-white px-6 py-8 text-center overflow-hidden">
+                <div class="relative">
+                    @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl))
+                    {
+                        <img src="@Model.PhotoUrl" alt="Avatar"
+                             class="w-24 h-24 rounded-full mx-auto ring-2 ring-white/30 object-cover" />
+                    }
+                    else
+                    {
+                        <div class="w-24 h-24 rounded-full bg-white/15 backdrop-blur ring-2 ring-white/25 flex items-center justify-center text-white text-4xl font-bold mx-auto">
+                            @initial
+                        </div>
+                    }
+                    <p class="text-white font-semibold text-base mt-4 leading-tight truncate">@Model.FullName</p>
+                    <div class="flex flex-wrap items-center justify-center gap-1.5 mt-2">
+                        @foreach (var r in Model.Roles)
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/25 text-white text-[10px] font-medium uppercase tracking-[0.16em]">
+                                <i class="ti ti-shield text-[9px]"></i>@r
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-5 space-y-3">
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-9 h-9 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                        <i class="ti ti-user text-ink-400 text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Usuario</p>
+                        <p class="font-semibold text-ink-800 dark:text-ink-100 truncate">@Model.UserName</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-9 h-9 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                        <i class="ti ti-mail text-ink-400 text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Correo</p>
+                        <p class="font-semibold text-ink-800 dark:text-ink-100 truncate">@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-9 h-9 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                        <i class="ti ti-phone text-ink-400 text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Teléfono</p>
+                        <p class="font-semibold text-ink-800 dark:text-ink-100 truncate">@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "—" : Model.PhoneNumber)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-9 h-9 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                        <i class="ti ti-id text-ink-400 text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">@(string.IsNullOrWhiteSpace(Model.DocumentType) ? "Documento" : Model.DocumentType)</p>
+                        <p class="font-semibold text-ink-800 dark:text-ink-100 truncate">@Model.Document</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-9 h-9 rounded-md @(isBlocked ? "bg-rose-50 dark:bg-rose-500/10" : "bg-emerald-50 dark:bg-emerald-500/10") flex items-center justify-center shrink-0">
+                        <i class="ti ti-circle @(isBlocked ? "text-rose-500" : "text-emerald-500") text-[8px]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Estado</p>
+                        @if (isBlocked)
+                        {
+                            <span class="badge b-amber mt-0.5">@Model.Status</span>
+                        }
+                        else
+                        {
+                            <span class="badge b-green mt-0.5">@Model.Status</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-ink-200/60 dark:border-ink-800/60 space-y-2 mt-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-ink-500">Creado</span>
+                        <span class="font-semibold text-ink-700 dark:text-ink-200">@Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy", new System.Globalization.CultureInfo("es-PE"))</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-ink-500">Último acceso</span>
+                        <span class="font-semibold text-ink-700 dark:text-ink-200">
+                            @(Model.LastLogin.HasValue ? Model.LastLogin.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm", new System.Globalization.CultureInfo("es-PE")) : "—")
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.LastLoginIp))
+                    {
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-ink-500">Última IP</span>
+                            <span class="font-mono text-[11px] text-ink-700 dark:text-ink-200">@Model.LastLoginIp</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs + contenido -->
+    <div class="lg:col-span-2 space-y-5">
+
+        <!-- Stats cards -->
+        <section class="fade-up grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-4 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-md bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                    <i class="ti ti-login text-emerald-600"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Accesos OK</p>
+                    <p class="text-lg font-extrabold text-ink-900 dark:text-ink-100">@Model.TotalAccessSuccess.ToString("N0")</p>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-4 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-md bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
+                    <i class="ti ti-ban text-rose-500"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Accesos fallidos</p>
+                    <p class="text-lg font-extrabold text-ink-900 dark:text-ink-100">@Model.TotalAccessFailure.ToString("N0")</p>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-4 flex items-center gap-3 col-span-2 sm:col-span-1">
+                <div class="w-10 h-10 rounded-md bg-primary-50 dark:bg-primary-500/10 flex items-center justify-center">
+                    <i class="ti ti-bell text-primary-600"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Notif. vistas</p>
+                    <p class="text-lg font-extrabold text-ink-900 dark:text-ink-100">@Model.TotalNotificationsViewed.ToString("N0")</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart card -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center justify-between gap-3 rounded-t-md">
+                <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-chart-bar text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Inicios de sesión</h2>
+                        <p class="text-[11.5px] text-ink-500">Logins exitosos por día y por mes.</p>
+                    </div>
+                </div>
+                <form method="get" class="flex flex-wrap items-end gap-2">
+                    <div>
+                        <label class="form-label !mb-1 text-[10px]">Año</label>
+                        <select name="year" onchange="this.form.submit()"
+                                class="form-input !h-9 !py-1 text-xs font-semibold">
+                            @foreach (var y in Model.AvailableYears)
+                            {
+                                <option value="@y" selected="@(Model.SelectedYear == y)">@y</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label !mb-1 text-[10px]">Mes</label>
+                        <select name="month" onchange="this.form.submit()"
+                                class="form-input !h-9 !py-1 text-xs font-semibold">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m" selected="@(Model.SelectedMonth == m)">@longMonthNames[m - 1]</option>
+                            }
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-[11px] font-bold text-ink-600 dark:text-ink-300 uppercase tracking-[0.14em] mb-2">Por mes (@Model.SelectedYear)</p>
+                    <div class="relative h-[220px]">
+                        <canvas id="chartMonth"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-ink-600 dark:text-ink-300 uppercase tracking-[0.14em] mb-2">Por día (@longMonthNames[Model.SelectedMonth - 1] @Model.SelectedYear)</p>
+                    <div class="relative h-[220px]">
+                        <canvas id="chartDay"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabs -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+            <div class="flex border-b border-ink-200/60 dark:border-ink-800/60 text-sm font-semibold">
+                <button type="button" data-tab="access"
+                        class="tab-btn active flex-1 px-4 py-3 transition-colors inline-flex items-center justify-center gap-2">
+                    <i class="ti ti-history text-xs"></i>
+                    <span>Accesos recientes</span>
+                    <span class="badge b-gray">@Model.RecentAccess.Count</span>
+                </button>
+                <button type="button" data-tab="notifs"
+                        class="tab-btn flex-1 px-4 py-3 transition-colors inline-flex items-center justify-center gap-2">
+                    <i class="ti ti-bell text-xs"></i>
+                    <span>Notificaciones vistas</span>
+                    <span class="badge b-gray">@Model.NotificationsViewed.Count</span>
+                </button>
+            </div>
+
+            <!-- Tab: Accesos -->
+            <div id="tab-access" class="tab-panel p-0">
+                @if (Model.RecentAccess.Any())
+                {
+                    <div class="overflow-x-auto">
+                        <table class="atlas w-full">
+                            <thead>
+                                <tr>
+                                    <th>Fecha / hora</th>
+                                    <th>Acción</th>
+                                    <th>Estado</th>
+                                    <th>IP</th>
+                                    <th>Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in Model.RecentAccess)
+                                {
+                                    var isOk = a.Status == "Success";
+                                    <tr>
+                                        <td class="text-ink-700 dark:text-ink-200 font-semibold whitespace-nowrap text-xs">
+                                            @a.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                                        </td>
+                                        <td class="text-ink-700 dark:text-ink-200 text-xs">@a.Action</td>
+                                        <td>
+                                            @if (isOk)
+                                            {
+                                                <span class="badge b-green">
+                                                    <i class="ti ti-check text-[9px]"></i> Éxito
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge b-amber">
+                                                    <i class="ti ti-x text-[9px]"></i> @a.Status
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-ink-600 dark:text-ink-300 font-mono text-xs">@(a.IpAddress ?? "—")</td>
+                                        <td class="text-ink-500 dark:text-ink-400 text-xs">@(string.IsNullOrEmpty(a.Details) ? "—" : a.Details)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="px-4 py-14 text-center">
+                        <i class="ti ti-history text-ink-300 text-3xl mb-3 block"></i>
+                        <p class="text-ink-400 text-sm font-medium">Sin registros de acceso</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Tab: Notificaciones vistas -->
+            <div id="tab-notifs" class="tab-panel hidden p-0">
+                @if (Model.NotificationsViewed.Any())
+                {
+                    <div class="divide-y divide-ink-200/60 dark:divide-ink-800/60">
+                        @foreach (var n in Model.NotificationsViewed)
+                        {
+                            var scheme = n.ColorScheme ?? "primary";
+                            var iconBg = scheme switch
+                            {
+                                "secondary" => "bg-secondary-100 text-secondary-700",
+                                "success"   => "bg-emerald-50 text-emerald-600",
+                                "warning"   => "bg-amber-50 text-amber-600",
+                                "danger"    => "bg-rose-50 text-rose-500",
+                                _           => "bg-primary-50 text-primary-600"
+                            };
+                            <div class="px-4 sm:px-5 py-3.5 flex gap-3 hover:bg-ink-50 dark:hover:bg-ink-800/50 transition-colors">
+                                <div class="w-10 h-10 rounded-md @iconBg flex items-center justify-center shrink-0">
+                                    <i class="@(string.IsNullOrEmpty(n.IconClass) ? "ti ti-bell" : n.IconClass) text-sm"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[13px] font-semibold text-ink-900 dark:text-ink-100 leading-snug">@n.Title</p>
+                                    <p class="text-xs text-ink-600 dark:text-ink-300 leading-snug mt-0.5">@n.Message</p>
+                                    <div class="flex flex-wrap items-center gap-2 text-[10.5px] text-ink-400 font-semibold mt-1.5">
+                                        <span><i class="ti ti-clock text-[9px] mr-1"></i>Vista @n.ViewedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                        <span class="text-ink-300">·</span>
+                                        <span>Creada @n.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="px-4 py-14 text-center">
+                        <i class="ti ti-bell-off text-ink-300 text-3xl mb-3 block"></i>
+                        <p class="text-ink-400 text-sm font-medium">Este usuario no ha visualizado ninguna notificación aún.</p>
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.UserProfileConfig = {
+            monthLabels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(monthNames)),
+            monthData: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LoginsByMonth)),
+            dayData: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LoginsByDayOfSelectedMonth)),
+            daysInMonth: @Model.DaysInSelectedMonth
+        };
+    </script>
+    <script src="~/js/admin/users/profile.js" asp-append-version="true"></script>
+}

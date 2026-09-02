@@ -1,0 +1,127 @@
+@model ADMISION.ENTITIES.Models.Info.OtherFiles
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Editar Temario";
+    var hasFile = !string.IsNullOrEmpty(Model.FileUrl);
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-management/syllabi" class="hover:text-primary-600 transition-colors">Temarios</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Editar</span>
+    </div>
+    <div class="eyebrow">Material académico</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Editar <span class="font-serif font-normal text-primary-600">@Model.Name</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Actualiza la información o reemplaza el archivo del temario.</p>
+</section>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data" class="space-y-5 max-w-2xl">
+    <input type="hidden" asp-for="Id" />
+
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-edit text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del temario</h2>
+                <p class="text-[11.5px] text-ink-500">Modifica los campos necesarios y guarda los cambios</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <partial name="_FormInput" model='@(new {
+                Id = "Name", Name = "Name",
+                Label = "Nombre del temario", Required = true,
+                Value = Model.Name,
+                IconLeft = "ti-book",
+                Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <partial name="_FormTextarea" model='@(new {
+                Id = "Description", Name = "Description",
+                Label = "Descripción",
+                Rows = 3,
+                Value = Model.Description,
+                Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Archivo del temario</label>
+
+                @if (hasFile)
+                {
+                    <div class="mb-3 p-3 rounded-md bg-primary-50/60 dark:bg-primary-500/10 ring-1 ring-primary-200/60 dark:ring-primary-500/30 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-9 h-9 rounded-md bg-white dark:bg-ink-900 text-primary-600 inline-flex items-center justify-center shrink-0">
+                                <i class="ti ti-file-text"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-[11.5px] font-bold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300">Archivo actual</p>
+                                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 truncate">@Model.FileName</p>
+                                <p class="text-[11.5px] text-ink-500">@Model.FileSize</p>
+                            </div>
+                        </div>
+                        <a href="/@Model.FileUrl" target="_blank"
+                           class="inline-flex items-center justify-center w-9 h-9 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-white dark:hover:bg-ink-900 transition-colors shrink-0"
+                           title="Descargar">
+                            <i class="ti ti-download text-xs"></i>
+                        </a>
+                    </div>
+                }
+
+                <label for="uploadFile"
+                       class="block cursor-pointer rounded-md ring-1 ring-dashed ring-ink-200 dark:ring-ink-700 bg-ink-50/40 dark:bg-ink-800/40 hover:ring-primary-400 hover:bg-primary-50/40 transition-colors p-6 text-center">
+                    <i id="file-icon" class="ti ti-cloud-upload text-3xl text-ink-300 dark:text-ink-500 mb-3 block"></i>
+                    <div id="file-info" class="hidden mb-2">
+                        <span id="file-name" class="block text-sm font-semibold text-ink-900 dark:text-ink-100"></span>
+                        <span id="file-size" class="block text-[11.5px] text-ink-500"></span>
+                    </div>
+                    <div id="file-placeholder">
+                        <p class="text-sm text-ink-700 dark:text-ink-200 font-medium">@(hasFile ? "Reemplazar archivo" : "Seleccionar archivo")</p>
+                        <p class="text-[11.5px] text-ink-500 mt-1">PDF o Word hasta 15 MB</p>
+                    </div>
+                    <input id="uploadFile" name="uploadFile" type="file"
+                           class="sr-only" accept=".pdf,.doc,.docx"
+                           onchange="handleFileSelect(this)">
+                </label>
+            </div>
+
+            <div class="pt-1">
+                <partial name="_FormCheckbox" model='@(new {
+                    Id = "IsActive", Name = "IsActive",
+                    Label = "Publicado",
+                    Hint  = "Visible para el público en el portal",
+                    Checked = Model.IsActive,
+                    Variant = "default"
+                })' />
+            </div>
+        </div>
+    </section>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar cambios
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/js/admin/info-management/syllabi/form.js" asp-append-version="true"></script>
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

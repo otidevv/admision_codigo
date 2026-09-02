@@ -1,0 +1,181 @@
+@model List<ADMISION.ENTITIES.Models.Postulante.Inscription>
+@using ADMISION.ENTITIES.Constants
+@using ADMISION.ENTITIES.Models.Postulante
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+    var allInscriptions = ViewBag.AllInscriptions as IReadOnlyList<Inscription> ?? new List<Inscription>();
+
+    ViewData["Title"] = "Renuncias - " + fullName;
+
+    var allResignations = Model
+        .SelectMany(i => i.Resignations?.Select(r => new { Resignation = r, Inscription = i }) ?? Enumerable.Empty<dynamic>())
+        .OrderByDescending(x => x.Resignation.CreatedAt)
+        .ToList();
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Renuncias</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Historial de <span class="font-serif font-normal text-primary-600">renuncias</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName</p>
+        </div>
+        <div class="flex items-center gap-2">
+            @if (allInscriptions.Any())
+            {
+                <button type="button" onclick="openModal('registerResignationModal')"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 transition-all shadow-sm">
+                    <i class="ti ti-plus text-xs"></i> Registrar renuncia
+                </button>
+            }
+            <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId"
+               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                <i class="ti ti-arrow-left text-xs"></i> Volver al expediente
+            </a>
+        </div>
+    </div>
+</section>
+
+@if (allResignations.Any())
+{
+    <div class="space-y-4">
+        @foreach (var item in allResignations)
+        {
+            var res = item.Resignation;
+            var inscription = item.Inscription;
+            // Un postulante sólo puede renunciar a una admisión: requiere nota publicada + IsAdmission=true.
+            var wasAdmitted = inscription.IsAdmission && inscription.GradeAdmission != null;
+            <article class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5">
+                <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-500 flex items-center justify-center flex-shrink-0">
+                            <i class="ti ti-user-x"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Fecha de renuncia</p>
+                            <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 tabular-nums">@res.DateResignation.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</p>
+                            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-primary-600 mt-1">
+                                Periodo: @(inscription.Modality?.Term?.Name ?? "-") · @(inscription.Modality?.Name)
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        @if (wasAdmitted)
+                        {
+                            <span class="badge b-green">
+                                <i class="ti ti-medal mr-1"></i> Renunció tras ingresar
+                            </span>
+                            <span class="text-[10px] text-ink-500">Nota: <strong class="text-ink-800 dark:text-ink-200 font-mono tabular-nums">@inscription.GradeAdmission.ToString("F3")</strong></span>
+                        }
+                        else
+                        {
+                            <span class="badge b-gray">
+                                <i class="ti ti-hourglass mr-1"></i> Sin nota de ingreso
+                            </span>
+                        }
+                        <span class="text-[10px] text-ink-400 tabular-nums">Registrada: @res.CreatedAt.LocalDateTime.ToString("dd/MM/yyyy")</span>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(res.Description))
+                {
+                    <p class="text-sm text-ink-700 dark:text-ink-200 bg-rose-50/60 dark:bg-rose-500/5 ring-1 ring-rose-200/60 dark:ring-rose-500/20 rounded-md px-4 py-3 mt-2">@res.Description</p>
+                }
+                @if (!string.IsNullOrEmpty(res.File))
+                {
+                    <a href="/@res.File" target="_blank"
+                       class="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-500/10 text-xs font-semibold transition-colors">
+                        <i class="ti ti-file-text"></i> Ver documento de renuncia
+                    </a>
+                }
+            </article>
+        }
+    </div>
+}
+else
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="py-14 text-center">
+            <i class="ti ti-user-check text-4xl text-emerald-300 mb-3 block"></i>
+            <p class="text-ink-500 dark:text-ink-300 text-sm font-semibold">No hay renuncias registradas.</p>
+            <p class="text-ink-400 text-xs mt-1">El postulante no ha presentado renuncia en ningún periodo.</p>
+        </div>
+    </section>
+}
+
+<!-- Modal: Registrar renuncia -->
+<div id="registerResignationModal" class="modal-backdrop" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.45); align-items:center; justify-content:center;" onclick="if(event.target===this) closeModal('registerResignationModal')">
+    <div class="bg-white dark:bg-ink-900 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <form method="post" action="/admin/info-postulant/postulant/postulant-resum/@postulantId/resignations" enctype="multipart/form-data" class="p-6 space-y-5">
+            @Html.AntiForgeryToken()
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-ink-900 dark:text-ink-100">Registrar renuncia</h3>
+                <button type="button" onclick="closeModal('registerResignationModal')" class="p-1 rounded-md hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <div>
+                <label class="form-label">Inscripción</label>
+                <select name="InscriptionId" required class="form-input w-full">
+                    <option value="">-- Seleccionar inscripción --</option>
+                    @foreach (var ins in allInscriptions)
+                    {
+                        <option value="@ins.Id">
+                            @ins.Modality?.Term?.Name - @ins.Modality?.Name - @ins.Career?.Name
+                            (@(ins.IsAdmission && ins.GradeAdmission.HasValue ? "Ingresante" : "Inscrito"))
+                        </option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Fecha de renuncia</label>
+                <input type="datetime-local" name="DateResignation" required class="form-input w-full" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+            </div>
+            <div>
+                <label class="form-label">Descripción</label>
+                <textarea name="Description" rows="3" class="form-input w-full" placeholder="Motivo de la renuncia..."></textarea>
+            </div>
+            <div>
+                <label class="form-label">Documento de renuncia (opcional)</label>
+                <input type="file" name="File" accept=".pdf,.jpg,.jpeg,.png" class="form-input w-full" />
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-ink-200/60 dark:border-ink-800/60">
+                <button type="button" onclick="closeModal('registerResignationModal')" class="px-4 py-2 rounded-md ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">Cancelar</button>
+                <button type="submit" class="px-5 py-2 rounded-md bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 transition-all shadow-sm">Guardar renuncia</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+    </script>
+}

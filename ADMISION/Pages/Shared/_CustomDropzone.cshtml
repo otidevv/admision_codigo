@@ -1,0 +1,79 @@
+@*
+    Custom Dropzone Component
+    Usage:
+    <partial name="_CustomDropzone" model='new { Id = "myDropzone", Name = "files", Multiple = true, MaxSize = 5, AcceptedTypes = ".pdf,.jpg,.png" }' />
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var type = __m?.GetType();
+    string GetVal(string propName, string defaultVal = "") {
+        var prop = type?.GetProperty(propName);
+        return (prop?.GetValue(__m) as object)?.ToString() ?? defaultVal;
+    }
+
+    var id = GetVal("Id", "customDropzone");
+    var name = GetVal("Name", "files");
+    var multiple = GetVal("Multiple") != "False";
+    var maxSize = GetVal("MaxSize", "10"); // MB
+    var acceptedTypes = GetVal("AcceptedTypes", "*");
+    var required = GetVal("Required") == "True";
+    var label = GetVal("Label", "Archivos");
+}
+
+<div class="custom-dropzone-wrapper form-field" data-dropzone-id="@id">
+    <label class="form-label">
+        @label
+        @if (required)
+        {
+            <span class="required">*</span>
+        }
+    </label>
+
+    <div id="@id"
+         class="border border-dashed border-ink-300 rounded-md px-4 py-5 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/40 transition-all duration-200 bg-ink-50/60"
+         data-max-size="@maxSize"
+         data-multiple="@(multiple ? "true" : "false")"
+         data-accepted="@acceptedTypes">
+
+        <div class="dropzone-placeholder">
+            <i class="ti ti-cloud-upload text-[20px] text-ink-400 mb-1.5"></i>
+            <p class="text-[12.5px] text-ink-700 font-medium leading-tight">
+                @if (multiple)
+                {
+                    <span>Arrastra archivos aquí o haz clic para seleccionar</span>
+                }
+                else
+                {
+                    <span>Arrastra un archivo aquí o haz clic para seleccionar</span>
+                }
+            </p>
+            <p class="text-[11px] text-ink-500 mt-1">
+                Máx. @maxSize MB
+                @if (acceptedTypes != "*")
+                {
+                    <span> · @acceptedTypes</span>
+                }
+            </p>
+        </div>
+
+        <input type="file"
+               id="@(id)_input"
+               name="@name"
+               class="hidden"
+               @(multiple ? "multiple" : "")
+               @(required ? "required" : "")
+               accept="@acceptedTypes">
+    </div>
+
+    <div id="@(id)_preview" class="mt-2 space-y-1.5">
+        <!-- File previews will be added here -->
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initCustomDropzone('@id');
+    });
+</script>

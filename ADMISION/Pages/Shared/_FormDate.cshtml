@@ -1,0 +1,245 @@
+@*
+================================================================================
+  _FormDate.cshtml  —  Input de fecha con calendario estético (Flatpickr).
+
+  Reemplaza el calendario nativo del navegador por Flatpickr (cargado vía CDN
+  en los layouts). El input visible muestra "15 de Ene de 2026" mientras que
+  el value enviado al servidor sigue siendo ISO (yyyy-MM-dd).
+
+  Acepta DateOnly, DateTime, DateTimeOffset o string en `Value`.
+
+  Uso básico:
+    <partial name="_FormDate" model='new {
+        Id = "startDate", Name = "StartDate",
+        Label = "Fecha de inicio", Required = true,
+        Value = Model.StartDate,
+        Min = "2026-01-01",
+        Helper = "Día en que abre la inscripción."
+    }' />
+
+  Vincular dos fechas (la "Fecha fin" no permite anteriores a "Fecha inicio"):
+    <partial name="_FormDate" model='new { Id = "StartDate", ... }' />
+    <partial name="_FormDate" model='new {
+        Id = "EndDate", LinkedMinId = "StartDate", ...
+    }' />
+
+  Otras opciones:
+    Type           = "date" | "datetime-local" | "month" | "time"
+    EnableTime     = true        // habilita el picker de hora
+    Time24h        = true        // formato 24h (default true)
+    Mode           = "single" | "range" | "multiple"
+    DateFormatAlt  = "j \\d\\e M \\d\\e Y"   // formato visible (default es-ES legible)
+    NoCalendar     = true        // desactiva Flatpickr y deja el input nativo
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    bool B(string p, bool d = false) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        return v is bool b ? b : d;
+    }
+    object? Raw(string p) => t?.GetProperty(p)?.GetValue(__m);
+
+    var id          = V("Id", "date-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var name        = V("Name", id);
+    var type        = V("Type", "date");
+    var label       = V("Label");
+    var helperText  = V("Helper");
+    var error       = V("Error");
+    var required    = B("Required");
+    var disabled    = B("Disabled");
+    var readonlyIn  = B("Readonly");
+    var min         = V("Min");
+    var max         = V("Max");
+    var icon        = V("Icon", "ti-calendar-event");
+    var placeholder = V("Placeholder", "Selecciona una fecha");
+
+    var enableTime  = B("EnableTime", type == "datetime-local");
+    var time24h     = B("Time24h", true);
+    var mode        = V("Mode", "single");
+    var noCalendar  = B("NoCalendar", false);
+    var linkedMinId = V("LinkedMinId");
+    var linkedMaxId = V("LinkedMaxId");
+
+    // Formateo automático de Value.
+    var rawValue = Raw("Value");
+    string value;
+    string fmt = type == "datetime-local" ? "yyyy-MM-ddTHH:mm" : (type == "month" ? "yyyy-MM" : (type == "time" ? "HH:mm" : "yyyy-MM-dd"));
+    switch (rawValue)
+    {
+        case null:                       value = ""; break;
+        case DateOnly d:                 value = d == default ? "" : d.ToString(fmt); break;
+        case TimeOnly tv:                value = tv == default ? "" : tv.ToString(fmt); break;
+        case DateTime dt:                value = dt == default ? "" : dt.ToString(fmt); break;
+        case DateTimeOffset dto:         value = dto.ToString(fmt); break;
+        default:                         value = rawValue.ToString() ?? ""; break;
+    }
+
+    // Tipo HTML final: cuando Flatpickr está activo lo dejamos como "text" para
+    // que el navegador no pinte su propio picker antes de que Flatpickr inicie.
+    var htmlType = noCalendar ? type : "text";
+
+    var extraAttrs = new List<string>();
+    if (required)                          extraAttrs.Add("required");
+    if (disabled)                          extraAttrs.Add("disabled");
+    if (readonlyIn)                        extraAttrs.Add("readonly");
+    if (noCalendar)
+    {
+        if (!string.IsNullOrEmpty(min))    extraAttrs.Add($"min=\"{min}\"");
+        if (!string.IsNullOrEmpty(max))    extraAttrs.Add($"max=\"{max}\"");
+    }
+    var attrStr = string.Join(" ", extraAttrs);
+
+    var inputClass = "form-input form-date form-input--suffix" + (string.IsNullOrEmpty(error) ? "" : " is-invalid");
+
+    // Marca que ya emitimos el script de soporte en esta request (link mínimo entre dates).
+    var emitGlobalHelper = !(ViewContext.HttpContext.Items.ContainsKey("__FormDate_GlobalScript"));
+    if (emitGlobalHelper) ViewContext.HttpContext.Items["__FormDate_GlobalScript"] = true;
+}
+
+<div class="form-field">
+    @if (!string.IsNullOrEmpty(label))
+    {
+        <label for="@id" class="form-label">
+            @label
+            @if (required)
+            {
+                <span class="required">*</span>
+            }
+        </label>
+    }
+
+    <div class="form-input-wrapper">
+        <input id="@id" name="@name" type="@htmlType" value="@value"
+               placeholder="@placeholder"
+               class="@inputClass"
+               autocomplete="off"
+               @Html.Raw(attrStr) />
+        <i class="ti @icon form-input-icon form-input-icon--right pointer-events-none"></i>
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <span class="form-error"><i class="ti ti-alert-circle mr-1 text-[12px]"></i>@error</span>
+    }
+    else if (!string.IsNullOrEmpty(helperText))
+    {
+        <span class="form-helper">@helperText</span>
+    }
+</div>
+
+@if (!noCalendar)
+{
+    @if (emitGlobalHelper)
+    {
+        <script>
+            // Registro global de instancias Flatpickr por id, para vincular pares
+            // (LinkedMinId/LinkedMaxId) y permitir manipulación externa.
+            window.ADM = window.ADM || {};
+            window.ADM.FlatpickrRegistry = window.ADM.FlatpickrRegistry || {};
+        </script>
+    }
+
+    <script>
+        (function () {
+            if (typeof flatpickr === 'undefined') return;
+            var input = document.getElementById('@id');
+            if (!input) return;
+
+            var opts = {
+                locale: (flatpickr.l10ns && flatpickr.l10ns.es) ? 'es' : 'default',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'j \\d\\e M \\d\\e Y',
+                allowInput: false,
+                disableMobile: true,
+                mode: '@mode'
+            };
+
+            @if (type == "datetime-local" || enableTime)
+            {
+                <text>
+                opts.enableTime = true;
+                opts.time_24hr = @(time24h ? "true" : "false");
+                opts.dateFormat = 'Y-m-d H:i';
+                opts.altFormat  = 'j \\d\\e M Y · H:i';
+                </text>
+            }
+            else if (type == "month")
+            {
+                <text>
+                opts.dateFormat = 'Y-m';
+                opts.altFormat  = 'F \\d\\e Y';
+                </text>
+            }
+            else if (type == "time")
+            {
+                <text>
+                opts.noCalendar = true;
+                opts.enableTime = true;
+                opts.time_24hr  = @(time24h ? "true" : "false");
+                opts.dateFormat = 'H:i';
+                opts.altFormat  = 'H:i';
+                </text>
+            }
+
+            @if (!string.IsNullOrEmpty(min)) { <text>opts.minDate = '@min';</text> }
+            @if (!string.IsNullOrEmpty(max)) { <text>opts.maxDate = '@max';</text> }
+
+            var fp = flatpickr(input, opts);
+            window.ADM.FlatpickrRegistry['@id'] = fp;
+
+            // Vincular ranges entre dos partials: si declaramos LinkedMinId,
+            // este input no permite fechas anteriores a la del otro.
+            @if (!string.IsNullOrEmpty(linkedMinId))
+            {
+                <text>
+                (function () {
+                    var otherId = '@linkedMinId';
+                    function applyMin() {
+                        var other = window.ADM.FlatpickrRegistry[otherId];
+                        if (!other) return;
+                        var d = other.selectedDates[0];
+                        if (d) fp.set('minDate', d);
+                    }
+                    // Si el otro ya existe, vinculamos ahora.
+                    applyMin();
+                    // Suscribimos un handler diferido por si aún no existe.
+                    document.addEventListener('formdate:change', function (e) {
+                        if (e.detail && e.detail.id === otherId) applyMin();
+                    });
+                })();
+                </text>
+            }
+            @if (!string.IsNullOrEmpty(linkedMaxId))
+            {
+                <text>
+                (function () {
+                    var otherId = '@linkedMaxId';
+                    function applyMax() {
+                        var other = window.ADM.FlatpickrRegistry[otherId];
+                        if (!other) return;
+                        var d = other.selectedDates[0];
+                        if (d) fp.set('maxDate', d);
+                    }
+                    applyMax();
+                    document.addEventListener('formdate:change', function (e) {
+                        if (e.detail && e.detail.id === otherId) applyMax();
+                    });
+                })();
+                </text>
+            }
+
+            // Notificamos cambios para que los inputs vinculados se reajusten.
+            input.addEventListener('change', function () {
+                document.dispatchEvent(new CustomEvent('formdate:change', {
+                    detail: { id: '@id', value: input.value }
+                }));
+            });
+        })();
+    </script>
+}

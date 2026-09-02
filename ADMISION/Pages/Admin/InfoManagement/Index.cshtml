@@ -1,0 +1,58 @@
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Administración de Publicaciones";
+
+    var sections = new[] {
+        new { Href = "/admin/info-management/banners",        Icon = "ti-photo",              Title = "Banner",                       Hint = "Imágenes y texto del banner informativo.",         Tone = "primary"   },
+        new { Href = "/admin/info-management/prospects",      Icon = "ti-school",     Title = "Prospectos",                   Hint = "Registro de prospectos por proceso de admisión.",  Tone = "secondary" },
+        new { Href = "/admin/info-management/regulations",    Icon = "ti-gavel",              Title = "Reglamentos",                  Hint = "Reglamento General de Admisión y normativas.",     Tone = "primary"   },
+        new { Href = "/admin/info-management/syllabi",        Icon = "ti-book",          Title = "Temarios",                     Hint = "Temarios del examen por área o asignatura.",       Tone = "secondary" },
+        new { Href = "/admin/info-management/other-files",    Icon = "ti-folder-open",        Title = "Archivos y Formatos",          Hint = "Otros formatos para postulantes.",                 Tone = "primary"   },
+        new { Href = "/admin/info-management/public-infos",   Icon = "ti-building-bank",   Title = "Descripción de Modalidades",   Hint = "Descripción de a quiénes va dirigida cada modalidad.", Tone = "secondary" },
+        new { Href = "/admin/info-management/beneficiaries",  Icon = "ti-heart-handshake", Title = "Beneficiarios",                Hint = "Tipos de beneficiarios y porcentajes de descuento.", Tone = "primary"   },
+        new { Href = "/admin/info-management/brochures",    Icon = "ti-file-description",     Title = "Brochures",                    Hint = "Guía informativa que se descarga post-inscripción.", Tone = "secondary" },
+        new { Href = "/admin/info-management/chatbot",        Icon = "ti-robot",              Title = "Chatbot · FAQ",                Hint = "Preguntas y respuestas que responde el chatbot público.", Tone = "secondary" },
+        new { Href = "/admin/info-management/ubigeo",         Icon = "ti-map-pin",   Title = "Ubigeo",                       Hint = "Departamentos, provincias y distritos.",            Tone = "primary"   },
+        new { Href = "/admin/info-management/sponsors",       Icon = "ti-brand-handshake", Title = "Sponsors",              Hint = "Sponsors del carrusel del portal público.",        Tone = "secondary" },
+        new { Href = "/admin/info-management/announcements",  Icon = "ti-speakerphone",    Title = "Anuncios",             Hint = "Anuncios modales del portal público.",             Tone = "primary"   },
+    };
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <nav class="flex items-center gap-2 text-xs text-ink-400 mb-2" aria-label="Breadcrumb">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Publicaciones</span>
+    </nav>
+    <div class="eyebrow">Portal público</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Gestión de <span class="font-serif font-normal text-primary-600">publicaciones</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1.5 max-w-2xl">
+        Administra banners, prospectos, archivos y descripciones de modalidades del portal público.
+    </p>
+</section>
+
+<!-- Hub grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    @foreach (var s in sections)
+    {
+        var iconBg   = s.Tone == "primary" ? "bg-primary-50 dark:bg-primary-500/10"   : "bg-secondary-50 dark:bg-secondary-500/10";
+        var iconText = s.Tone == "primary" ? "text-primary-600 dark:text-primary-300" : "text-secondary-600 dark:text-secondary-300";
+
+        <a href="@s.Href"
+           class="fade-up group bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all flex flex-col gap-3 hover:ring-primary-300/60 dark:hover:ring-primary-500/30">
+            <span class="w-11 h-11 rounded-md @iconBg @iconText flex items-center justify-center text-[15px] group-hover:scale-[1.03] transition-transform">
+                <i class="ti @s.Icon"></i>
+            </span>
+            <div>
+                <h4 class="font-semibold text-ink-900 dark:text-ink-100 text-[14px] tracking-tight">@s.Title</h4>
+                <p class="text-[11.5px] text-ink-500 mt-1 leading-relaxed">@s.Hint</p>
+            </div>
+            <div class="mt-auto pt-2 flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                Abrir <i class="ti ti-arrow-right text-[9px]"></i>
+            </div>
+        </a>
+    }
+</section>

@@ -1,0 +1,66 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Info.Announcement>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Anuncios";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Vista previa", Field = "previewType", Type = "text" },
+        new() { Label = "Vigencia", Field = "dateRange", Type = "text" },
+        new() { Label = "Enlace", Field = "linkUrl", Type = "text" },
+        new() { Label = "Estado", Field = "statusText", Type = "badge", BadgeMap = new Dictionary<string, string> { { "Activo", "green" }, { "Inactivo", "gray" } } },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["TableId"] = "announcementsTable";
+    ViewData["ClientSide"] = true;
+    ViewData["Actions"] = new List<DataTableAction>
+    {
+        new() { Key="edit",   Label="Editar",   Icon="ti-edit",   Href="/admin/info-management/announcements/editar/{id}" },
+        new() { Key="delete", Label="Eliminar", Icon="ti-trash", Danger=true }
+    };
+}
+
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Publicaciones</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Anuncios</span>
+        </div>
+        <div class="eyebrow">Portal público</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            <span class="font-serif font-normal text-primary-600">Anuncios</span> del portal
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Gestiona los anuncios que se muestran como modal flotante en el portal público.</p>
+    </div>
+    <a href="/admin/info-management/announcements/crear"
+       class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i> Nuevo anuncio
+    </a>
+</section>
+
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div id="tableContainer">
+        @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+    </div>
+</section>
+
+<form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script>
+        window.AnnouncementsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(a => new {
+            a.Id,
+            PreviewType = string.IsNullOrEmpty(a.ImageUrl) ? "Sin imagen" : a.ImageUrl.Split('/').Last(),
+            HasImage = !string.IsNullOrEmpty(a.ImageUrl),
+            FullImageUrl = string.IsNullOrEmpty(a.ImageUrl) ? "/images/placeholder-banner.jpg" : "/" + a.ImageUrl,
+            LinkUrl = a.LinkUrl ?? "",
+            DateRange = $"{a.StartDate:dd/MM/yyyy} - {a.EndDate:dd/MM/yyyy}",
+            StatusText = a.IsActive ? "Activo" : "Inactivo"
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/info-management/announcement/index.js" asp-append-version="true"></script>
+}

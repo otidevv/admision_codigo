@@ -1,0 +1,127 @@
+@model IReadOnlyList<ADMISION.Services.Interfaces.IssuedDocumentItem>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+
+    ViewData["Title"] = "Documentos emitidos - " + fullName;
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Documentos emitidos</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Constancias y <span class="font-serif font-normal text-primary-600">documentos</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName · @Model.Count emisión@(Model.Count == 1 ? "" : "es") registrada@(Model.Count == 1 ? "" : "s")</p>
+        </div>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver al expediente
+        </a>
+    </div>
+</section>
+
+@if (Model.Any())
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <table class="atlas">
+            <thead>
+                <tr>
+                    <th class="w-[180px]">Correlativo</th>
+                    <th>Tipo de documento</th>
+                    <th>Inscripción</th>
+                    <th class="w-[180px]">Emitido</th>
+                    <th class="w-[120px]">Marca de agua</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var d in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="font-mono text-[12.5px] font-semibold text-ink-900 dark:text-ink-100 tabular-nums">@d.CorrelativeDisplay</div>
+                        <div class="text-[10.5px] text-ink-400 mt-0.5">Año @d.Year</div>
+                    </td>
+                    <td>
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center flex-shrink-0">
+                                <i class="ti ti-file-certificate text-[13px]"></i>
+                            </span>
+                            <div>
+                                <div class="text-[13px] font-semibold text-ink-900 dark:text-ink-100 tracking-tight">@d.DocumentTypeName</div>
+                                @if (!string.IsNullOrWhiteSpace(d.DocumentTypeCode))
+                                {
+                                    <div class="text-[10.5px] text-ink-400 font-mono">@d.DocumentTypeCode</div>
+                                }
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(d.InscriptionCode))
+                        {
+                            <div class="text-[12px] font-mono font-semibold text-ink-800 dark:text-ink-100">@d.InscriptionCode</div>
+                            @if (!string.IsNullOrWhiteSpace(d.ModalityName) || !string.IsNullOrWhiteSpace(d.TermName))
+                            {
+                                <div class="text-[10.5px] text-ink-500 mt-0.5 truncate max-w-[260px]">
+                                    @d.ModalityName@(string.IsNullOrEmpty(d.TermName) ? "" : $" · {d.TermName}")
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-[11.5px] text-ink-400 italic">Sin inscripción asociada</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="text-[12px] font-semibold text-ink-800 dark:text-ink-100 tabular-nums">
+                            @d.CreatedAt.LocalDateTime.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                        <div class="text-[10.5px] text-ink-500 mt-0.5">
+                            <i class="ti ti-user text-[10px] mr-1"></i>@(d.CreatedBy ?? "Sistema")
+                        </div>
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(d.WatermarkText))
+                        {
+                            <span class="badge b-amber">
+                                <i class="ti ti-eye mr-1"></i> @d.WatermarkText
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge b-green">
+                                <i class="ti ti-check mr-1"></i> Oficial
+                            </span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </section>
+}
+else
+{
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-10 text-center">
+        <div class="w-14 h-14 rounded-md bg-ink-100 dark:bg-ink-800 text-ink-400 flex items-center justify-center mx-auto mb-3">
+            <i class="ti ti-file-certificate text-2xl"></i>
+        </div>
+        <h3 class="text-ink-800 dark:text-ink-100 font-semibold tracking-tight">Sin documentos emitidos</h3>
+        <p class="text-ink-500 text-[12.5px] mt-1 max-w-md mx-auto leading-relaxed">
+            Aún no se ha generado ninguna constancia ni documento oficial para este postulante. Cuando emitas una constancia desde el módulo Documentos, aparecerá aquí con su correlativo y trazabilidad.
+        </p>
+    </div>
+}

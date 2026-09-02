@@ -1,0 +1,81 @@
+@using ADMISION.ENTITIES.Models.Integrations
+@model IReadOnlyList<ExternalPaymentVoucher>?
+
+<div id="externalPaymentsCard" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between gap-3 rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-600 inline-flex items-center justify-center">
+                <i class="ti ti-coin text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Historial de pagos externo</h2>
+                <p class="text-[11.5px] text-ink-500">Comprobantes y pagos consultados via API</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <div id="paymentsLoader" class="hidden">
+                <i class="ti ti-loader animate-spin text-primary-500 text-sm"></i>
+            </div>
+@*             <button type="button" id="refreshPaymentsBtn"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-600 dark:text-ink-300 text-xs font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                <i class="ti ti-refresh text-[10px]"></i> Actualizar
+            </button> *@
+        </div>
+    </div>
+
+    <div id="paymentsCardError" class="hidden p-4 sm:p-5 text-sm text-rose-700 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-300 border-b border-rose-100 dark:border-rose-500/30"></div>
+
+    <div id="paymentsCardEmpty" class="@(Model != null && Model.Count > 0 ? "hidden" : "") p-8 text-center">
+        <i class="ti ti-receipt-off text-3xl text-ink-300 mb-2 block"></i>
+        <p class="text-ink-500 text-sm font-semibold">Sin historial de pagos externo</p>
+        <p class="text-ink-400 text-xs mt-1">Presiona "Actualizar" para consultar la API o verifica que este configurada.</p>
+    </div>
+
+    <div id="paymentsCardData" class="@(Model != null && Model.Count > 0 ? "" : "hidden")">
+        <div id="paymentsCardContent" class="p-4 sm:p-5 space-y-3">
+            @if (Model != null)
+            {
+                foreach (var voucher in Model)
+                {
+                    <div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-mono font-bold text-amber-600">@voucher.SerialVoucher</span>
+                            <span class="badge b-gray text-[10px]">@voucher.Payments.Count pago(s)</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(voucher.FullName))
+                        {
+                            <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">@voucher.FullName</p>
+                        }
+                        @if (voucher.Payments != null && voucher.Payments.Count > 0)
+                        {
+                            <div class="mt-2 space-y-1.5">
+                                @foreach (var p in voucher.Payments)
+                                {
+                                    <div class="flex items-center justify-between text-xs border-t border-ink-200/40 dark:border-ink-800/40 pt-1.5 first:border-0 first:pt-0">
+                                        <div class="flex-1 min-w-0">
+                                            <span class="text-ink-700 dark:text-ink-200 font-medium">@p.Description</span>
+                                            @if (!string.IsNullOrWhiteSpace(p.TermName))
+                                            {
+                                                <span class="text-ink-400 ml-1">(@p.TermName)</span>
+                                            }
+                                        </div>
+                                        <div class="text-right ml-2 flex-shrink-0">
+                                            <span class="font-semibold text-ink-900 dark:text-ink-100">S/ @p.Total.ToString("F2")</span>
+                                            @if (p.Discount > 0)
+                                            {
+                                                <span class="text-rose-500 text-[10px] block">-S/ @p.Discount.ToString("F2")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <p class="text-[10px] text-ink-400 mt-2 font-mono">
+                            <i class="ti ti-clock mr-0.5"></i> @voucher.QueriedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>

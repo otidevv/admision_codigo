@@ -1,0 +1,381 @@
+@model ADMISION.Models.ViewModels.Reports.GeneralReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reporte General";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+    var modalities = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Modality>)(ViewBag.Modalities ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Modality>());
+    var typeModalities = (IEnumerable<ADMISION.Services.Interfaces.TypeModalityOption>)(ViewBag.TypeModalities ?? Enumerable.Empty<ADMISION.Services.Interfaces.TypeModalityOption>());
+    var typePostulants = (IEnumerable<ADMISION.Services.Interfaces.CatalogOption>)(ViewBag.TypePostulants ?? Enumerable.Empty<ADMISION.Services.Interfaces.CatalogOption>());
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Reporte General</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Reporte analítico</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Reporte <span class="font-serif font-normal text-primary-600">general</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Listado completo de inscritos con datos personales, académicos y de procedencia.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros del reporte</h2>
+                <p class="text-[11.5px] text-ink-500">Refina los datos por periodo, modalidad y tipo de postulante</p>
+            </div>
+        </div>
+        <span class="badge b-primary">Análisis</span>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo Académico</label>
+                <select name="termId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.TermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Modalidad</label>
+                <select name="modalityId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" @(modalities.Any() ? "" : "disabled")>
+                    <option value="">-- Todas --</option>
+                    @foreach (var m in modalities)
+                    {
+                        <option value="@m.Id" selected="@(Model.ModalityId == m.Id)">@m.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Modalidad</label>
+                <select name="typeModalityId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" @(typeModalities.Any() ? "" : "disabled")>
+                    <option value="">-- Todos --</option>
+                    @foreach (var tm in typeModalities)
+                    {
+                        <option value="@tm.Id" selected="@(Model.TypeModalityId == tm.Id)">@tm.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Postulante</label>
+                <select name="typePostulantId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var tp in typePostulants)
+                    {
+                        <option value="@tp.Id" selected="@(Model.TypePostulantId == tp.Id)">@tp.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="md:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-ink-200/60 dark:border-ink-800/60">
+                <div class="flex flex-wrap gap-2">
+                    <button type="submit" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-filter text-xs"></i> Aplicar filtros
+                    </button>
+                    <a href="/admin/reportes/general" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-ink-700 hover:bg-ink-100 text-sm font-semibold transition-all">
+                        <i class="ti ti-rotate text-xs"></i> Limpiar
+                    </a>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition-all">
+                        <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                    </button>
+@*                     <button type="button" id="btnExportPdf" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-all">
+                        <i class="ti ti-file-text text-xs"></i> Exportar PDF
+                    </button> *@
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- KPIs -->
+<section class="fade-up grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalRecords.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total de registros</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@(Model.Page)</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Página actual</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-file"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalPages.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total de páginas</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-700 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-stack"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla de resultados -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-table text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Resultados</h2>
+                <p class="text-[11.5px] text-ink-500">Mostrando @Model.Items.Count de @Model.TotalRecords registro(s)</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.TermId.HasValue)
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-filter text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">Seleccione un periodo para generar el reporte.</p>
+        </div>
+    }
+    else if (!Model.Items.Any())
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-chart-bar text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">No hay registros que coincidan con los filtros seleccionados.</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="whitespace-nowrap">TIPO_EXAMEN</th>
+                        <th class="whitespace-nowrap">MODALIDAD</th>
+                        <th class="whitespace-nowrap">FECHA_INSCRIP.</th>
+                        <th class="whitespace-nowrap">CODIGO_POST.</th>
+                        <th class="whitespace-nowrap">APELLIDOS</th>
+                        <th class="whitespace-nowrap">NOMBRES</th>
+                        <th class="whitespace-nowrap">DOCUMENTO</th>
+                        <th class="whitespace-nowrap">SEXO</th>
+                        <th class="whitespace-nowrap">FECHA_NAC.</th>
+                        <th class="whitespace-nowrap">DIRECCION</th>
+                        <th class="whitespace-nowrap">ESTADO_CIVIL</th>
+                        <th class="whitespace-nowrap">TIENE_DISCAP.</th>
+                        <th class="whitespace-nowrap">DISCAPACIDAD</th>
+                        <th class="whitespace-nowrap">CORREO</th>
+                        <th class="whitespace-nowrap">CELULAR</th>
+                        <th class="whitespace-nowrap">CODIGO_CARR.</th>
+                        <th class="whitespace-nowrap">CARRERA_PROF.</th>
+                        <th class="whitespace-nowrap">TEMA</th>
+                        <th class="whitespace-nowrap">CICLO</th>
+                        <th class="whitespace-nowrap">UBIGEO_COLEG.</th>
+                        <th class="whitespace-nowrap">NOMBRE_COLEG.</th>
+                        <th class="whitespace-nowrap">DISTRITO_COLEG.</th>
+                        <th class="whitespace-nowrap">PROVINCIA_COLEG.</th>
+                        <th class="whitespace-nowrap">DPTO_COLEG.</th>
+                        <th class="whitespace-nowrap">PAIS</th>
+                        <th class="whitespace-nowrap">UBIGEO</th>
+                        <th class="whitespace-nowrap">DISTRITO_PROC.</th>
+                        <th class="whitespace-nowrap">PROVINCIA_PROC.</th>
+                        <th class="whitespace-nowrap">DPTO_PROC.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td><span class="badge b-blue font-mono whitespace-nowrap">@item.TipoExamen</span></td>
+                            <td class="whitespace-nowrap">@item.Modalidad</td>
+                            <td class="whitespace-nowrap font-mono tabular-nums">@item.FechaInscripcion</td>
+                            <td class="whitespace-nowrap font-mono font-semibold">@item.CodigoPostulante</td>
+                            <td class="font-semibold text-ink-900 dark:text-ink-100 whitespace-nowrap">@item.Apellidos</td>
+                            <td class="whitespace-nowrap">@item.Nombres</td>
+                            <td class="whitespace-nowrap font-mono tabular-nums">@item.Documento</td>
+                            <td class="text-center"><span class="badge b-gray font-mono">@item.Sexo</span></td>
+                            <td class="whitespace-nowrap font-mono tabular-nums text-[10px]">@item.FechaNacimiento</td>
+                            <td class="max-w-[120px] truncate" title="@item.Direccion">@item.Direccion</td>
+                            <td class="whitespace-nowrap">@item.EstadoCivil</td>
+                            <td class="text-center">
+                                @if (item.TieneDiscapacidad == "SI")
+                                {
+                                    <span class="badge b-green">SI</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-gray">NO</span>
+                                }
+                            </td>
+                            <td class="whitespace-nowrap">@item.Discapacidad</td>
+                            <td class="whitespace-nowrap text-primary-600">@item.Correo</td>
+                            <td class="whitespace-nowrap font-mono tabular-nums">@item.Celular</td>
+                            <td class="whitespace-nowrap font-mono font-semibold">@item.CodigoCarrera</td>
+                            <td class="max-w-[150px] truncate" title="@item.CarreraProfesional">@item.CarreraProfesional</td>
+                            <td class="text-center"><span class="badge b-secondary font-mono">@item.Tema</span></td>
+                            <td class="whitespace-nowrap font-mono font-semibold">@item.Ciclo</td>
+                            <td class="whitespace-nowrap font-mono text-[10px]">@item.UbigeoColegio</td>
+                            <td class="max-w-[120px] truncate" title="@item.NombreColegio">@item.NombreColegio</td>
+                            <td class="whitespace-nowrap">@item.DistritoColegio</td>
+                            <td class="whitespace-nowrap">@item.ProvinciaColegio</td>
+                            <td class="whitespace-nowrap">@item.DepartamentoColegio</td>
+                            <td class="whitespace-nowrap">@item.Pais</td>
+                            <td class="whitespace-nowrap font-mono text-[10px]">@item.Ubigeo</td>
+                            <td class="whitespace-nowrap">@item.DistritoProcedencia</td>
+                            <td class="whitespace-nowrap">@item.ProvinciaProcedencia</td>
+                            <td class="whitespace-nowrap">@item.DepartamentoProcedencia</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="px-4 sm:px-5 py-3 border-t border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between text-xs text-ink-500">
+                <span>
+                    Mostrando <strong class="text-ink-900">@((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalRecords))</strong>
+                    de <strong class="text-ink-900">@Model.TotalRecords.ToString("N0")</strong>
+                </span>
+                <div class="flex items-center gap-1" id="pagination">
+                    @{
+                        var baseUrl = $"/admin/reportes/general?termId={Model.TermId}&modalityId={Model.ModalityId}&typeModalityId={Model.TypeModalityId}&typePostulantId={Model.TypePostulantId}&pageSize={Model.PageSize}";
+                    }
+
+                    @if (Model.Page > 1)
+                    {
+                        <a href="@(baseUrl)&page=@(Model.Page - 1)"
+                           class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">
+                            <i class="ti ti-chevron-left text-[10px]"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1.5 rounded-md ring-soft text-ink-300 cursor-not-allowed">
+                            <i class="ti ti-chevron-left text-[10px]"></i>
+                        </span>
+                    }
+
+                    @{
+                        int startPage = Math.Max(1, Model.Page - 2);
+                        int endPage = Math.Min(Model.TotalPages, Model.Page + 2);
+
+                        if (startPage > 1)
+                        {
+                            <a href="@(baseUrl)&page=1" class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">1</a>
+                            if (startPage > 2)
+                            {
+                                <span class="px-2 py-1.5 text-ink-400">…</span>
+                            }
+                        }
+
+                        for (int p = startPage; p <= endPage; p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="px-3 py-1.5 rounded-md bg-primary-500 text-white font-semibold">@p</span>
+                            }
+                            else
+                            {
+                                <a href="@(baseUrl)&page=@p"
+                                   class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">@p</a>
+                            }
+                        }
+
+                        if (endPage < Model.TotalPages)
+                        {
+                            if (endPage < Model.TotalPages - 1)
+                            {
+                                <span class="px-2 py-1.5 text-ink-400">…</span>
+                            }
+                            <a href="@(baseUrl)&page=@Model.TotalPages"
+                               class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">@Model.TotalPages</a>
+                        }
+                    }
+
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a href="@(baseUrl)&page=@(Model.Page + 1)"
+                           class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">
+                            <i class="ti ti-chevron-right text-[10px]"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1.5 rounded-md ring-soft text-ink-300 cursor-not-allowed">
+                            <i class="ti ti-chevron-right text-[10px]"></i>
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+    }
+</section>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('filterForm');
+            var selTerm = form.querySelector('select[name="termId"]');
+            var selModality = form.querySelector('select[name="modalityId"]');
+            var selTypeModality = form.querySelector('select[name="typeModalityId"]');
+
+            selTerm?.addEventListener('change', function () {
+                selModality.value = '';
+                selTypeModality.value = '';
+                form.submit();
+            });
+            selModality?.addEventListener('change', function () {
+                selTypeModality.value = '';
+                form.submit();
+            });
+            selTypeModality?.addEventListener('change', function () { form.submit(); });
+            form.querySelector('select[name="typePostulantId"]')?.addEventListener('change', function () { form.submit(); });
+
+            function buildQuery() {
+                var params = new URLSearchParams();
+                ['termId', 'modalityId', 'typeModalityId', 'typePostulantId'].forEach(function (k) {
+                    var v = form.querySelector('select[name="' + k + '"]')?.value;
+                    if (v) params.set(k, v);
+                });
+                return params.toString();
+            }
+
+            document.getElementById('btnExportExcel')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.location.href = '/admin/reportes/general/export/excel?' + buildQuery();
+            });
+            document.getElementById('btnExportPdf')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.location.href = '/admin/reportes/general/export/pdf?' + buildQuery();
+            });
+        })();
+    </script>
+}

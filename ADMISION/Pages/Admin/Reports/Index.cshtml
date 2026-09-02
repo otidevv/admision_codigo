@@ -1,0 +1,209 @@
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reportes";
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Reportes</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Centro de reportes</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                <span class="font-serif font-normal text-primary-600">Reportes</span> del sistema
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Accede a los diferentes reportes disponibles para el seguimiento y análisis de la admisión.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Report cards grid -->
+<section class="fade-up grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    
+    <!-- Reporte General -->
+    <a href="/admin/reportes/general" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-chart-bar text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte General</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Resumen general de estadísticas y métricas del proceso de admisión.</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Sorteo de Aulas -->
+    <a href="/admin/reportes/sorteo-aulas" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-building text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Sorteo de Aulas</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Resultados del sorteo y distribución de aulas para los postulantes.</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Reporte de Asistencias -->
+    <a href="/admin/reportes/asistencias" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-user-check text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte de Asistencias</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Control de asistencia de postulantes a las pruebas de admisión.</p>
+            </div>
+        </div>
+    </a>
+
+@*     <!-- SUNEDU -->
+    <a href="/admin/reportes/sunedu" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-file-text text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">SUNEDU</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Reportes para la SUNEDU sobre el proceso de admisión.</p>
+            </div>
+        </div>
+    </a> *@
+
+    <!-- SIRIES -->
+    <a href="/admin/reportes/siries" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-school text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">SIRIES</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Reportes para el Sistema de Recolección de Información para Educación Superior (SIRIES).</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Reporte CEPRE -->
+    <a href="/admin/reportes/cepre" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-certificate text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte CEPRE</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Reportes del Centro Preuniversitario (CEPRE).</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Reporte de Resultados -->
+    <a href="/admin/reportes/resultados" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-scoreboard text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte de Resultados</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Resultados de los postulantes importados del examen de admisión.</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Reporte Ingresantes -->
+    <a href="/admin/reportes/ingresantes" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-user-plus text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte Ingresantes</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Listado y estadísticas de ingresantes al ciclo.</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Reporte Económico -->
+    <a href="/admin/reportes/economico" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-orange-50 dark:bg-orange-500/10 text-orange-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-coins text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte Económico</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Ingresos, pagos y recaudación del proceso de admisión.</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Reporte de Vacantes -->
+    <a href="/admin/reportes/vacantes" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-layout-grid text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Reporte de Vacantes</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Distribución y disponibilidad de vacantes por carrera.</p>
+            </div>
+        </div>
+    </a>
+
+@*     <!-- Resumen de Postulantes -->
+    <a href="/admin/reportes/resumen-postulantes" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-users text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Resumen de Postulantes</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Resumen general de postulantes por periodo y modalidad.</p>
+            </div>
+        </div>
+    </a>
+
+    <!-- Resumen de Ingresantes -->
+    <a href="/admin/reportes/resumen-ingresantes" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-pink-50 dark:bg-pink-500/10 text-pink-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-user-star text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Resumen de Ingresantes</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Resumen consolidado de ingresantes por carrera y periodo.</p>
+            </div>
+        </div>
+    </a> *@
+
+    <!-- Postulantes por Área (existente) -->
+    <a href="/admin/reportes/postulantes-por-area" 
+       class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all hover:ring-primary-300 hover:shadow-lg group">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-600 inline-flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <i class="ti ti-chart-pie text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 group-hover:text-primary-600 transition-colors">Postulantes por Área</h3>
+                <p class="text-xs text-ink-500 mt-1 line-clamp-2">Análisis de postulantes agrupados por área temática y carrera.</p>
+            </div>
+        </div>
+    </a>
+
+</section>

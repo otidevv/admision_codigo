@@ -1,0 +1,185 @@
+@model ADMISION.Models.ViewModels.Admin.VacanciesIndexViewModel
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Vacantes";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Vacantes</span>
+        </div>
+        <div class="eyebrow">Cupos de admisión</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Matriz de <span class="font-serif font-normal text-primary-600">vacantes</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Control centralizado de cupos disponibles por carrera y tipo de modalidad.</p>
+    </div>
+    @if (Model.SelectedModalityId.HasValue)
+    {
+        <a asp-action="Manage" asp-route-modalityId="@Model.SelectedModalityId"
+           class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-edit text-xs"></i>
+            Gestionar cupos
+        </a>
+    }
+</section>
+
+<!-- Cascading filters -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros de visualización</h2>
+            <p class="text-[11.5px] text-ink-500">Selecciona el periodo y la modalidad a consultar</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "termId",
+                Label = "1. Periodo académico",
+                Placeholder = "Seleccionar periodo...",
+                Options = ((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { id = t.Id, name = t.Name })
+            }' />
+        </div>
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "modalityId",
+                Label = "2. Modalidad de admisión",
+                Placeholder = "Elija una modalidad...",
+                Options = Model.Modalities.Select(m => new { id = m.Id, name = m.Name })
+            }' />
+        </div>
+    </div>
+</section>
+
+@if (Model.Matrix != null)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-grid-pattern text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">@Model.Matrix.ModalityName</h2>
+                    <p class="text-[11.5px] text-ink-500">Distribución por carrera y tipo de modalidad</p>
+                </div>
+            </div>
+            <span class="badge b-primary">Vista matriz</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-center">
+                <thead>
+                    <tr>
+                        <th class="text-left sticky left-0 bg-ink-50/80 dark:bg-ink-800/60 z-10">Carrera profesional</th>
+                        @if (Model.Matrix.TypeModalities.Any())
+                        {
+                            @foreach (var type in Model.Matrix.TypeModalities)
+                            {
+                                <th class="min-w-[120px]">@type.Name</th>
+                            }
+                        }
+                        else
+                        {
+                            <th>Vacantes generales</th>
+                        }
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var career in Model.Matrix.Careers)
+                    {
+                        <tr>
+                            <td class="text-left font-semibold text-ink-900 dark:text-ink-100 sticky left-0 bg-white dark:bg-ink-900 z-10">@career.Name</td>
+                            @if (Model.Matrix.TypeModalities.Any())
+                            {
+                                @foreach (var type in Model.Matrix.TypeModalities)
+                                {
+                                    <td class="font-mono tabular-nums">
+                                        @{
+                                            int qty = Model.Matrix.GetQuantity(career.Id, type.Id);
+                                        }
+                                        @if (qty > 0)
+                                        {
+                                            <span class="font-bold text-ink-900 dark:text-ink-100">@qty</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-ink-300">—</span>
+                                        }
+                                    </td>
+                                }
+                            }
+                            else
+                            {
+                                <td class="font-mono tabular-nums font-bold text-ink-900 dark:text-ink-100">
+                                    @{
+                                        int qty = Model.Matrix.GetTotalForCareer(career.Id);
+                                    }
+                                    @qty
+                                </td>
+                            }
+                            <td class="text-right">
+                                <span class="badge b-primary font-mono tabular-nums">@Model.Matrix.GetTotalForCareer(career.Id)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="bg-ink-50/80 dark:bg-ink-800/60 border-t border-ink-200/60 dark:border-ink-800/60">
+                        <td class="text-left font-bold uppercase tracking-[0.14em] text-[11px] text-ink-600 dark:text-ink-300 sticky left-0 bg-ink-50/80 dark:bg-ink-800/60 z-10 px-4 py-3">Total modalidad</td>
+                        @if (Model.Matrix.TypeModalities.Any())
+                        {
+                            @foreach (var type in Model.Matrix.TypeModalities)
+                            {
+                                <td class="font-mono font-bold text-ink-900 dark:text-ink-100 tabular-nums px-2 py-3">@Model.Matrix.GetTotalForTypeModality(type.Id)</td>
+                            }
+                        }
+                        else
+                        {
+                            <td class="font-mono font-bold text-ink-900 dark:text-ink-100 tabular-nums px-4 py-3">@Model.Matrix.GetGrandTotal()</td>
+                        }
+                        <td class="text-right px-4 py-3">
+                            <span class="font-mono font-bold text-lg text-primary-700 dark:text-primary-300 tabular-nums">@Model.Matrix.GetGrandTotal()</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+}
+else
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">
+        <div class="w-16 h-16 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-400 inline-flex items-center justify-center mb-4">
+            <i class="ti ti-armchair text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-ink-700 dark:text-ink-200 mb-1">No se encontraron datos</h3>
+        <p class="text-ink-400 text-sm max-w-sm mx-auto">Seleccione un periodo y modalidad con vacantes configuradas para visualizar la matriz.</p>
+    </section>
+}
+
+@section Scripts {
+    <script>
+        window.VacanciesConfig = {
+            defaultTermId: '@ViewBag.DefaultTermId',
+            selectedModalityId: '@(Model.SelectedModalityId?.ToString() ?? "")',
+            selectedModalityName: @Html.Raw(Json.Serialize(
+                Model.SelectedModalityId.HasValue
+                    ? Model.Modalities.FirstOrDefault(m => m.Id == Model.SelectedModalityId.Value)?.Name ?? ""
+                    : "")),
+            terms: @Html.Raw(Json.Serialize(((IEnumerable<dynamic>)ViewBag.Terms ?? Enumerable.Empty<dynamic>()).Select(t => new { t.Id, t.Name })))
+        };
+    </script>
+    <script src="~/js/admin/exam-management/vacancies/index.js" asp-append-version="true"></script>
+}

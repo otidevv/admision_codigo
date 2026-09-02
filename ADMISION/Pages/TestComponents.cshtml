@@ -1,0 +1,162 @@
+@page
+@model admision.Pages.TestComponentsModel
+@{
+    ViewData["Title"] = "Test Components";
+}
+
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-primary mb-6">
+        <i class="ti ti-flask mr-2"></i>
+        Prueba de Componentes Personalizados
+    </h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Custom Select Demo -->
+        <div class="bg-white p-6 rounded-md shadow-md border border-gray-200">
+            <h2 class="text-xl font-semibold text-secondary mb-4">
+                <i class="ti ti-list mr-2"></i>
+                Custom Select
+            </h2>
+            
+            <form method="post">
+                @{
+                    ViewData["Id"] = "testSelect";
+                    ViewData["Name"] = "testSelect";
+                    ViewData["Label"] = "Selecciona una opción";
+                    ViewData["Placeholder"] = "Elige una carrera...";
+                    ViewData["Required"] = "True";
+                }
+                <partial name="_CustomSelect" />
+
+                <button type="submit"
+                        class="mt-4 bg-primary hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
+                    <i class="ti ti-check mr-2"></i>
+                    Enviar
+                </button>
+            </form>
+
+            <div class="mt-6 p-4 bg-gray-50 rounded-md">
+                <h3 class="font-medium text-gray-700 mb-2">Valor seleccionado:</h3>
+                <p class="text-sm text-gray-600">@(Model.SelectedValue ?? "Ninguno")</p>
+            </div>
+        </div>
+
+        <!-- Custom Dropzone Demo -->
+        <div class="bg-white p-6 rounded-md shadow-md border border-gray-200">
+            <h2 class="text-xl font-semibold text-secondary mb-4">
+                <i class="ti ti-cloud-upload mr-2"></i>
+                Custom Dropzone
+            </h2>
+            
+            <form method="post" enctype="multipart/form-data">
+                @{
+                    ViewData["Id"] = "testDropzone";
+                    ViewData["Name"] = "files";
+                    ViewData["Label"] = "Sube tus archivos";
+                    ViewData["Multiple"] = "True";
+                    ViewData["MaxSize"] = "5";
+                    ViewData["AcceptedTypes"] = ".pdf,.jpg,.png,.docx";
+                }
+                <partial name="_CustomDropzone" />
+
+                <button type="submit"
+                        class="mt-4 bg-secondary hover:bg-secondary-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200">
+                    <i class="ti ti-upload mr-2"></i>
+                    Subir Archivos
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Color Palette Demo -->
+    <div class="mt-6 bg-white p-6 rounded-md shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4">
+            <i class="ti ti-palette mr-2"></i>
+            Paleta de Colores
+        </h2>
+        
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="text-center">
+                <div class="w-full h-20 bg-primary rounded-md mb-2 shadow-md"></div>
+                <p class="text-sm font-medium">Primary</p>
+                <p class="text-xs text-gray-500">#f54477</p>
+            </div>
+            <div class="text-center">
+                <div class="w-full h-20 bg-primary-300 rounded-md mb-2 shadow-md"></div>
+                <p class="text-sm font-medium">Primary Light</p>
+            </div>
+            <div class="text-center">
+                <div class="w-full h-20 bg-primary-700 rounded-md mb-2 shadow-md"></div>
+                <p class="text-sm font-medium">Primary Dark</p>
+            </div>
+            <div class="text-center">
+                <div class="w-full h-20 bg-secondary rounded-md mb-2 shadow-md"></div>
+                <p class="text-sm font-medium">Secondary</p>
+                <p class="text-xs text-gray-500">#716aca</p>
+            </div>
+            <div class="text-center">
+                <div class="w-full h-20 bg-secondary-300 rounded-md mb-2 shadow-md"></div>
+                <p class="text-sm font-medium">Secondary Light</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Icons Demo -->
+    <div class="mt-6 bg-white p-6 rounded-md shadow-md border border-gray-200">
+        <h2 class="text-xl font-semibold mb-4">
+            <i class="ti ti-icons mr-2"></i>
+            FontAwesome Icons
+        </h2>
+        
+        <div class="grid grid-cols-4 md:grid-cols-8 gap-4 text-center">
+            <div><i class="ti ti-user text-3xl text-primary"></i>
+                <p class="text-xs mt-2">User</p>
+            </div>
+            <div><i class="ti ti-file-text text-3xl text-red-500"></i>
+                <p class="text-xs mt-2">PDF</p>
+            </div>
+            <div><i class="ti ti-file-text text-3xl text-blue-500"></i>
+                <p class="text-xs mt-2">Word</p>
+            </div>
+            <div><i class="ti ti-file-spreadsheet text-3xl text-green-500"></i>
+                <p class="text-xs mt-2">Excel</p>
+            </div>
+            <div><i class="ti ti-photo text-3xl text-purple-500"></i>
+                <p class="text-xs mt-2">Image</p>
+            </div>
+            <div><i class="ti ti-circle-check text-3xl text-green-600"></i>
+                <p class="text-xs mt-2">Check</p>
+            </div>
+            <div><i class="ti ti-circle-x text-3xl text-red-600"></i>
+                <p class="text-xs mt-2">Error</p>
+            </div>
+            <div><i class="ti ti-info-circle text-3xl text-blue-600"></i>
+                <p class="text-xs mt-2">Info</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize select with sample data
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectElement = document.getElementById('testSelect');
+        const sampleOptions = [
+            { value: '1', text: 'Ingeniería de Sistemas' },
+            { value: '2', text: 'Administración' },
+            { value: '3', text: 'Contabilidad' },
+            { value: '4', text: 'Derecho' },
+            { value: '5', text: 'Medicina' },
+        ];
+
+        sampleOptions.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.text = opt.text;
+            selectElement.appendChild(option);
+        });
+
+        // Reinitialize after adding options
+        initCustomSelect('testSelect', null);
+    });
+</script>

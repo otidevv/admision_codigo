@@ -1,0 +1,112 @@
+@*
+================================================================================
+  _StatTile.cshtml  —  Tarjeta KPI compacta estilo Tabler.
+
+  Usa la familia .stat-tile* del design system. Layout:
+    Icono + label arriba · valor grande · delta opcional · hint opcional.
+
+  Uso mínimo:
+    <partial name="_StatTile" model='new {
+        Label = "Postulantes",
+        Value = "1,248",
+        Icon  = "ti-users",
+        Tone  = "primary"          // primary | secondary | success | warn | danger | info
+    }' />
+
+  Con delta y hint:
+    <partial name="_StatTile" model='new {
+        Label    = "Inscritos hoy",
+        Value    = "32",
+        Icon     = "ti-user-plus",
+        Tone     = "success",
+        Delta    = "+12%",          // texto del delta
+        DeltaDir = "up",            // up | down | flat
+        Hint     = "vs. semana anterior",
+        DataBind = "stats.todayCount"   // atributo data-bind para AJAX
+    }' />
+
+  El partial NO impone grid; ponlo dentro de un contenedor
+  `grid grid-cols-2 sm:grid-cols-4 gap-3` o similar.
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+
+    var label    = V("Label");
+    var value    = V("Value", "—");
+    var hint     = V("Hint");
+    var icon     = V("Icon");
+    var tone     = V("Tone", "primary").ToLowerInvariant();
+    var delta    = V("Delta");
+    var deltaDir = V("DeltaDir", "flat").ToLowerInvariant();
+    var dataBind = V("DataBind");
+    var href     = V("Href");
+
+    // Mapeo de tonos a clases utilitarias para el icono.
+    var (iconBg, iconText) = tone switch {
+        "secondary" => ("bg-secondary-50 dark:bg-secondary-500/10", "text-secondary-600 dark:text-secondary-300"),
+        "success"   => ("bg-emerald-50 dark:bg-emerald-500/10",     "text-emerald-600 dark:text-emerald-300"),
+        "warn"      => ("bg-amber-50  dark:bg-amber-500/10",        "text-amber-600  dark:text-amber-300"),
+        "danger"    => ("bg-rose-50   dark:bg-rose-500/10",         "text-rose-600   dark:text-rose-300"),
+        "info"      => ("bg-sky-50    dark:bg-sky-500/10",          "text-sky-600    dark:text-sky-300"),
+        _           => ("bg-primary-50 dark:bg-primary-500/10",     "text-primary-600 dark:text-primary-300")
+    };
+
+    var deltaClass = deltaDir switch {
+        "up"   => "stat-tile__delta stat-tile__delta--up",
+        "down" => "stat-tile__delta stat-tile__delta--down",
+        _      => "stat-tile__delta text-ink-500"
+    };
+    var deltaIcon = deltaDir switch {
+        "up"   => "ti-arrow-up",
+        "down" => "ti-arrow-down",
+        _      => "ti-minus"
+    };
+
+    var bodyHtml = "";
+}
+
+@{
+    var labelHtml = string.IsNullOrEmpty(label) ? "" : $"<div class=\"stat-tile__label\">{System.Net.WebUtility.HtmlEncode(label)}</div>";
+    var bindAttr  = string.IsNullOrEmpty(dataBind) ? "" : $" data-bind=\"{dataBind}\"";
+    var valueHtml = $"<div class=\"stat-tile__value\"{bindAttr}>{System.Net.WebUtility.HtmlEncode(value)}</div>";
+
+    var deltaHtml = "";
+    if (!string.IsNullOrEmpty(delta) || !string.IsNullOrEmpty(hint))
+    {
+        var inner = "";
+        if (!string.IsNullOrEmpty(delta))
+        {
+            inner += $"<span class=\"{deltaClass}\"><i class=\"ti {deltaIcon} text-[9px]\"></i>{System.Net.WebUtility.HtmlEncode(delta)}</span>";
+        }
+        if (!string.IsNullOrEmpty(hint))
+        {
+            inner += $"<span class=\"text-ink-500\">{System.Net.WebUtility.HtmlEncode(hint)}</span>";
+        }
+        deltaHtml = $"<div class=\"mt-1.5 flex items-center gap-1.5 text-[11.5px]\">{inner}</div>";
+    }
+
+    var iconHtml = string.IsNullOrEmpty(icon) ? "" : $"<span class=\"stat-tile__icon {iconBg} {iconText}\"><i class=\"ti {icon}\"></i></span>";
+
+    bodyHtml = $@"<div class=""flex items-start justify-between gap-2"">
+        <div class=""min-w-0 flex-1"">{labelHtml}{valueHtml}{deltaHtml}</div>
+        {iconHtml}
+    </div>";
+}
+
+@if (!string.IsNullOrEmpty(href))
+{
+    <a href="@href" class="stat-tile fade-up block hover:no-underline">
+        @Html.Raw(bodyHtml)
+    </a>
+}
+else
+{
+    <div class="stat-tile fade-up">
+        @Html.Raw(bodyHtml)
+    </div>
+}

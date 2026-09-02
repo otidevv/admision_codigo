@@ -1,0 +1,135 @@
+@model ADMISION.ENTITIES.Models.Info.Prospect
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Crear Prospecto";
+}
+
+<!-- Breadcrumb + Page Hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-management/prospects" class="hover:text-primary-600 transition-colors">Prospectos</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Crear</span>
+    </div>
+    <div class="eyebrow">Documentos oficiales</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Crear nuevo <span class="font-serif font-normal text-primary-600">prospecto</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Publica el prospecto oficial de un periodo académico.</p>
+</section>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="space-y-5 max-w-3xl">
+
+    <!-- Card: Datos del prospecto -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-book text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del prospecto</h2>
+                <p class="text-[11.5px] text-ink-500">Identificación y periodo asociado</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <partial name="_FormInput" model='@(new {
+                Id = "Name", Name = "Name",
+                Label = "Nombre / título del prospecto", Required = true,
+                Placeholder = "Ej: Prospecto Admisión 2026-I",
+                Value = Model?.Name,
+                IconLeft = "ti-book",
+                Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <div>
+                    @{
+                        var termOptions = (ViewBag.Terms as Microsoft.AspNetCore.Mvc.Rendering.SelectList)?.Select(x => new { Value = x.Value, Label = x.Text }).ToList();
+                        ViewData["Id"] = "TermId";
+                        ViewData["Name"] = "TermId";
+                        ViewData["Label"] = "Periodo académico";
+                        ViewData["Placeholder"] = "Seleccione un periodo...";
+                        ViewData["Options"] = termOptions;
+                        ViewData["Required"] = true;
+                    }
+                    <partial name="_CustomSelect" />
+                    <span asp-validation-for="TermId" class="form-error"></span>
+                </div>
+
+                <div class="flex items-end pb-1">
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "IsActive", Name = "IsActive",
+                        Label = "Prospecto activo",
+                        Hint = "Visible al público en la web",
+                        Checked = Model?.IsActive ?? true,
+                        Variant = "switch"
+                    })' />
+                </div>
+            </div>
+
+            <partial name="_FormTextarea" model='@(new {
+                Id = "Description", Name = "Description",
+                Label = "Nota / observación",
+                Placeholder = "Opcional...",
+                Rows = 2,
+                Value = Model?.Description,
+                Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+        </div>
+    </section>
+
+    <!-- Card: Archivo PDF -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-file-text text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Archivo del prospecto</h2>
+                <p class="text-[11.5px] text-ink-500">Solo archivos PDF hasta 10MB</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <label for="pdfFile"
+                   class="block cursor-pointer rounded-md ring-1 ring-dashed ring-ink-300 dark:ring-ink-700 bg-ink-50/60 dark:bg-ink-900/40 hover:ring-primary-400 hover:bg-primary-50/40 dark:hover:bg-primary-500/5 transition-all px-6 py-10 text-center">
+                <i id="file-icon" class="ti ti-file-text text-5xl text-ink-300 mb-3 block"></i>
+                <div id="file-info" class="hidden mb-3">
+                    <span id="file-name" class="block text-sm font-semibold text-ink-900 dark:text-ink-100"></span>
+                    <span id="file-size" class="block text-xs text-ink-400 mt-0.5"></span>
+                </div>
+                <p class="text-sm font-semibold text-primary-600">Haz clic para seleccionar el PDF</p>
+                <p class="text-[11px] text-ink-400 mt-1">o arrastra y suelta aquí · solo .pdf · máx. 10MB</p>
+                <input id="pdfFile" name="pdfFile" type="file" class="sr-only" accept=".pdf" onchange="handleFileSelect(this)">
+            </label>
+            <div id="file-error" class="hidden mt-3 text-xs text-rose-600 font-medium flex items-center gap-1.5">
+                <i class="ti ti-alert-circle text-[10px]"></i> Debe seleccionar un archivo PDF válido.
+            </div>
+        </div>
+    </section>
+
+    <!-- Acciones -->
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a href="/admin/info-management/prospects"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar prospecto
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/admin/info-management/prospect/form.js" asp-append-version="true"></script>
+}

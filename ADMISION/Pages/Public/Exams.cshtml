@@ -1,0 +1,32 @@
+@{
+    ViewData["Title"] = "Exámenes";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+}
+
+<section class="relative py-20 sm:py-24 md:py-28 overflow-hidden">
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center fade-up">
+        <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+            <i class="ti ti-clipboard-list text-[10px]"></i>
+            Exámenes
+        </div>
+        <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+            Próximamente <span class="font-serif font-normal text-primary-600">disponible</span>
+        </h1>
+        <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+            Estamos preparando la lista de exámenes disponibles para el proceso vigente.
+            Pronto encontrarás aquí toda la información oficial.
+        </p>
+
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <a href="/modalidad" class="btn-grad inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-md">
+                <i class="ti ti-list-check text-xs"></i>
+                Ver modalidades
+            </a>
+            <a href="/cronograma" class="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-md bg-white text-ink-800 ring-soft hover:bg-ink-100 transition">
+                <i class="ti ti-calendar-event text-xs"></i>
+                Ver cronograma
+            </a>
+        </div>
+    </div>
+</section>

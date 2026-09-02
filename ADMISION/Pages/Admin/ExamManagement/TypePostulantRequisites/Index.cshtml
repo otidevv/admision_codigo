@@ -1,0 +1,96 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Requirement.TypePostulantRequisite>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Requisitos por Tipo de Postulante";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Tipo de Postulante", Field = "typePostulant.name", Type = "text", Sortable = true },
+        new() { Label = "Requisito Asignado", Field = "requirement.name", Type = "text", Sortable = true }
+    };
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "delete", Label = "Eliminar", Icon = "ti-trash", Danger = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["AjaxUrl"] = Url.Action("Index");
+    ViewData["TableId"] = "postulantRequisitesTable";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Requisitos por tipo</span>
+        </div>
+        <div class="eyebrow">Documentación</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Requisitos por <span class="font-serif font-normal text-primary-600">tipo</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Especifica qué documentos debe cargar cada tipo de postulante para su inscripción.</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="DT.refresh('postulantRequisitesTable')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-refresh text-xs"></i> Actualizar
+        </button>
+        <a asp-action="Create" class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i>
+            Asignar requisito
+        </a>
+    </div>
+</section>
+
+<!-- Filters -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros de asignación</h2>
+            <p class="text-[11.5px] text-ink-500">Busca por tipo de postulante o nombre del requisito</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <partial name="_CustomSelect" model='new {
+                    Id = "typePostulantInscriptionId",
+                    Label = "Filtrar por tipo de postulante",
+                    Placeholder = "Todos los tipos",
+                    Options = ((IEnumerable<dynamic>)ViewBag.PostulantTypes).Select(t => new { id = t.Id, name = t.Name })
+                }' />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Buscar por requisito (nombre)</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-ink-400 group-focus-within:text-primary-600 transition-colors">
+                        <i class="ti ti-search text-sm"></i>
+                    </div>
+                    <input type="text" id="filterSearch"
+                           class="w-full h-9 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md pl-12 pr-4 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                           placeholder="Ej: Certificado, DNI...">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Table -->
+<section class="fade-up">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script src="~/js/admin/exam-management/type-postulant-requisites/index.js" asp-append-version="true"></script>
+}

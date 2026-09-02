@@ -1,0 +1,186 @@
+@model ADMISION.Models.ViewModels.Public.ResultsPublicViewModel
+@{
+    ViewData["Title"] = "Resultados";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+}
+
+<section class="relative py-12 sm:py-16">
+
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+
+        <!-- Header -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4 fade-up">
+            <div class="max-w-2xl">
+                <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-4">
+                    <i class="ti ti-trophy text-[10px]"></i>
+                    Resultados oficiales
+                </div>
+                <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-2">
+                    Resultados de los <span class="font-serif font-normal text-primary-600">exámenes</span>
+                </h1>
+                <p class="text-ink-500 text-sm sm:text-base leading-relaxed">Selecciona el tipo de examen para ver el PDF oficial.</p>
+            </div>
+
+            <!-- Filtro por Periodo Académico -->
+            <div class="w-full md:w-80">
+                <partial name="_CustomSelect" model='new {
+                    Id = "termFilter",
+                    Name = "termId",
+                    Label = "Periodo Académico",
+                    Placeholder = "Seleccionar periodo",
+                    SelectedValue = Model.SelectedTerm != null ? Model.SelectedTerm.Id.ToString() : "",
+                    Options = Model.Terms.Select(t => new { id = (string)t.Id.ToString(), name = t.Name })
+                }' />
+            </div>
+        </div>
+
+        <!-- Lista + Visor -->
+        <div class="flex flex-col lg:flex-row gap-4 items-start">
+
+            <!-- LEFT: Lista de resultados -->
+            <div class="w-full lg:w-96 lg:shrink-0 space-y-3" id="exam-list">
+                @if (!Model.Items.Any())
+                {
+                    <div class="bg-white ring-soft rounded-md py-12 text-center">
+                        <div class="w-14 h-14 rounded-md bg-ink-100 flex items-center justify-center mx-auto mb-3 text-ink-300">
+                            <i class="ti ti-file-text text-xl"></i>
+                        </div>
+                        <p class="text-ink-700 text-sm font-semibold">Sin resultados publicados</p>
+                        <p class="text-ink-400 text-xs mt-1 max-w-xs mx-auto">
+                            @(Model.SelectedTerm != null
+                                ? $"Aún no hay resultados publicados para {Model.SelectedTerm.Name}."
+                                : "Seleccione un periodo académico.")
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        <div id="card-@item.Id"
+                             data-id="@item.Id"
+                             data-title="@item.Title"
+                             data-url="/@item.FileUrl"
+                             class="exam-card lift fade-up flex items-center justify-between gap-3 px-5 py-4 rounded-md bg-white ring-soft cursor-pointer transition-all duration-200">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-ink-900 text-sm leading-snug truncate tracking-tight">@item.Title</p>
+                                @if (!string.IsNullOrWhiteSpace(item.ModalityName))
+                                {
+                                    <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-400 mt-1">
+                                        <i class="ti ti-list mr-1"></i> @item.ModalityName
+                                    </p>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <p class="text-ink-500 text-xs mt-1 leading-snug line-clamp-2">@item.Description</p>
+                                }
+                                <p class="text-[10px] text-ink-400 mt-1.5">
+                                    <i class="ti ti-calendar mr-1"></i>
+                                    Publicado el @item.PublishedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                                </p>
+                            </div>
+                            <span class="shrink-0 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-[0.15em] uppercase">PDF</span>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- RIGHT: PDF Viewer Panel -->
+            <div id="pdf-panel" class="hidden flex-1 bg-white ring-soft rounded-md overflow-hidden w-full">
+                <div class="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-ink-200/60">
+                    <div class="min-w-0">
+                        <h2 id="panel-title" class="font-semibold text-ink-900 text-base tracking-tight truncate"></h2>
+                        <p class="text-ink-400 text-xs mt-0.5">PDF oficial</p>
+                    </div>
+                    <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+                        <a id="panel-download" href="#" target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1.5 text-primary-600 text-sm font-semibold hover:text-primary-700">
+                            <i class="ti ti-download"></i>
+                            <span class="hidden sm:inline">Descargar</span>
+                        </a>
+                        <button onclick="closePanel()"
+                                class="inline-flex items-center gap-1.5 text-ink-500 hover:text-ink-700 font-semibold text-sm transition-colors">
+                            <i class="ti ti-x"></i>
+                            <span class="hidden sm:inline">Cerrar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full" style="height: 75vh;">
+                    <iframe id="pdf-iframe" src="" class="w-full h-full border-0" title="Visor PDF"></iframe>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="pdf-empty" class="flex-1 flex flex-col items-center justify-center py-16 sm:py-24 text-center text-ink-300 w-full">
+                <svg class="w-16 h-16 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z" />
+                </svg>
+                <p class="text-base font-semibold text-ink-500">Selecciona un resultado</p>
+                <p class="text-xs text-ink-400 mt-1">El PDF oficial se mostrará aquí</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<style>
+    .exam-card.is-active {
+        box-shadow: 0 0 0 2px #f54477, 0 8px 24px -12px rgba(245, 68, 119, 0.35);
+        background-color: #fef2f5;
+    }
+</style>
+
+<script>
+    (function () {
+        const selectedTermId = '@(Model.SelectedTerm?.Id.ToString() ?? "")';
+
+        function waitForRegistry(cb, attempts) {
+            attempts = attempts || 0;
+            if (window.customSelectRegistry && window.customSelectRegistry['termFilter']) {
+                cb();
+            } else if (attempts < 40) {
+                setTimeout(() => waitForRegistry(cb, attempts + 1), 50);
+            }
+        }
+
+        waitForRegistry(() => {
+            const hidden = document.getElementById('termFilter');
+            if (hidden) {
+                hidden.addEventListener('change', () => {
+                    const newTerm = hidden.value;
+                    if (!newTerm || newTerm === selectedTermId) return;
+                    window.location.href = '/resultados?termId=' + encodeURIComponent(newTerm);
+                });
+            }
+        });
+
+        document.querySelectorAll('.exam-card').forEach(card => {
+            card.addEventListener('click', () => {
+                openExam(card.dataset.id, card.dataset.title, card.dataset.url);
+            });
+        });
+
+        window.openExam = function (id, titulo, pdfUrl) {
+            document.querySelectorAll('.exam-card').forEach(c => c.classList.remove('is-active'));
+            const activeCard = document.getElementById('card-' + id);
+            if (activeCard) activeCard.classList.add('is-active');
+
+            document.getElementById('panel-title').textContent = titulo;
+            document.getElementById('pdf-iframe').src = pdfUrl;
+            document.getElementById('panel-download').href = pdfUrl;
+
+            document.getElementById('pdf-panel').classList.remove('hidden');
+            document.getElementById('pdf-empty').classList.add('hidden');
+        };
+
+        window.closePanel = function () {
+            document.getElementById('pdf-panel').classList.add('hidden');
+            document.getElementById('pdf-empty').classList.remove('hidden');
+            document.getElementById('pdf-iframe').src = '';
+            document.querySelectorAll('.exam-card').forEach(c => c.classList.remove('is-active'));
+        };
+    })();
+</script>

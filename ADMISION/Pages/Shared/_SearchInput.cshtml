@@ -1,0 +1,81 @@
+@*
+================================================================================
+  _SearchInput.cshtml  —  Input de búsqueda con icono, debounce y atajo "/".
+
+  Uso:
+    <partial name="_SearchInput" model='new {
+        Id = "termsSearch",
+        Placeholder = "Buscar por nombre, código…",
+        Width = "w-72",          // tailwind class para el ancho
+        DebounceMs = 250,
+        EventName = "terms:search" // window event que emite el valor
+    }' />
+
+  Listener:
+    window.addEventListener('terms:search', e => console.log(e.detail.value));
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    int I(string p, int d = 0) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        if (v is int direct) return direct;
+        return int.TryParse(v?.ToString(), out int parsed) ? parsed : d;
+    }
+
+    var id          = V("Id", "search-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var placeholder = V("Placeholder", "Buscar…");
+    var widthClass  = V("Width", "w-full sm:w-72");
+    var debounce    = I("DebounceMs", 250);
+    var eventName   = V("EventName", id + ":change");
+    var shortcut    = V("Shortcut", "/");   // tecla para enfocar (vacío para deshabilitar)
+}
+
+<div class="form-input-wrapper @widthClass">
+    <i class="ti ti-search form-input-icon"></i>
+    <input id="@id" type="search" placeholder="@placeholder"
+           class="form-input form-input--suffix"
+           autocomplete="off" />
+    @if (!string.IsNullOrEmpty(shortcut))
+    {
+        <kbd class="absolute right-3 top-1/2 -translate-y-1/2 hidden md:inline-block pointer-events-none">@shortcut</kbd>
+    }
+</div>
+
+<script>
+    (function () {
+        var input = document.getElementById('@id');
+        if (!input) return;
+        var timer = null;
+        var lastValue = '';
+
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                if (input.value === lastValue) return;
+                lastValue = input.value;
+                window.dispatchEvent(new CustomEvent('@eventName', { detail: { value: input.value } }));
+            }, @debounce);
+        });
+
+        @if (!string.IsNullOrEmpty(shortcut))
+        {
+            <text>
+            // Atajo de teclado: '@shortcut' enfoca el buscador (excepto cuando
+            // estás escribiendo en otro input).
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== '@shortcut') return;
+                var tag = (document.activeElement?.tagName || '').toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+                e.preventDefault();
+                input.focus();
+                input.select();
+            });
+            </text>
+        }
+    })();
+</script>

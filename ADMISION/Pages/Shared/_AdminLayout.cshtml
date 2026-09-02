@@ -1,0 +1,930 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    // Token CSRF disponible globalmente para llamadas AJAX del layout (notificaciones, etc.).
+    var antiforgeryTokens = Antiforgery.GetAndStoreTokens(Context);
+    var userName = User.Identity?.Name ?? "Admin";
+    var userInitial = !string.IsNullOrEmpty(userName) ? userName.Substring(0, 1).ToUpper() : "A";
+    var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Administrador";
+}
+
+@functions {
+    bool UserHasRole(string role) => User.IsInRole(role);
+    bool UserHasAnyRole(params string[] roles) => roles.Any(r => User.IsInRole(r));
+}
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admisión Admin</title>
+
+    <link rel="preload" href="~/lib/inter/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/toastify-js/src/toastify.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="~/lib/tabler-icons/tabler-icons.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8/dist/browser/signalr.min.js"></script>
+    <link rel="icon" type="image/png" href="~/img/unamad.png" asp-append-version="true" />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/lib/toastify-js/src/toastify.js"></script>
+    <script src="~/js/helper.js"></script>
+    <script src="~/js/admin/modal-api.js" asp-append-version="true"></script>
+
+    <script>
+        // Pre-aplicar tema y estado del sidebar antes de pintar (evita flash).
+        (function () {
+            try {
+                var t = localStorage.getItem('adm-theme');
+                if (t === 'dark') document.documentElement.classList.add('dark');
+                if (localStorage.getItem('adm-sidebar-collapsed') === '1') {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+
+    <style>
+        /* ── Sidebar transitions (slide en móvil) ───────────── */
+        #sidebar {
+            transition: transform 0.28s cubic-bezier(.4, 0, .2, 1);
+        }
+        #sidebar-overlay { transition: opacity 0.25s ease; }
+
+        /* ── Floating panels (user card + notifications) ───── */
+        #user-card,
+        #notif-panel {
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+        #user-card.hidden,
+        #notif-panel.hidden {
+            opacity: 0;
+            transform: scale(0.96) translateY(-6px);
+            pointer-events: none;
+        }
+        #user-card:not(.hidden),
+        #notif-panel:not(.hidden) {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+        #user-card { transform-origin: bottom left; }
+        #notif-panel { transform-origin: top right; }
+
+        /* ── Notification pulse ring ──────────────────────── */
+        #notif-bell.has-pulse::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 9999px;
+            border: 2px solid #f54477;
+            animation: notif-pulse 1.2s ease-out infinite;
+        }
+        @@keyframes notif-pulse {
+            0%   { transform: scale(0.9); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        /* ── Scrollbars finos ──────────────────────────────── */
+        #main-content::-webkit-scrollbar { width: 6px; }
+        #main-content::-webkit-scrollbar-thumb {
+            background: rgba(15, 18, 32, 0.12);
+            border-radius: 999px;
+        }
+        html.dark #main-content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); }
+        #notif-list::-webkit-scrollbar { width: 5px; }
+        #notif-list::-webkit-scrollbar-thumb {
+            background: #dce0e8;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100">
+
+    <!-- CSRF token global -->
+    <input type="hidden" name="__RequestVerificationToken" value="@antiforgeryTokens.RequestToken" />
+
+    <div class="flex flex-col h-screen overflow-hidden">
+
+        <header class="relative z-30 h-16 shrink-0 flex items-center px-4 sm:px-6
+                       bg-white dark:bg-ink-900 border-b border-ink-200/70 dark:border-ink-800/60">
+
+            <!-- Sidebar toggle (mobile + desktop collapse) -->
+            <button id="sidebar-toggle"
+                    class="inline-flex items-center justify-center w-9 h-9 rounded-md ring-soft text-ink-600 hover:text-primary-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800 transition-colors mr-2"
+                    aria-label="Alternar menú">
+                <i class="ti ti-menu-2 text-[13px]"></i>
+            </button>
+
+            <!-- Brand (alineado con ancho de sidebar en lg) -->
+            <a href="/admin" class="topbar-brand flex items-center gap-3 min-w-0 group lg:w-[244px]">
+                <span class="w-9 h-9  inline-flex items-center justify-center shrink-0 shadow-glow group-hover:scale-[1.03] transition-transform">
+                    <img src="~/img/unamad.png" alt="Logo unamad" />
+                </span>
+                <div class="brand-text leading-tight min-w-0">
+                    <div class="text-[13.5px] font-semibold tracking-tight truncate text-primary-600 dark:text-white">UNAMAD</div>
+                    <div class="text-[10px] uppercase tracking-[0.18em] text-ink-500 dark:text-white/55 mt-0.5">Admisión · Admin</div>
+                </div>
+            </a>
+
+            <div class="ml-auto flex items-center gap-2">
+
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin, AppConstants.Roles.Consultor))
+                    {
+                        <!-- Notification bell -->
+                <div class="relative">
+                    <button id="notif-bell" type="button"
+                            class="relative inline-flex items-center justify-center w-9 h-9 rounded-md ring-soft text-ink-600 hover:text-primary-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800 transition-colors"
+                            aria-label="Notificaciones" aria-haspopup="true" aria-expanded="false">
+                        <i class="ti ti-bell text-[14px]"></i>
+                        <span id="notif-badge"
+                              class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-600 text-white text-[10px] font-bold inline-flex items-center justify-center ring-2 ring-white dark:ring-ink-900">0</span>
+                    </button>
+
+                    <div id="notif-panel"
+                         class="hidden fixed z-[60] w-[340px] sm:w-[380px] rounded-md overflow-hidden glass-strong ring-soft">
+                        <div class="px-4 py-3 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-extrabold text-ink-800 dark:text-ink-100 tracking-tight">Notificaciones</h4>
+                                <p id="notif-panel-subtitle" class="text-[11px] text-ink-500">Cargando…</p>
+                            </div>
+                            <button id="notif-mark-all" type="button"
+                                    class="hidden text-[11px] font-bold text-primary-600 hover:text-primary-700">
+                                Marcar todas
+                            </button>
+                        </div>
+                        <div id="notif-list" class="max-h-[420px] overflow-y-auto">
+                            <div class="px-4 py-8 text-center text-xs text-ink-400">
+                                <i class="ti ti-loader-2 fa-spin text-ink-300 text-xl mb-2 block"></i>
+                                Cargando…
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                }
+                <!-- Theme toggle -->
+                <button id="theme-toggle" type="button"
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-md ring-soft text-ink-600 hover:text-primary-600 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800 transition-colors"
+                        aria-label="Cambiar tema">
+                    <i class="ti ti-moon text-[13px] block dark:hidden"></i>
+                    <i class="ti ti-sun text-[13px] hidden dark:block"></i>
+                </button>
+
+                <!-- User dropdown trigger -->
+                <button id="user-trigger" type="button"
+                        class="ml-1 inline-flex items-center gap-2 pl-1 pr-2 h-9 rounded-md ring-soft hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors text-left"
+                        aria-haspopup="true" aria-expanded="false">
+                    <span class="w-7 h-7 rounded-full bg-primary-500 inline-flex items-center justify-center text-white text-[11.5px] font-bold shrink-0">
+                        @userInitial
+                    </span>
+                    <span class="hidden sm:flex flex-col leading-tight min-w-0 max-w-[160px]">
+                        <span class="text-[12px] font-semibold text-ink-800 dark:text-ink-100 truncate">@userName</span>
+                        <span class="text-[10px] text-ink-500 dark:text-ink-400 truncate">@userRole</span>
+                    </span>
+                    <i class="ti ti-chevron-down text-[10px] text-ink-400 ml-0.5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- ── Row: sidebar + main ───────────────────────── -->
+        <div class="flex flex-1 min-h-0 relative">
+
+            <!-- Mobile overlay -->
+            <div id="sidebar-overlay"
+                 class="fixed inset-0 top-16 z-30 bg-black/55 backdrop-blur-sm opacity-0 pointer-events-none lg:hidden"></div>
+
+            <aside id="sidebar"
+                   class="fixed lg:relative top-16 lg:top-0 bottom-0 z-40 lg:h-full w-[260px] shrink-0 -translate-x-full lg:translate-x-0
+                          bg-white dark:bg-ink-950 text-ink-700 dark:text-white flex flex-col border-r border-ink-200/70 dark:border-white/[0.04] overflow-hidden">
+
+                <!-- ── Nav scrollable ─────────────────────── -->
+            <nav class="relative flex-1 overflow-y-auto no-scrollbar px-3 pt-3 pb-4">
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin, AppConstants.Roles.Consultor))
+                {
+                <p class="nav-group">Principal</p>
+                <a href="/admin" class="nav-item" data-label="Dashboard">
+                    <i class="ti ti-gauge ico text-center"></i>
+                    <span>Dashboard</span>
+                </a>
+                }
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin, AppConstants.Roles.Consultor))
+                {
+                    @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin))
+                    {
+                        <p class="nav-group">Gestión</p>
+                        <a href="/admin/periodos" class="nav-item" data-label="Periodos">
+                            <i class="ti ti-calendar ico text-center"></i>
+                            <span>Periodos</span>
+                        </a>
+                    }
+                    @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin)){
+                    <a href="/admin/exam-management" class="nav-item" data-label="Gestión de Examen">
+                        <i class="ti ti-building-bank ico text-center"></i>
+                        <span>Gestión de Examen</span>
+                    </a>
+                    <a href="/admin/infrastructure" class="nav-item" data-label="Infraestructura">
+                        <i class="ti ti-building ico text-center"></i>
+                        <span>Infraestructura</span>
+                    </a>
+                    }
+                    <a href="/admin/info-postulant" class="nav-item" data-label="Postulantes">
+                        <i class="ti ti-id ico text-center"></i>
+                        <span>Postulantes</span>
+                    </a>
+                    
+                    @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin))
+                    {
+                    <a href="/admin/colegios" class="nav-item" data-label="Colegios">
+                        <i class="ti ti-school ico text-center"></i>
+                        <span>Colegios</span>
+                    </a>
+                    <p class="nav-group">Operación</p>
+                    <a href="/admin/economic-management" class="nav-item" data-label="Gestión económica">
+                        <i class="ti ti-coin ico text-center"></i>
+                        <span>Gestión económica</span>
+                    </a>
+                    <a href="/admin/gestion-documental" class="nav-item" data-label="Gestión documental">
+                        <i class="ti ti-signature ico text-center"></i>
+                        <span>Gestión documental</span>
+                    </a>
+                    <a href="/admin/info/cronograma" class="nav-item" data-label="Cronograma">
+                        <i class="ti ti-calendar-event ico text-center"></i>
+                        <span>Cronograma</span>
+                    </a>
+                    }
+                    
+                }
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin, AppConstants.Roles.Consultor))
+                {
+                <p class="nav-group">Reportes</p>
+                <a href="/admin/reportes" class="nav-item" data-label="Reportes">
+                    <i class="ti ti-chart-pie ico text-center"></i>
+                    <span>Reportes</span>
+                </a>
+                }
+                
+
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Admin))
+                {
+                <p class="nav-group">Administración</p>
+                <a href="/admin/info-management" class="nav-item" data-label="Publicaciones">
+                    <i class="ti ti-news ico text-center"></i>
+                    <span>Publicaciones</span>
+                </a>
+                }
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin))
+                {
+                    <a href="/admin/usuarios" class="nav-item" data-label="Usuarios">
+                        <i class="ti ti-users-group ico text-center"></i>
+                        <span>Usuarios</span>
+                    </a>
+                    <a href="/admin/docentes" class="nav-item" data-label="Docentes">
+                        <i class="ti ti-chalkboard ico text-center"></i>
+                        <span>Docentes</span>
+                    </a>
+                    <a href="/admin/config" class="nav-item" data-label="Configuración">
+                        <i class="ti ti-settings ico text-center"></i>
+                        <span>Configuración</span>
+                    </a>
+                }
+                @if (UserHasAnyRole(AppConstants.Roles.SuperAdmin, AppConstants.Roles.Soporte))
+                {
+                    <a href="/admin/importaciones/cepre" class="nav-item" data-label="Ingresantes Cepre">
+                        <i class="ti ti-school ico text-center"></i>
+                        <span>Ingresantes Cepre</span>
+                    </a>
+                }
+            </nav>
+
+            </aside>
+
+            <!-- ── User card flotante (anclado al user-trigger del topbar) ── -->
+            <div id="user-card"
+                 class="hidden fixed z-50 w-64 rounded-md overflow-hidden bg-white dark:bg-ink-900 ring-soft shadow-card">
+                <!-- Card header solid (sin gradiente) -->
+                <div class="px-5 py-5 text-center relative bg-primary-500 text-white overflow-hidden">
+                    <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
+                    <div class="relative">
+                        <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white text-2xl font-bold mx-auto mb-2 ring-1 ring-white/25">
+                            @userInitial
+                        </div>
+                        <p class="text-white font-semibold text-sm leading-tight truncate">@userName</p>
+                        <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-medium tracking-[0.18em] uppercase">
+                            @userRole
+                        </span>
+                    </div>
+                </div>
+                <div class="px-5 py-4 space-y-2.5 bg-white dark:bg-ink-900">
+                    <div class="flex items-center gap-2.5 text-ink-700 dark:text-ink-200 text-xs">
+                        <div class="w-6 h-6 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                            <i class="ti ti-user text-ink-400 text-[10px]"></i>
+                        </div>
+                        <span class="truncate">@userName</span>
+                    </div>
+                    <div class="flex items-center gap-2.5 text-ink-700 dark:text-ink-200 text-xs">
+                        <div class="w-6 h-6 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                            <i class="ti ti-shield text-ink-400 text-[10px]"></i>
+                        </div>
+                        <span class="truncate">@userRole</span>
+                    </div>
+                    <div class="flex items-center gap-2.5 text-ink-700 dark:text-ink-200 text-xs">
+                        <div class="w-6 h-6 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                            <i class="ti ti-circle text-emerald-400 text-[8px]"></i>
+                        </div>
+                        <span>Sesión activa</span>
+                    </div>
+                </div>
+                <div class="px-5 pb-4 pt-1 space-y-2 bg-white dark:bg-ink-900">
+                    <a href="/admin/profile"
+                       class="flex items-center justify-center gap-2 w-full py-2 px-4 rounded-md text-sm font-medium text-primary-700 dark:text-primary-300 ring-1 ring-primary-200 dark:ring-primary-800/40 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-colors">
+                        <i class="ti ti-user-cog"></i>
+                        Mi Perfil
+                    </a>
+                    <a href="/login/logout"
+                       class="flex items-center justify-center gap-2 w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-ink-900 dark:bg-ink-800 hover:bg-ink-800 dark:hover:bg-ink-700 transition-colors">
+                        <i class="ti ti-logout"></i>
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+
+            <!-- ── Scrollable page content ────────────────── -->
+            <main id="main-content" class="flex-1 overflow-auto bg-ink-50 dark:bg-ink-950 px-5 md:px-7 py-6 md:py-7">
+
+                @{
+                    var __backCurrent = Context.Request.Path.Value?.TrimEnd('/').ToLowerInvariant() ?? "";
+                    var __backIsAdminRoot = __backCurrent == "/admin" || __backCurrent == "";
+                }
+                @if (!__backIsAdminRoot)
+                {
+                    <div class="mb-4">
+                        <button type="button"
+                                onclick="adminGoBack()"
+                                class="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-ink-600 dark:text-ink-300 hover:text-primary-600 hover:bg-white dark:hover:bg-ink-800 ring-soft rounded-md transition-colors"
+                                title="Volver al nivel anterior">
+                            <i class="ti ti-arrow-left text-xs"></i>
+                            <span>Atrás</span>
+                        </button>
+                    </div>
+                    <script>
+                        // Calcula la ruta "padre lógica" desde la URL (ignora history).
+                        function adminParentPath() {
+                            const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                            const isId = (s) => guid.test(s) || /^\d+$/.test(s);
+                            const verbs = new Set([
+                                'crear','create','new','nuevo',
+                                'editar','edit',
+                                'eliminar','delete',
+                                'detalle','detail','detalles','ver','show','preview',
+                                'validate','validation','validar','validacion'
+                            ]);
+
+                            let segments = window.location.pathname.split('/').filter(s => s.length > 0);
+                            if (segments.length <= 1) return '/admin';
+
+                            let trimmed = false, changed = true;
+                            while (changed && segments.length > 1) {
+                                changed = false;
+                                const last = segments[segments.length - 1];
+                                if (isId(last) || verbs.has(last.toLowerCase())) {
+                                    segments.pop();
+                                    trimmed = true;
+                                    changed = true;
+                                }
+                            }
+                            if (!trimmed && segments.length > 1) segments.pop();
+                            return '/' + segments.join('/');
+                        }
+
+                        function adminGoBack() {
+                            const target = adminParentPath();
+                            if (target && target !== window.location.pathname.replace(/\/$/, '')) {
+                                window.location.href = target;
+                            } else {
+                                window.location.href = '/admin';
+                            }
+                        }
+                    </script>
+                }
+
+                @if (TempData["Success"] != null)
+                {
+                    <div class="mb-5 p-4 rounded-md flex items-center gap-3 text-sm text-emerald-800 bg-emerald-50 ring-1 ring-emerald-200/60">
+                        <div class="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                            <i class="ti ti-check text-emerald-600 text-xs"></i>
+                        </div>
+                        <span class="font-medium">@TempData["Success"]</span>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="mb-5 p-4 rounded-md flex items-center gap-3 text-sm text-rose-800 bg-rose-50 ring-1 ring-rose-200/60">
+                        <div class="w-9 h-9 rounded-full bg-primary-500/15 flex items-center justify-center shrink-0">
+                            <i class="ti ti-exclamation-mark text-primary-600 text-xs"></i>
+                        </div>
+                        <span class="font-medium">@TempData["Error"]</span>
+                    </div>
+                }
+
+                @RenderBody()
+
+                @if (TempData["Success"] != null)
+                {
+                    <script>toastSuccess(@Html.Raw(Json.Serialize(TempData["Success"])));</script>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <script>toastError(@Html.Raw(Json.Serialize(TempData["Error"])));</script>
+                }
+                @if (TempData["Warning"] != null)
+                {
+                    <script>toastWarning(@Html.Raw(Json.Serialize(TempData["Warning"])));</script>
+                }
+                @if (TempData["Info"] != null)
+                {
+                    <script>toastInfo(@Html.Raw(Json.Serialize(TempData["Info"])));</script>
+                }
+
+                @if (TempData["SwalError"] != null)
+                {
+                    <script>
+                        (function () {
+                            var msg = @Html.Raw(Json.Serialize(TempData["SwalError"]));
+                            var detail = @Html.Raw(Json.Serialize(TempData["SwalErrorDetail"] ?? string.Empty));
+                            console.group('%c🛑 Error en el servidor', 'color:#dc2626;font-weight:bold;');
+                            console.error(msg);
+                            if (detail) console.error(detail);
+                            console.groupEnd();
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'No se pudo guardar',
+                                    text: msg,
+                                    footer: detail ? '<small class="text-muted">Detalle completo en la consola del navegador (F12).</small>' : '',
+                                    confirmButtonColor: '#f54477',
+                                    confirmButtonText: 'Entendido'
+                                });
+                            }
+                        })();
+                    </script>
+                }
+            </main>
+        </div>
+    </div>
+
+    <script>
+        /* ── Fade-up bootstrap (root: #main-content) ─────────────────────────
+           Observa cada .fade-up dentro del scroll del main; agrega .is-in al
+           entrar al viewport. Incluye un safety-net que fuerza la revelación
+           de cualquier .fade-up que no haya disparado tras un tiempo corto
+           (típicamente filas de acciones "Cancelar/Guardar" que caen en el
+           rootMargin inferior o quedan dentro de un wrapper oculto al cargar).
+        ──────────────────────────────────────────────────────────────────── */
+        (function () {
+            function revealAll() {
+                document.querySelectorAll('.fade-up:not(.is-in)').forEach(function (el) {
+                    el.classList.add('is-in');
+                });
+            }
+            function bootstrapFadeUp(rootEl) {
+                var targets = document.querySelectorAll('.fade-up:not(.is-in)');
+                if (!('IntersectionObserver' in window)) {
+                    targets.forEach(function (el) { el.classList.add('is-in'); });
+                    return;
+                }
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (en) {
+                        if (en.isIntersecting) {
+                            en.target.classList.add('is-in');
+                            io.unobserve(en.target);
+                        }
+                    });
+                }, { root: rootEl || null, rootMargin: '0px 0px -8% 0px', threshold: 0.01 });
+                targets.forEach(function (el, i) {
+                    el.style.transitionDelay = ((i % 6) * 60) + 'ms';
+                    io.observe(el);
+                });
+                // Safety-net: tras 1.2s revelamos lo que falte (cubre acciones
+                // de formulario que quedan fuera del rootMargin o se hicieron
+                // visibles después del primer paint).
+                setTimeout(revealAll, 1200);
+            }
+            window.ADM = window.ADM || {};
+            window.ADM.refreshFadeUp = function () {
+                bootstrapFadeUp(document.getElementById('main-content'));
+            };
+            function init() { bootstrapFadeUp(document.getElementById('main-content')); }
+            if (document.readyState !== 'loading') init();
+            else document.addEventListener('DOMContentLoaded', init);
+        })();
+
+        (function () {
+            /* ── Active nav item ─────────────────────────── */
+            var path = window.location.pathname.replace(/\/$/, '') || '/';
+            var bestMatch = null;
+            var bestLen = -1;
+            document.querySelectorAll('.nav-item').forEach(function (a) {
+                var href = (a.getAttribute('href') || '').replace(/\/$/, '') || '/';
+                var matches = path === href || (href !== '/admin' && path.startsWith(href + '/'));
+                if (matches && href.length > bestLen) {
+                    bestMatch = a;
+                    bestLen = href.length;
+                }
+            });
+            // Si nada matchea sub-rutas, activa /admin solo cuando estamos exactamente ahí.
+            if (!bestMatch && (path === '/admin' || path === '/')) {
+                bestMatch = document.querySelector('.nav-item[href="/admin"]');
+            }
+            if (bestMatch) bestMatch.classList.add('active');
+
+            /* ── Sidebar toggle (mobile drawer + desktop collapse) ── */
+            var sidebar     = document.getElementById('sidebar');
+            var overlay     = document.getElementById('sidebar-overlay');
+            var toggleBtn   = document.getElementById('sidebar-toggle');
+            var sidebarOpen = false;
+
+            function openSidebar() {
+                sidebarOpen = true;
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+            }
+            function closeSidebar() {
+                sidebarOpen = false;
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                overlay.classList.remove('opacity-100');
+            }
+            function toggleCollapse() {
+                var collapsed = document.documentElement.classList.toggle('sidebar-collapsed');
+                try { localStorage.setItem('adm-sidebar-collapsed', collapsed ? '1' : '0'); } catch (e) { }
+            }
+            toggleBtn?.addEventListener('click', function () {
+                if (window.innerWidth >= 1024) {
+                    toggleCollapse();
+                } else {
+                    sidebarOpen ? closeSidebar() : openSidebar();
+                }
+            });
+            overlay?.addEventListener('click', closeSidebar);
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 1024) closeSidebar();
+            });
+
+            /* ── Theme toggle (persistente) ──────────────── */
+            var themeBtn = document.getElementById('theme-toggle');
+            themeBtn?.addEventListener('click', function () {
+                var isDark = document.documentElement.classList.toggle('dark');
+                try { localStorage.setItem('adm-theme', isDark ? 'dark' : 'light'); } catch (e) { }
+            });
+
+            /* ── User card flotante (ancla al user-trigger del sidebar) ── */
+            var trigger = document.getElementById('user-trigger');
+            var card    = document.getElementById('user-card');
+            var cardOpen = false;
+
+            function positionCard() {
+                if (!cardOpen) return;
+                var rect = trigger.getBoundingClientRect();
+                var vw = window.innerWidth;
+                var vh = window.innerHeight;
+                var cardW = card.offsetWidth || 256;
+                var cardH = card.offsetHeight || 320;
+                // Abre debajo del trigger (esquina derecha del topbar).
+                var top  = Math.min(vh - cardH - 8, rect.bottom + 8);
+                var left = Math.max(8, Math.min(vw - cardW - 8, rect.right - cardW));
+                card.style.top  = top + 'px';
+                card.style.left = left + 'px';
+            }
+
+            function openCard() {
+                cardOpen = true;
+                card.classList.remove('hidden');
+                trigger.setAttribute('aria-expanded', 'true');
+                requestAnimationFrame(positionCard);
+                window.addEventListener('scroll', positionCard, true);
+                window.addEventListener('resize', positionCard);
+            }
+            function closeCard() {
+                cardOpen = false;
+                card.classList.add('hidden');
+                trigger.setAttribute('aria-expanded', 'false');
+                window.removeEventListener('scroll', positionCard, true);
+                window.removeEventListener('resize', positionCard);
+            }
+
+            trigger?.addEventListener('click', function (e) {
+                e.stopPropagation();
+                cardOpen ? closeCard() : openCard();
+            });
+            document.addEventListener('click', function (e) {
+                if (cardOpen && !card.contains(e.target) && !trigger.contains(e.target)) closeCard();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    if (cardOpen) closeCard();
+                    if (sidebarOpen) closeSidebar();
+                    if (panelOpen) closePanel();
+                }
+            });
+
+            /* ── Notifications bell + SignalR (idéntico a antes) ── */
+            var bell       = document.getElementById('notif-bell');
+            var panel      = document.getElementById('notif-panel');
+            var badge      = document.getElementById('notif-badge');
+            var listEl     = document.getElementById('notif-list');
+            var subtitleEl = document.getElementById('notif-panel-subtitle');
+            var markAllBtn = document.getElementById('notif-mark-all');
+            var panelOpen  = false;
+
+            function humanTime(iso) {
+                var t = new Date(iso);
+                var diff = (Date.now() - t.getTime()) / 1000;
+                if (diff < 60) return 'hace unos segundos';
+                if (diff < 3600) return 'hace ' + Math.floor(diff / 60) + ' min';
+                if (diff < 86400) return 'hace ' + Math.floor(diff / 3600) + ' h';
+                if (diff < 604800) return 'hace ' + Math.floor(diff / 86400) + ' d';
+                return t.toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            }
+            function escapeHtml(s) {
+                return (s || '').replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            function colorClasses(scheme) {
+                var base = {
+                    primary:   { border: 'border-primary-300',   icon: 'bg-primary-500 text-white' },
+                    secondary: { border: 'border-secondary-300', icon: 'bg-secondary-500 text-white' },
+                    success:   { border: 'border-emerald-300',   icon: 'bg-emerald-500 text-white' },
+                    warning:   { border: 'border-amber-300',     icon: 'bg-amber-500 text-white' },
+                    danger:    { border: 'border-rose-300',      icon: 'bg-rose-500 text-white' }
+                };
+                return base[scheme] || base.primary;
+            }
+            function renderItem(n) {
+                var c = colorClasses(n.colorScheme);
+                var unread = !n.isRead;
+                var rowCls = unread ? ('border-l-4 ' + c.border) : 'border-l-4 border-transparent';
+                var actionAttr = n.actionUrl ? (' data-action="' + encodeURI(n.actionUrl) + '"') : '';
+                return ''
+                    + '<div class="notif-item ' + rowCls + ' px-3 py-3 border-b border-ink-100 hover:bg-ink-50 cursor-pointer flex gap-3" data-id="' + n.id + '"' + actionAttr + '>'
+                        + '<div class="w-9 h-9 rounded-md ' + c.icon + ' flex items-center justify-center shrink-0 shadow-sm">'
+                            + '<i class="' + escapeHtml(n.iconClass || 'ti ti-bell') + ' text-xs"></i>'
+                        + '</div>'
+                        + '<div class="flex-1 min-w-0">'
+                            + '<div class="flex items-start justify-between gap-2">'
+                                + '<p class="text-[13px] font-extrabold text-ink-800 leading-snug">' + escapeHtml(n.title) + '</p>'
+                                + (unread ? '<span class="w-2 h-2 rounded-full bg-primary-500 mt-1.5 shrink-0"></span>' : '')
+                            + '</div>'
+                            + '<p class="text-xs text-ink-600 leading-snug mt-0.5">' + escapeHtml(n.message) + '</p>'
+                            + '<p class="text-[10px] text-ink-400 font-semibold mt-1.5"><i class="ti ti-clock text-[9px] mr-1"></i>' + humanTime(n.createdAt) + '</p>'
+                        + '</div>'
+                    + '</div>';
+            }
+            function renderEmpty() {
+                listEl.innerHTML = ''
+                    + '<div class="px-6 py-10 text-center">'
+                        + '<div class="w-12 h-12 rounded-full bg-ink-100 flex items-center justify-center mx-auto mb-3">'
+                            + '<i class="ti ti-bell-off text-ink-400"></i>'
+                        + '</div>'
+                        + '<p class="text-xs font-semibold text-ink-500">Sin notificaciones</p>'
+                        + '<p class="text-[11px] text-ink-400 mt-0.5">Aquí verás los nuevos eventos del sistema.</p>'
+                    + '</div>';
+            }
+            function updateBadge(unread) {
+                if (unread > 0) {
+                    badge.textContent = unread > 99 ? '99+' : String(unread);
+                    badge.classList.remove('hidden');
+                    bell.classList.add('has-pulse');
+                    markAllBtn.classList.remove('hidden');
+                    subtitleEl.textContent = unread + ' sin leer';
+                } else {
+                    badge.classList.add('hidden');
+                    bell.classList.remove('has-pulse');
+                    markAllBtn.classList.add('hidden');
+                    subtitleEl.textContent = 'Estás al día';
+                }
+            }
+            var latestCache = [];
+            function renderList() {
+                if (!latestCache.length) { renderEmpty(); return; }
+                listEl.innerHTML = latestCache.map(renderItem).join('');
+            }
+            function loadList() {
+                fetch('/admin/notifications/list?take=20', { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        latestCache = data.items || [];
+                        renderList();
+                        updateBadge(data.unread || 0);
+                    })
+                    .catch(function () { renderEmpty(); subtitleEl.textContent = 'No disponible'; });
+            }
+            function loadUnreadCount() {
+                fetch('/admin/notifications/unread-count', { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) { updateBadge(data.unread || 0); })
+                    .catch(function () { });
+            }
+            function positionPanel() {
+                if (!panelOpen) return;
+                var rect = bell.getBoundingClientRect();
+                var vw = window.innerWidth;
+                var panelW = panel.offsetWidth || 340;
+                var top  = rect.bottom + 8;
+                //var left = Math.max(8, Math.min(vw - panelW - 8, rect.right - panelW));
+                panel.style.top  = top + 'px';
+                panel.style.right = '10px';
+            }
+
+            function openPanel() {
+                panelOpen = true;
+                panel.classList.remove('hidden');
+                bell.setAttribute('aria-expanded', 'true');
+                requestAnimationFrame(positionPanel);
+                window.addEventListener('scroll', positionPanel, true);
+                window.addEventListener('resize', positionPanel);
+                loadList();
+            }
+            function closePanel() {
+                panelOpen = false;
+                panel.classList.add('hidden');
+                bell.setAttribute('aria-expanded', 'false');
+                window.removeEventListener('scroll', positionPanel, true);
+                window.removeEventListener('resize', positionPanel);
+            }
+
+            if (bell) {
+                bell.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    panelOpen ? closePanel() : openPanel();
+                });
+                document.addEventListener('click', function (e) {
+                    if (panelOpen && !panel.contains(e.target) && !bell.contains(e.target)) closePanel();
+                });
+                listEl.addEventListener('click', function (e) {
+                    var it = e.target.closest('.notif-item');
+                    if (!it) return;
+                    var id = it.dataset.id;
+                    var action = it.dataset.action;
+                    fetch('/admin/notifications/mark-read/' + id, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+                    }).catch(function () { });
+                    if (action) window.location.href = action;
+                });
+                if (markAllBtn) {
+                    markAllBtn.addEventListener('click', function () {
+                        fetch('/admin/notifications/mark-all-read', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' }
+                        }).then(function () { loadList(); }).catch(function () { });
+                    });
+                }
+                loadUnreadCount();
+                if (window.signalR) {
+                    var conn = new signalR.HubConnectionBuilder()
+                        .withUrl('/hubs/notifications')
+                        .withAutomaticReconnect()
+                        .build();
+                    conn.on('NotificationReceived', function (n) {
+                        latestCache.unshift(n);
+                        if (latestCache.length > 20) latestCache.pop();
+                        if (panelOpen) renderList();
+                        var current = parseInt(badge.textContent, 10) || 0;
+                        updateBadge(Math.min(current + 1, 999));
+                        if (typeof Toastify !== 'undefined') {
+                            Toastify({
+                                text: (n.title || 'Notificación') + ' — ' + (n.message || ''),
+                                duration: 4000, gravity: 'top', position: 'right', stopOnFocus: true,
+                                style: { background: '#f54477' },
+                                onClick: function () { if (n.actionUrl) window.location.href = n.actionUrl; }
+                            }).showToast();
+                        }
+                    });
+                    conn.start().catch(function () { /* reintenta solo */ });
+                }
+            }
+        }());
+
+        /* ── Session timeout manager (sin cambios funcionales) ── */
+        (function () {
+            var SESSION_MS    = 2 * 60 * 60 * 1000;
+            var WARN_BEFORE   = 2 * 60 * 1000;
+            var POLL_MS       = 15 * 1000;
+            var ACTIVITY_DEBOUNCE = 30 * 1000;
+
+            var lastActivity = Date.now();
+            var lastServerSync = 0;
+            var modalShown = false;
+            var redirecting = false;
+
+            function resetActivity() {
+                lastActivity = Date.now();
+                if (modalShown) return;
+                if (Date.now() - lastServerSync > ACTIVITY_DEBOUNCE) pingServer();
+            }
+            function pingServer() {
+                lastServerSync = Date.now();
+                return fetch('/admin/session/ping', {
+                    method: 'GET', credentials: 'same-origin', cache: 'no-store', redirect: 'manual'
+                }).then(function (r) {
+                    if (r.type === 'opaqueredirect' || r.status === 401 || r.status === 403) {
+                        forceExpire(); return null;
+                    }
+                    return r.json().catch(function () { return null; });
+                }).catch(function () { return null; });
+            }
+            function forceExpire() {
+                if (redirecting) return;
+                redirecting = true;
+                window.location.href = '/login?expired=1';
+            }
+            function logout() {
+                if (redirecting) return;
+                redirecting = true;
+                window.location.href = '/login/logout?expired=1';
+            }
+            ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(function (ev) {
+                document.addEventListener(ev, resetActivity, { passive: true });
+            });
+
+            function showWarning(secondsLeft) {
+                if (modalShown) return;
+                modalShown = true;
+                var deadline = Date.now() + secondsLeft * 1000;
+                var timerId = null;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tu sesión está por expirar',
+                    html: '<p class="text-sm">Por seguridad cerraremos tu sesión por inactividad.</p>'
+                        + '<p class="text-sm mt-1">Cerrando en <b id="sess-countdown">' + secondsLeft + '</b> s.</p>',
+                    showCancelButton: true,
+                    confirmButtonText: 'Continuar sesión',
+                    cancelButtonText: 'Cerrar sesión',
+                    confirmButtonColor: '#f54477',
+                    cancelButtonColor: '#64748b',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: function () {
+                        timerId = setInterval(function () {
+                            var remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+                            var el = document.getElementById('sess-countdown');
+                            if (el) el.textContent = remaining;
+                            if (remaining <= 0) {
+                                clearInterval(timerId);
+                                Swal.close();
+                                logout();
+                            }
+                        }, 250);
+                    },
+                    willClose: function () {
+                        if (timerId) clearInterval(timerId);
+                        modalShown = false;
+                    }
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        pingServer().then(function (data) {
+                            if (data && data.ok) lastActivity = Date.now();
+                        });
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        logout();
+                    }
+                });
+            }
+
+            setInterval(function () {
+                if (redirecting || modalShown) return;
+                var idle = Date.now() - lastActivity;
+                if (idle >= SESSION_MS) logout();
+                else if (idle >= SESSION_MS - WARN_BEFORE) {
+                    var secondsLeft = Math.max(10, Math.ceil((SESSION_MS - idle) / 1000));
+                    showWarning(secondsLeft);
+                }
+            }, POLL_MS);
+
+            fetch('/admin/session/info', { credentials: 'same-origin', cache: 'no-store' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    if (!data || !data.ok) return;
+                    var serverMs = data.secondsRemaining * 1000;
+                    if (serverMs <= 0) { forceExpire(); return; }
+                    lastActivity = Date.now() - (SESSION_MS - serverMs);
+                })
+                .catch(function () { });
+        }());
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

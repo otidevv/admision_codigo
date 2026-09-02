@@ -1,0 +1,61 @@
+@model List<ADMISION.ENTITIES.Models.Postulant.Postulant>
+@using ADMISION.ENTITIES.Constants
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="max-w-3xl mx-auto bg-white dark:bg-ink-900 rounded-md ring-soft py-14 text-center">
+        <i class="ti ti-user-off text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-500 dark:text-ink-300 text-sm font-semibold">No se encontraron postulantes.</p>
+        <p class="text-ink-400 text-xs mt-1">Intenta con otro nombre o DNI.</p>
+    </div>
+}
+else
+{
+    <div class="max-w-3xl mx-auto">
+        <div class="flex items-center justify-between mb-3 px-1">
+            <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-500">
+                <i class="ti ti-list-check text-primary-500 mr-1"></i>
+                @Model.Count resultado(s) encontrado(s)
+            </p>
+            <span class="badge b-primary">@Model.Count</span>
+        </div>
+        <div class="space-y-2.5">
+            @foreach (var item in Model)
+            {
+                var user = item.User;
+                <a href="/admin/info-postulant/postulant/postulant-resum/@item.Id"
+                   class="block bg-white dark:bg-ink-900 rounded-md ring-1 ring-ink-200/60 dark:ring-ink-800 hover:bg-primary-50/40 dark:hover:bg-primary-500/5 hover:ring-primary-300 transition-all p-4 group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 flex items-center justify-center flex-shrink-0 overflow-hidden ring-1 ring-primary-100 dark:ring-primary-500/20">
+                            @if (!string.IsNullOrEmpty(user?.PhotoUrl))
+                            {
+                                <img src="/@user.PhotoUrl" alt="foto" class="w-full h-full object-cover" />
+                            }
+                            else
+                            {
+                                <i class="ti ti-user text-lg"></i>
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-ink-900 dark:text-ink-100 text-sm tracking-tight">
+                                @user?.FirstNameFather @user?.FirstNameMother, @user?.Name
+                            </p>
+                            <div class="flex flex-wrap gap-2 mt-1.5">
+                                <span class="badge b-gray">
+                                    <i class="ti ti-id mr-1 opacity-70"></i>@user?.Document
+                                </span>
+                                @if (!string.IsNullOrEmpty(user?.Email))
+                                {
+                                    <span class="text-[11px] text-ink-400 inline-flex items-center gap-1">
+                                        <i class="ti ti-mail opacity-60"></i>@user.Email
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <i class="ti ti-chevron-right text-ink-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all text-xs"></i>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+}

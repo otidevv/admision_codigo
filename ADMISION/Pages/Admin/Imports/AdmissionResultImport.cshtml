@@ -1,0 +1,269 @@
+@model ADMISION.Models.ViewModels.Admin.AdmissionImportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Importación Resultados";
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Información del postulante</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Importar Resultados</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Administración</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Importar <span class="font-serif font-normal text-primary-600">Resultados</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Importar notas y condición desde archivo Excel de resultados</p>
+        </div>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-circle-check"></i><span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-alert-circle"></i><span>@TempData["Error"]</span>
+    </div>
+}
+
+<div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-upload text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Subir archivo Excel</h2>
+            <p class="text-[11.5px] text-ink-500">Formato regular: código, apellidos y nombres, carrera, correctas, puntaje, nota, condición</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-6">
+        <form method="post" asp-controller="AdmissionResultImport" asp-action="Preview" enctype="multipart/form-data" class="space-y-4">
+            @Html.AntiForgeryToken()
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                @{
+                    var termOptions = Model.Terms.Select(t => new { id = t.Id, name = t.Name });
+                }
+                <partial name="_CustomSelect" model='new { Id = "termSelect", Name = "SelectedTermId", Label = "Período Académico", Placeholder = "-- Seleccionar período --", Required = true, Options = termOptions, SelectedValue = Model.SelectedTermId?.ToString() ?? "" }' />
+                @{
+                    var modalityOptions = Model.Modalities.Select(m => new { id = m.Id, name = m.Name });
+                }
+                <partial name="_CustomSelect" model='new { Id = "modalitySelect", Name = "SelectedModalityId", Label = "Modalidad", Placeholder = "-- Seleccionar modalidad --", Required = true, Options = modalityOptions, SelectedValue = Model.SelectedModalityId?.ToString() ?? "" }' />
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-ink-600 dark:text-ink-300 mb-1">Archivo Excel</label>
+                <input name="ExcelFile" type="file" accept=".xlsx,.xls"
+                       class="block w-full text-sm text-ink-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" />
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+                    <i class="ti ti-eye text-xs"></i> Vista Previa
+                </button>
+                <a href="/admin/info-postulant/ingresantes/template"
+                   class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+                    <i class="ti ti-download text-[11px]"></i> Descargar plantilla de ejemplo
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.ImportHistory.Count > 0)
+{
+    <div class="fade-up mt-6 bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-600 inline-flex items-center justify-center">
+                <i class="ti ti-history text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Importaciones anteriores</h2>
+                <p class="text-[11.5px] text-ink-500">@Model.ImportHistory.Count lote(s) registrado(s)</p>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th class="text-center">Registros</th>
+                        @if (Model.IsSuperAdmin)
+                        {
+                            <th class="text-center">Acciones</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var batch in Model.ImportHistory)
+                    {
+                        <tr>
+                            <td class="font-mono">@batch.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@batch.CreatedBy</td>
+                            <td class="text-center font-mono font-semibold">@batch.RecordCount</td>
+                            @if (Model.IsSuperAdmin)
+                            {
+                                <td class="text-center">
+                                    <form method="post" asp-controller="AdmissionResultImport" asp-action="Revert" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="batchId" value="@batch.Id" />
+                                        <input type="hidden" name="SelectedTermId" value="@Model.SelectedTermId" />
+                                        <button type="submit"
+                                                onclick="return confirm('¿Está seguro de deshacer esta importación? Se eliminarán todos los registros asociados.')"
+                                                class="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-rose-50 text-rose-600 text-[11px] font-semibold hover:bg-rose-100 transition-colors">
+                                            <i class="ti ti-rotate-2 text-[10px]"></i> Deshacer
+                                        </button>
+                                    </form>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.HasPreview)
+{
+    var preview = Model.Preview!;
+    <div class="fade-up mt-6 bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-table text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Vista Previa</h2>
+                    <p class="text-[11.5px] text-ink-500">
+                        Total: @preview.TotalRows filas ·
+                        <span class="text-emerald-600 font-semibold">@preview.ValidRows válidas</span> ·
+                        <span class="text-rose-600 font-semibold">@preview.InvalidRows con error</span>
+                    </p>
+                </div>
+            </div>
+            @if (preview.ValidRows > 0)
+            {
+                <form method="post" asp-controller="AdmissionResultImport" asp-action="Import" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                        <i class="ti ti-check text-xs"></i> Importar @preview.ValidRows registros
+                    </button>
+                </form>
+            }
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="text-center">Nº</th>
+                        <th>Código</th>
+                        <th>Apellidos y Nombres</th>
+                        <th>Carrera</th>
+                        <th class="text-center">Grupo</th>
+                        <th class="text-center">Correctas</th>
+                        <th class="text-center">Blancas</th>
+                        <th class="text-right">Puntaje</th>
+                        <th class="text-right">Nota</th>
+                        <th>Condición</th>
+                        <th>Estado Fila</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in preview.Rows.OrderBy(r => r.IsValid).ThenBy(r => r.Nro))
+                    {
+                        <tr class="@(row.IsValid ? "" : "bg-rose-50/50")">
+                            <td class="text-center font-mono">@row.Nro</td>
+                            <td class="font-mono font-semibold">@row.Codigo</td>
+                            <td>@row.ApellidosNombres</td>
+                            <td>@row.CarreraProfesional</td>
+                            <td class="text-center">@row.Grupo</td>
+                            <td class="text-center font-mono">@row.Correctas</td>
+                            <td class="text-center font-mono">@row.Blancas</td>
+                            <td class="text-right font-mono font-semibold">@row.Puntaje</td>
+                            <td class="text-right font-mono font-bold text-primary-600">@row.Nota</td>
+                            <td>
+                                @if (string.Equals(row.Condicion?.Trim(), "INGRESÓ", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge b-green">Ingresó</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-gray">@row.Condicion</span>
+                                }
+                            </td>
+                            <td>
+                                @if (row.IsValid)
+                                {
+                                    <span class="badge b-green">Válida</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-rose">@row.ValidationError</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (preview.Rows.Count > 200)
+        {
+            <div class="px-4 py-3 text-center text-xs text-ink-400 border-t border-ink-100">
+                Mostrando 200 de @preview.Rows.Count filas
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+<script>
+    (function () {
+        function waitFor(id, cb, attempts) {
+            attempts = attempts || 0;
+            if (window.customSelectRegistry && window.customSelectRegistry[id]) cb();
+            else if (attempts < 40) setTimeout(function () { waitFor(id, cb, attempts + 1); }, 50);
+        }
+
+        waitFor('modalitySelect', function () {
+            var termInput = document.getElementById('termSelect');
+            var modSelect = window.customSelectRegistry['modalitySelect'];
+            if (!termInput || !modSelect) return;
+
+            var baseUrl = '/admin/info-postulant/ingresantes/modalities-by-term/';
+
+            function syncModalities(termId) {
+                if (!termId) {
+                    modSelect.clear();
+                    modSelect.disable();
+                    return;
+                }
+                modSelect.enable();
+                modSelect.load(baseUrl + termId);
+            }
+
+            if (termInput.value) {
+                syncModalities(termInput.value);
+            } else {
+                modSelect.disable();
+            }
+
+            termInput.addEventListener('change', function () {
+                syncModalities(this.value);
+            });
+        });
+    })();
+</script>
+}

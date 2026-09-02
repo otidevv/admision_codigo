@@ -1,0 +1,118 @@
+@{
+    ViewData["Title"] = "Consultar Inscripción";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+    var captchaEnabled = ViewBag.CaptchaEnabled is bool ce && ce;
+    var captchaProvider = (ViewBag.CaptchaProvider as string) ?? "Turnstile";
+    var captchaSiteKey = ViewBag.CaptchaSiteKey as string;
+    var captchaIsRecaptcha = string.Equals(captchaProvider, "ReCaptcha", StringComparison.OrdinalIgnoreCase);
+}
+
+<section class="relative py-14 sm:py-16 md:py-20 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="text-center fade-up mb-8">
+            <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                <i class="ti ti-search text-[10px]"></i>
+                Consulta en línea
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-[40px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-2">
+                Consultar <span class="font-serif font-normal text-primary-600">inscripción</span>
+            </h1>
+            <p class="text-ink-500 text-sm leading-relaxed">
+                Ingrese su documento de identidad para consultar el estado de su inscripción en el proceso de admisión vigente.
+            </p>
+        </div>
+
+        @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey) && !captchaIsRecaptcha)
+        {
+            <div class="flex justify-center mb-6 fade-up">
+                <div id="captcha-consulta"
+                     class="cf-turnstile"
+                     data-sitekey="@captchaSiteKey"
+                     data-theme="light"
+                     data-callback="onConsultaCaptchaSolved"
+                     data-error-callback="onConsultaCaptchaError"></div>
+            </div>
+        }
+
+        <!-- Search Form -->
+        <div class="bg-white ring-soft rounded-md p-6 sm:p-7 fade-up">
+            <form id="consultaForm" class="space-y-4">
+                @Html.AntiForgeryToken()
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <label for="docType" class="block text-xs font-bold uppercase tracking-[0.12em] text-ink-600 mb-1.5">
+                            <i class="ti ti-id text-[10px] mr-1"></i> Tipo de documento
+                        </label>
+                        <select id="docType" name="docType"
+                                class="w-full h-11 px-3 rounded-md border border-slate-300 text-sm text-ink-900 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                required>
+                            <option value="DNI">DNI</option>
+                            <option value="CE">C.E.</option>
+                            <option value="PASAPORTE">Pasaporte</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label for="docNumber" class="block text-xs font-bold uppercase tracking-[0.12em] text-ink-600 mb-1.5">
+                            <i class="ti ti-id text-[10px] mr-1"></i> Número de documento
+                        </label>
+                        <input type="text" id="docNumber" name="docNumber"
+                               class="w-full h-11 px-4 rounded-md border border-slate-300 text-sm text-ink-900 placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                               placeholder="Ingrese su DNI (8 dígitos)"
+                               maxlength="8"
+                               inputmode="numeric"
+                               autocomplete="off"
+                               required />
+                    </div>
+                </div>
+
+                <button type="submit" id="btnConsultar"
+                        class="btn-grad w-full text-sm font-bold px-5 py-2.5 rounded-md inline-flex items-center justify-center gap-2">
+                    <i class="ti ti-search text-xs"></i>
+                    Consultar inscripción
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingIndicator" class="hidden text-center py-10">
+            <div class="inline-flex items-center gap-3 text-ink-500">
+                <i class="ti ti-loader-2 fa-spin text-lg"></i>
+                <span class="text-sm">Consultando inscripción...</span>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="resultContainer" class="hidden fade-up mt-6"></div>
+
+        <div class="text-center mt-8">
+            <a href="/" class="text-[12px] font-semibold text-primary-600 hover:text-primary-700">
+                <i class="ti ti-arrow-left text-[10px] mr-1"></i> Volver al inicio
+            </a>
+        </div>
+
+    </div>
+</section>
+
+@section Scripts {
+    @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey))
+    {
+        if (captchaIsRecaptcha)
+        {
+            <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        }
+        else
+        {
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        }
+    }
+    <script>
+        window.captchaConfig = {
+            enabled: @(captchaEnabled ? "true" : "false"),
+            provider: '@captchaProvider',
+            siteKey: '@(captchaSiteKey ?? "")'
+        };
+    </script>
+    <script src="~/js/public/consulta-inscripcion.js" asp-append-version="true"></script>
+}

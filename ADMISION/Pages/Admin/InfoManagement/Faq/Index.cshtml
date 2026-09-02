@@ -1,0 +1,135 @@
+﻿@model IEnumerable<ADMISION.ENTITIES.Models.Info.FaqItem>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Chatbot · Preguntas frecuentes";
+
+    var grouped = Model
+        .GroupBy(f => string.IsNullOrWhiteSpace(f.Category) ? "Sin categoría" : f.Category!)
+        .OrderBy(g => g.Key)
+        .ToList();
+    var totalActive = Model.Count(f => f.IsActive);
+    var totalHits   = Model.Sum(f => f.HitCount);
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Publicaciones</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Chatbot · FAQ</span>
+        </div>
+        <div class="eyebrow">Portal público</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Preguntas <span class="font-serif font-normal text-primary-600">frecuentes</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1 max-w-2xl">
+            Catálogo de preguntas que responde el chatbot del portal público.
+            <span class="font-semibold text-ink-800 dark:text-ink-200 tabular-nums">@totalActive</span> activas ·
+            <span class="font-semibold text-ink-800 dark:text-ink-200 tabular-nums">@totalHits</span> resoluciones acumuladas.
+        </p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a asp-action="Create"
+           class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i> Nueva pregunta
+        </a>
+    </div>
+</section>
+
+@if (!Model.Any())
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-14 text-center">
+        <i class="ti ti-messages text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-500 text-sm font-medium">Aún no hay preguntas frecuentes registradas.</p>
+        <p class="text-ink-400 text-xs mt-1">Crea la primera para que el chatbot empiece a responder.</p>
+    </section>
+}
+else
+{
+    @foreach (var group in grouped)
+    {
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-4 overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-[11px]">
+                        <i class="ti ti-folder-open"></i>
+                    </span>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[13.5px]">@group.Key</h2>
+                </div>
+                <span class="badge b-gray text-[10px]"><span class="font-mono tabular-nums">@group.Count()</span> pregunta(s)</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="atlas w-full">
+                    <thead>
+                        <tr>
+                            <th>Pregunta</th>
+                            <th class="w-44">Keywords</th>
+                            <th class="w-20 text-center">Hits</th>
+                            <th class="w-20 text-center">Orden</th>
+                            <th class="w-24 text-center">Estado</th>
+                            <th class="w-28 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in group.OrderBy(f => f.DisplayOrder).ThenBy(f => f.Question))
+                        {
+                            <tr>
+                                <td>
+                                    <div class="font-semibold text-ink-900 dark:text-ink-100 truncate max-w-md" title="@item.Question">@item.Question</div>
+                                    <div class="text-[11px] text-ink-500 truncate max-w-md" title="@item.Answer">@item.Answer</div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(item.Keywords))
+                                    {
+                                        <span class="text-[11px] font-mono text-ink-600 dark:text-ink-300">@item.Keywords</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-ink-400 text-[11px]">—</span>
+                                    }
+                                </td>
+                                <td class="text-center font-mono tabular-nums text-ink-700 dark:text-ink-200">@item.HitCount</td>
+                                <td class="text-center font-mono tabular-nums text-ink-500">@item.DisplayOrder</td>
+                                <td class="text-center">
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge b-green">Activa</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge b-gray">Inactiva</span>
+                                    }
+                                </td>
+                                <td class="text-right">
+                                    <div class="flex justify-end gap-1.5">
+                                        <a asp-action="Edit" asp-route-id="@item.Id"
+                                           class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                           title="Editar">
+                                            <i class="ti ti-edit text-[10px]"></i>
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="inline delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <button type="button"
+                                                    class="btn-delete inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                                    data-name="@item.Question"
+                                                    title="Eliminar">
+                                                <i class="ti ti-trash text-[10px]"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+
+@section Scripts {
+    <script src="~/js/admin/info-management/faq/index.js" asp-append-version="true"></script>
+}

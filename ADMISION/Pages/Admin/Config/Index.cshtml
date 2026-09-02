@@ -1,0 +1,51 @@
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Configuración";
+
+    var sections = new[] {
+        new { Href = "/admin/config/informacion", Icon = "ti-info-circle", Title = "Información del Sistema", Hint = "Datos institucionales, redes sociales, colores y enlaces de contacto.", Tone = "primary" },
+        new { Href = "/admin/config/apis",        Icon = "ti-plug",        Title = "APIs Externas",          Hint = "Registra y consulta integraciones HTTP con auditoría de cada llamada.", Tone = "secondary" },
+        new { Href = "/admin/config/api-logs",    Icon = "ti-code",        Title = "Consultas API Internas", Hint = "Auditoría de endpoints API consumidos por usuarios con rol ApiConsumer.", Tone = "primary" },
+        new { Href = "/admin/consultas",          Icon = "ti-user-search", Title = "Consultas por DNI",      Hint = "Ejecuta APIs de tipo Academic y Payment ingresando solo un DNI.", Tone = "secondary" },
+        new { Href = "/admin/config/cepre-import", Icon = "ti-clock", Title = "Turnos CEPRE", Hint = "Asigna turnos de importación a usuarios de soporte para el módulo CEPRE.", Tone = "primary" },
+    };
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <nav class="flex items-center gap-2 text-xs text-ink-400 mb-2" aria-label="Breadcrumb">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Configuración</span>
+    </nav>
+    <div class="eyebrow">Parámetros del sistema</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Centro de <span class="font-serif font-normal text-primary-600">configuración</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1.5 max-w-2xl">
+        Administra la información institucional, integraciones externas y otros parámetros del sistema.
+    </p>
+</section>
+
+<!-- Hub grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    @foreach (var s in sections)
+    {
+        var iconBg   = s.Tone == "primary" ? "bg-primary-50 dark:bg-primary-500/10"   : "bg-secondary-50 dark:bg-secondary-500/10";
+        var iconText = s.Tone == "primary" ? "text-primary-600 dark:text-primary-300" : "text-secondary-600 dark:text-secondary-300";
+
+        <a href="@s.Href"
+           class="fade-up group bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all flex flex-col gap-3 hover:ring-primary-300/60 dark:hover:ring-primary-500/30">
+            <span class="w-11 h-11 rounded-md @iconBg @iconText flex items-center justify-center text-[15px] group-hover:scale-[1.03] transition-transform">
+                <i class="ti @s.Icon"></i>
+            </span>
+            <div>
+                <h4 class="font-semibold text-ink-900 dark:text-ink-100 text-[14px] tracking-tight">@s.Title</h4>
+                <p class="text-[11.5px] text-ink-500 mt-1 leading-relaxed">@s.Hint</p>
+            </div>
+            <div class="mt-auto pt-2 flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                Abrir <i class="ti ti-arrow-right text-[9px]"></i>
+            </div>
+        </a>
+    }
+</section>

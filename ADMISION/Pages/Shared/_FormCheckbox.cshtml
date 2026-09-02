@@ -1,0 +1,104 @@
+@*
+================================================================================
+  _FormCheckbox.cshtml  —  Checkbox / Switch estilizado y accesible.
+
+  Variantes (`Variant`):
+    "default"   — checkbox compacto inline.   (por defecto)
+    "card"      — checkbox dentro de tarjeta clickable (ring que reacciona).
+    "switch"    — toggle estilo iOS.
+
+  Uso:
+    <partial name="_FormCheckbox" model='new {
+        Id = "isActive", Name = "IsActive",
+        Label = "Periodo activo",
+        Hint  = "Visible para los postulantes.",
+        Checked = true,
+        Variant = "card"
+    }' />
+
+    <partial name="_FormCheckbox" model='new {
+        Id = "enabled", Name = "Enabled",
+        Label = "Habilitar replicación",
+        Variant = "switch"
+    }' />
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    bool B(string p, bool d = false) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        return v is bool b ? b : d;
+    }
+
+    var id        = V("Id", "check-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var name      = V("Name", id);
+    var label     = V("Label");
+    var hint      = V("Hint");
+    var value     = V("Value", "true");
+    var variant   = V("Variant", "default").ToLowerInvariant();
+    var inputType = V("Type", "checkbox").ToLowerInvariant(); // "checkbox" | "radio"
+    var isChecked = B("Checked", false);
+    var disabled  = B("Disabled", false);
+    var required  = B("Required", false);
+    var extraClass = V("Class", "");
+
+    var attrs = new List<string>();
+    if (isChecked) attrs.Add("checked");
+    if (disabled)  attrs.Add("disabled");
+    if (required)  attrs.Add("required");
+    var attrStr = string.Join(" ", attrs);
+
+    var wrapperClass = variant switch
+    {
+        "switch" => "form-switch",
+        "card"   => "form-check form-check--card",
+        _        => "form-check"
+    };
+    if (!string.IsNullOrEmpty(extraClass)) wrapperClass += " " + extraClass;
+}
+
+<label for="@id" class="@wrapperClass">
+    <input id="@id" name="@name" type="@inputType" value="@value" @Html.Raw(attrStr) />
+    @* Companion hidden para checkboxes: si el usuario desmarca, el form sigue enviando "false". Va DESPUÉS del checkbox para que SimpleTypeModelBinder use el "true" del checkbox como FirstValue cuando está marcado. *@
+    @if (inputType == "checkbox" && !disabled)
+    {
+        <input type="hidden" name="@name" value="false" />
+    }
+    @if (variant == "switch")
+    {
+        @* En switch el label suele ir a la derecha del control. *@
+        <span class="leading-tight">
+            @if (!string.IsNullOrEmpty(label))
+            {
+                <span class="form-check__text">@label</span>
+            }
+            @if (!string.IsNullOrEmpty(hint))
+            {
+                <span class="form-check__hint">@hint</span>
+            }
+        </span>
+    }
+    else
+    {
+        <span class="leading-tight">
+            @if (!string.IsNullOrEmpty(label))
+            {
+                <span class="form-check__text">
+                    @label
+                    @if (required)
+                    {
+                        <span class="text-rose-500 ml-0.5">*</span>
+                    }
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(hint))
+            {
+                <span class="form-check__hint">@hint</span>
+            }
+        </span>
+    }
+</label>

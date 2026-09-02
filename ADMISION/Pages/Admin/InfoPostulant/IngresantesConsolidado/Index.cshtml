@@ -1,0 +1,511 @@
+﻿@model ADMISION.Models.ViewModels.Admin.ConsolidadoPreviewViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Consolidado de Ingresantes";
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Información del postulante</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Consolidado</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Consolidado</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Consolidado de <span class="font-serif font-normal text-primary-600">ingresantes</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Generar códigos de estudiante y consolidar ingresantes por período académico</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/admin/info-postulant/ingresantes-consolidado/config"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                <i class="ti ti-settings text-xs"></i> Configurar
+            </a>
+        </div>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-circle-check"></i><span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-alert-circle"></i><span>@TempData["Error"]</span>
+    </div>
+}
+
+<!-- Selector de período -->
+<div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-calendar text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Período Académico</h2>
+            <p class="text-[11.5px] text-ink-500">Seleccione el período para previsualizar y generar el consolidado</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-6">
+        <form id="previewForm" method="get" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                <div class="sm:col-span-2">
+                    @{
+                        var termOptions = Model.Terms.Select(t => new { id = t.Id, name = t.Name });
+                    }
+                    <partial name="_CustomSelect" model='new { Id = "termSelect", Name = "selectedTermId", Label = "Período Académico", Placeholder = "-- Seleccionar período --", Required = true, Options = termOptions, SelectedValue = Model.SelectedTermId?.ToString() ?? "" }' />
+                </div>
+                <div>
+                    <button type="submit"
+                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors w-full">
+                        <i class="ti ti-search text-xs"></i> Cargar previsualización
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        @if (Model.IsSuperAdmin)
+        {
+            <div class="mt-4 pt-4 border-t border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center justify-between gap-3">
+                <p class="text-[11.5px] text-ink-500">
+                    ¿Falta un ingresante? Añádalo manualmente al consolidado generando la siguiente versión.
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    @if (Model.HasExistingVersions)
+                    {
+                        <a href="/admin/info-postulant/ingresantes-consolidado/editar?selectedTermId=@Model.SelectedTermId"
+                           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                            <i class="ti ti-edit text-xs"></i> Editar consolidado
+                        </a>
+                    }
+                    <button type="button"
+                            data-modal-open="addIngresanteModal"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                        <i class="ti ti-user-plus text-xs"></i> Añadir ingresante
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (Model.SelectedTermId.HasValue)
+{
+    <!-- Versiones existentes -->
+    if (Model.HasExistingVersions)
+    {
+        <div class="fade-up mb-5 p-3 rounded-md bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-sm flex items-center gap-2">
+            <i class="ti ti-info-circle"></i>
+            <span>Última versión: @Model.LastVersionInfo</span>
+        </div>
+    }
+
+    @if (Model.HasDuplicates)
+    {
+        <div class="fade-up mb-5 p-4 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700">
+            <div class="flex items-start gap-3">
+                <i class="ti ti-alert-triangle text-lg mt-0.5"></i>
+                <div>
+                    <p class="text-sm font-bold uppercase tracking-wide">DNI duplicados detectados</p>
+                    <p class="text-xs mt-1 text-rose-600">Existen postulantes con el mismo DNI en múltiples inscripciones como ingresantes. Revise y excluya los duplicados antes de consolidar.</p>
+                    <ul class="mt-2 space-y-1">
+                        @foreach (var dup in Model.DuplicateDnis)
+                        {
+                            <li class="text-xs font-mono bg-rose-100/60 rounded px-2 py-1">@dup</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Tabla de previsualización -->
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-5">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center">
+                <i class="ti ti-eye text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Previsualización</h2>
+                <p class="text-[11.5px] text-ink-500">@Model.Items.Count ingresante(s) encontrado(s) para @Model.TermName</p>
+            </div>
+        </div>
+
+        @if (Model.Items.Count > 0)
+        {
+            var segundaCount = Model.Items.Count(i => i.SegundaCarrera == "1");
+
+            <form id="confirmForm" asp-controller="InfoPostulant" asp-action="ConfirmarConsolidado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="selectedTermId" value="@Model.SelectedTermId" />
+
+                <div class="px-4 sm:px-5 py-3 bg-secondary-50/60 dark:bg-secondary-500/5 border-b border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center gap-3">
+                    <span class="w-8 h-8 rounded-md bg-secondary-100 dark:bg-secondary-500/20 text-secondary-600 inline-flex items-center justify-center shrink-0">
+                        <i class="ti ti-user-check text-xs"></i>
+                    </span>
+                    <p class="text-[12px] text-ink-700 dark:text-ink-200">
+                        <strong id="segundaCountSummary" class="text-secondary-700 dark:text-secondary-300">@segundaCount</strong> postulante(s) identificado(s) como <strong>segunda carrera</strong>. Verifique y ajuste los registros marcados antes de consolidar.
+                    </p>
+                </div>
+
+                <div class="px-4 sm:px-5 py-3 border-b border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center justify-between gap-3">
+                    <label for="segundaFilter" class="inline-flex items-center gap-2 text-[11px] font-semibold text-ink-500 uppercase tracking-wide">
+                        <i class="ti ti-filter text-[11px]"></i> Segunda carrera
+                        <select id="segundaFilter"
+                                class="h-8 rounded-md ring-soft bg-white dark:bg-ink-800 px-2 text-xs font-normal normal-case text-ink-700 dark:text-ink-200 focus:outline-none cursor-pointer">
+                            <option value="all">Todos (@Model.Items.Count)</option>
+                            <option value="1" id="segundaOption">Identificados (@segundaCount)</option>
+                        </select>
+                    </label>
+                    <span class="text-[11px] text-ink-500">
+                        Mostrando <strong id="visibleCount" class="text-ink-900 dark:text-ink-100">@Model.Items.Count</strong> de <strong>@Model.Items.Count</strong>
+                    </span>
+                </div>
+
+            <div class="overflow-x-auto">
+                <table id="previewTable" class="atlas w-full text-[10px] leading-tight">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Nro</th>
+                            <th>Código Est.</th>
+                            <th>Código Carrera</th>
+                            <th class="text-center">Segunda Carrera</th>
+                            <th>Semestre</th>
+                            <th>Nombres</th>
+                            <th>Paterno</th>
+                            <th>Materno</th>
+                            <th>Tipo Doc</th>
+                            <th>DNI</th>
+                            <th>Email</th>
+                            <th>Celular</th>
+                            <th>Dirección</th>
+                            <th>F. Nacimiento</th>
+                            <th>Sexo</th>
+                            <th>Estado Civil</th>
+                            <th>Ubigeo</th>
+                            <th>T. Postulante</th>
+                            <th>Tipo Obs</th>
+                            <th>Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < Model.Items.Count; index++)
+                        {
+                            var item = Model.Items[index];
+                            <tr data-segunda="@item.SegundaCarrera">
+                                <td class="text-center font-mono">@item.Nro</td>
+                                <td class="font-mono font-bold text-primary-600">@item.CodigoEstudiante</td>
+                                <td class="font-mono">@item.CodigoCarrera</td>
+                                <td class="text-center">
+                                    <input type="checkbox"
+                                           data-sc-check
+                                           data-sc-target="sc_@item.InscriptionId"
+                                           class="w-3.5 h-3.5 rounded accent-primary-600 cursor-pointer"
+                                           @(item.SegundaCarrera == "1" ? "checked" : "") />
+                                    <input type="hidden" id="sc_@item.InscriptionId" name="items[@index].SegundaCarrera" value="@item.SegundaCarrera" />
+                                    <input type="hidden" name="items[@index].InscriptionId" value="@item.InscriptionId" />
+                                </td>
+                                <td>@item.Semestre</td>
+                                <td class="font-semibold">@item.Nombres</td>
+                                <td>@item.Paterno</td>
+                                <td>@item.Materno</td>
+                                <td>@item.DType</td>
+                                <td class="font-mono">@item.DNI</td>
+                                <td class="text-ink-500">@item.Email</td>
+                                <td>@item.Celular</td>
+                                <td class="max-w-[120px] truncate" title="@item.Direccion">@item.Direccion</td>
+                                <td class="font-mono">@item.FechaNacimiento</td>
+                                <td>@item.Sexo</td>
+                                <td>@item.EstadoCivil</td>
+                                <td class="font-mono">@item.Ubigeo</td>
+                                <td class="text-center font-mono font-bold">@item.TipoPostulante</td>
+                                <td class="text-center font-mono font-bold">@item.TipoObs</td>
+                                <td class="max-w-[220px] truncate" title="@item.Observaciones">@(string.IsNullOrWhiteSpace(item.Observaciones) ? "NINGUNA" : item.Observaciones)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-4 sm:px-5 py-4 border-t border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between">
+                <span class="text-xs text-ink-500">Total: <strong>@Model.Items.Count</strong> registro(s)</span>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                    <i class="ti ti-device-floppy text-xs"></i> Consolidar y guardar
+                </button>
+            </div>
+            </form>
+        }
+        else
+        {
+            <div class="p-8 text-center text-ink-400">
+                <i class="ti ti-users-off text-3xl mb-2 block"></i>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.18em]">Sin ingresantes</p>
+                <p class="text-xs text-ink-400 mt-1">No se encontraron ingresantes para este período académico</p>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="p-8 text-center text-ink-400">
+            <i class="ti ti-trophy text-4xl mb-3 block text-primary-300"></i>
+            <p class="text-sm font-semibold text-ink-600 dark:text-ink-300">Consolidado de Ingresantes</p>
+            <p class="text-xs text-ink-400 mt-1">Seleccione un período académico para comenzar la consolidación</p>
+        </div>
+    </div>
+}
+
+@{
+    var __afToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var addTermOptions = Model.Terms.Select(t => new { id = t.Id, name = t.Name });
+}
+
+<!-- ===== MODAL: Añadir ingresante ===== -->
+@if (Model.IsSuperAdmin)
+{
+    <div id="addIngresanteModal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="addIngresanteModal-title" aria-hidden="true">
+        <div class="adm-modal__overlay" data-modal-close></div>
+        <div class="adm-modal__card adm-modal__card--sm">
+            <header class="adm-modal__header">
+                <div>
+                    <div class="eyebrow">Consolidado de ingresantes</div>
+                    <h3 id="addIngresanteModal-title" class="adm-modal__title mt-1">Añadir ingresante</h3>
+                    <p class="adm-modal__subtitle">Busque por código de postulante y seleccione el período</p>
+                </div>
+                <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar"><i class="ti ti-x"></i></button>
+            </header>
+            <div class="adm-modal__body">
+                <form id="addIngresanteForm" class="space-y-4">
+                    <input name="__RequestVerificationToken" type="hidden" value="@__afToken" />
+                    <partial name="_CustomSelect" model='new { Id = "addTermSelect", Name = "selectedTermId", Label = "Período Académico", Placeholder = "-- Seleccionar período --", Required = true, Options = addTermOptions, SelectedValue = Model.SelectedTermId?.ToString() ?? "" }' />
+                    <partial name="_FormInput" model='new { Id = "addCodePostulant", Name = "codePostulant", Label = "Código de postulante", Required = true, Placeholder = "Ej: 0800001", IconLeft = "ti-hash" }' />
+                    <p class="text-[11px] text-ink-500 leading-relaxed">
+                        Al añadirlo, su código de estudiante será el <strong>último de su programa académico</strong> y se generará una nueva versión con todos los ingresantes anteriores.
+                    </p>
+                </form>
+            </div>
+            <footer class="adm-modal__footer">
+                <button type="button" data-modal-close class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">Cancelar</button>
+                <button type="submit" form="addIngresanteForm" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-user-plus text-xs"></i> Añadir
+                </button>
+            </footer>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const previewForm = document.getElementById('previewForm');
+            if (previewForm) {
+                previewForm.addEventListener('submit', function (e) {
+                    const select = this.querySelector('input[name="selectedTermId"]');
+                    if (!select || !select.value) {
+                        e.preventDefault();
+                        Swal.fire({ title: 'Seleccione un período', icon: 'warning', confirmButtonColor: '#10b981' });
+                        return;
+                    }
+                    Swal.fire({
+                        title: 'Procesando...',
+                        html: 'Cargando previsualización del consolidado',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+                });
+            }
+
+            const previewTable = document.getElementById('previewTable');
+            if (previewTable) {
+                const updateVisible = function () {
+                    const filter = document.getElementById('segundaFilter');
+                    if (!filter) return;
+                    let visible = 0;
+                    document.querySelectorAll('#previewTable tbody tr[data-segunda]').forEach(row => {
+                        if (!row.classList.contains('hidden')) visible++;
+                    });
+                    const el = document.getElementById('visibleCount');
+                    if (el) el.textContent = visible;
+                };
+
+                const updateSummary = function () {
+                    const count = document.querySelectorAll('#previewTable tbody input[data-sc-check]:checked').length;
+                    const summary = document.getElementById('segundaCountSummary');
+                    if (summary) summary.textContent = count;
+                    const option = document.getElementById('segundaOption');
+                    if (option) option.textContent = 'Identificados (' + count + ')';
+                    updateVisible();
+                };
+
+                const applyFilter = function () {
+                    const filter = document.getElementById('segundaFilter');
+                    if (!filter) return;
+                    const value = filter.value;
+                    document.querySelectorAll('#previewTable tbody tr[data-segunda]').forEach(row => {
+                        row.classList.toggle('hidden', value !== 'all' && row.dataset.segunda !== value);
+                    });
+                    updateVisible();
+                };
+
+                const filter = document.getElementById('segundaFilter');
+                if (filter) filter.addEventListener('change', applyFilter);
+
+                document.querySelectorAll('#previewTable tbody input[data-sc-check]').forEach(cb => {
+                    cb.addEventListener('change', function () {
+                        const target = document.getElementById(this.dataset.scTarget);
+                        if (target) target.value = this.checked ? '1' : '0';
+                        const row = this.closest('tr');
+                        if (row) row.dataset.segunda = this.checked ? '1' : '0';
+                        updateSummary();
+                    });
+                });
+            }
+
+            const confirmForm = document.getElementById('confirmForm');
+            if (confirmForm) {
+                confirmForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const count = @Model.Items.Count;
+
+                    const confirm = await Swal.fire({
+                        title: '¿Generar el consolidado?',
+                        html: `Se crear\u00e1n <strong>${count}</strong> registro(s) en una nueva versi\u00f3n.`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'S\u00ed, consolidar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#10b981'
+                    });
+                    if (!confirm.isConfirmed) return;
+
+                    Swal.fire({
+                        title: 'Guardando...',
+                        html: 'Generando consolidado de ingresantes',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    try {
+                        const response = await fetch(this.action, {
+                            method: 'POST',
+                            body: new FormData(this),
+                            headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        }
+                        });
+                        const data = await response.json();
+
+                        Swal.close();
+                        if (data.success) {
+                            await Swal.fire({
+                                title: 'Consolidado generado',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#10b981'
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonColor: '#f54477'
+                            });
+                        }
+                    } catch {
+                        Swal.close();
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Ocurri\u00f3 un error al generar el consolidado.',
+                            icon: 'error',
+                            confirmButtonColor: '#f54477'
+                        });
+                    }
+                });
+            }
+
+            const addIngresanteForm = document.getElementById('addIngresanteForm');
+            if (addIngresanteForm) {
+                addIngresanteForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const termInput = this.querySelector('input[name="selectedTermId"]');
+                    const codeInput = this.querySelector('input[name="codePostulant"]');
+                    if (!termInput || !termInput.value) {
+                        Swal.fire({ title: 'Seleccione un período', icon: 'warning', confirmButtonColor: '#10b981' });
+                        return;
+                    }
+                    if (!codeInput || !codeInput.value.trim()) {
+                        Swal.fire({ title: 'Ingrese un código de postulante', icon: 'warning', confirmButtonColor: '#10b981' });
+                        return;
+                    }
+
+                    const confirm = await Swal.fire({
+                        title: '¿Añadir ingresante?',
+                        html: `Se generar\u00e1 una nueva versi\u00f3n con todos los ingresantes anteriores y se agregar\u00e1 este estudiante al final de su programa acad\u00e9mico.`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'S\u00ed, añadir',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#10b981'
+                    });
+                    if (!confirm.isConfirmed) return;
+
+                    Swal.fire({
+                        title: 'Guardando...',
+                        html: 'Generando nueva versión del consolidado',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    try {
+                        const response = await fetch('/admin/info-postulant/ingresantes-consolidado/agregar-ingresante', {
+                            method: 'POST',
+                            body: new FormData(this),
+                            headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        }
+                        });
+                        const data = await response.json();
+
+                        Swal.close();
+                        if (data.success) {
+                            window.ADM.Modal.close('addIngresanteModal');
+                            const termId = termInput.value;
+                            await Swal.fire({
+                                title: 'Ingresante añadido',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#10b981'
+                            });
+                            window.location.href = '/admin/info-postulant/ingresantes-consolidado?selectedTermId=' + encodeURIComponent(termId);
+                        } else {
+                            Swal.fire({
+                                title: 'No se pudo añadir',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonColor: '#f54477'
+                            });
+                        }
+                    } catch {
+                        Swal.close();
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Ocurri\u00f3 un error al añadir el ingresante.',
+                            icon: 'error',
+                            confirmButtonColor: '#f54477'
+                        });
+                    }
+                });
+            }
+        });
+    </script>
+}

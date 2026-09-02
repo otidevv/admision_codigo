@@ -1,0 +1,358 @@
+@model ADMISION.Models.ViewModels.Reports.AttendanceReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reporte de Asistencias";
+
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)ViewBag.Terms
+                ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>();
+    var modalities = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Modality>)ViewBag.Modalities
+                     ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Modality>();
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Reporte de Asistencias</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Control de asistencia</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Reporte de <span class="font-serif font-normal text-primary-600">asistencias</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Control de asistencia de postulantes a las pruebas de admisión.</p>
+        </div>
+        <div class="flex flex-wrap gap-2" id="exportButtons" style="display:@(Model.HasData ? "flex" : "none")">
+            <button id="btnExportExcel" onclick="exportExcel()"
+                    class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-emerald-600 hover:bg-emerald-50 transition-all">
+                <i class="ti ti-file-spreadsheet text-xs"></i> Excel
+            </button>
+            <button id="btnExportPdf" onclick="exportPdf()"
+                    class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-rose-600 hover:bg-rose-50 transition-all">
+                <i class="ti ti-file-text text-xs"></i> PDF
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Filters -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5 mb-6">
+    <div class="flex flex-wrap items-end gap-4">
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo</label>
+            <div class="relative">
+                <i class="ti ti-calendar absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select id="termSelect"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Seleccionar</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.Filter.TermId == t.Id)">@t.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Modalidad</label>
+            <div class="relative">
+                <i class="ti ti-school absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select id="modalitySelect"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Todas</option>
+                    @foreach (var m in modalities)
+                    {
+                        <option value="@m.Id" selected="@(Model.Filter.ModalityId == m.Id)">@m.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Asistencia</label>
+            <div class="relative">
+                <i class="ti ti-user-check absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select id="attendanceSelect"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="all">Todos</option>
+                    <option value="attended">Asistieron</option>
+                    <option value="not_attended">No asistieron</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="loadReport()"
+                class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-filter text-xs"></i> Filtrar
+        </button>
+    </div>
+</section>
+
+<!-- KPIs -->
+@if (Model.HasData)
+{
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalAssigned</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total Asignados</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-emerald-600 tabular-nums">@Model.TotalAttended</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Asistieron</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-emerald-50 text-emerald-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-user-check"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-rose-600 tabular-nums">@Model.TotalMissing</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">No asistieron</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-rose-50 text-rose-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-user-off"></i>
+            </div>
+        </div>
+    </div>
+</section>
+}
+
+<!-- Results table -->
+<div id="reportResults">
+@if (Model.HasData)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+        <div class="px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 bg-ink-50/60 dark:bg-ink-800/40 flex items-center justify-between">
+            <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 flex items-center gap-2">
+                <i class="ti ti-list text-primary-500 text-sm"></i> Listado de asistencias
+                <span class="badge b-secondary ml-2">Total: @Model.Items.Count</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="text-center">#</th>
+                        <th class="text-center">Silla</th>
+                        <th>Código</th>
+                        <th>Apellidos</th>
+                        <th>Nombres</th>
+                        <th>Modalidad</th>
+                        <th>Tipo Mod.</th>
+                        <th>Discapacidad</th>
+                        <th>Aula</th>
+                        <th>Docente</th>
+                        <th class="text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var idx = 1; }
+                    @foreach (var item in Model.Items)
+                    {
+                        var rowClass = item.AttendanceStatus == "No asistió"
+                            ? "bg-rose-50/60 dark:bg-rose-500/5"
+                            : "";
+                        <tr class="@rowClass">
+                            <td class="text-center font-mono tabular-nums text-ink-500">@idx</td>
+                            <td class="text-center font-mono font-bold tabular-nums text-secondary-600">@item.SeatNumber</td>
+                            <td class="font-mono font-bold text-ink-900 dark:text-ink-100 tabular-nums">@item.CodePostulant</td>
+                            <td class="font-semibold text-ink-900 dark:text-ink-100">@item.Apellidos</td>
+                            <td class="text-ink-700 dark:text-ink-200">@item.Nombres</td>
+                            <td><span class="badge b-primary">@item.Modality</span></td>
+                            <td class="text-ink-600 dark:text-ink-300">@item.TypeModality</td>
+                            <td class="text-ink-600 dark:text-ink-300">@item.Disability</td>
+                            <td class="font-semibold text-ink-900 dark:text-ink-100">@item.Classroom</td>
+                            <td class="text-ink-600 dark:text-ink-300">@item.Docente</td>
+                            <td class="text-center">
+                                @if (item.AttendanceStatus == "Asistió")
+                                {
+                                    <span class="badge b-emerald"><i class="ti ti-check mr-1"></i>Asistió</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-rose"><i class="ti ti-x mr-1"></i>No asistió</span>
+                                }
+                            </td>
+                        </tr>
+                        idx++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Summary: By Classroom -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 mb-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-building text-secondary-500 text-sm"></i> Asistencia por Aula
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th>Aula</th>
+                        <th class="text-center">Asistieron</th>
+                        <th class="text-center">Faltaron</th>
+                        <th class="text-center">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.SummaryByClassroom)
+                    {
+                        <tr>
+                            <td class="font-semibold text-ink-900 dark:text-ink-100">@s.Classroom</td>
+                            <td class="text-center font-mono font-bold text-emerald-600 tabular-nums">@s.Attended</td>
+                            <td class="text-center font-mono font-bold text-rose-600 tabular-nums">@s.Missing</td>
+                            <td class="text-center font-mono font-bold tabular-nums">@s.Total</td>
+                        </tr>
+                    }
+                    <tr class="bg-ink-50 dark:bg-ink-800/40 font-bold">
+                        <td>TOTAL</td>
+                        <td class="text-center font-mono tabular-nums text-emerald-600">@Model.TotalAttended</td>
+                        <td class="text-center font-mono tabular-nums text-rose-600">@Model.TotalMissing</td>
+                        <td class="text-center font-mono tabular-nums">@Model.TotalAssigned</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Summary: By Tematic Area -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 mb-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-shape text-primary-500 text-sm"></i> Asistencia por Área Temática
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th>Área</th>
+                        <th class="text-center">Asistieron</th>
+                        <th class="text-center">Faltaron</th>
+                        <th class="text-center">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.SummaryByArea)
+                    {
+                        <tr>
+                            <td class="font-semibold text-ink-900 dark:text-ink-100">@s.Area</td>
+                            <td class="text-center font-mono font-bold text-emerald-600 tabular-nums">@s.Attended</td>
+                            <td class="text-center font-mono font-bold text-rose-600 tabular-nums">@s.Missing</td>
+                            <td class="text-center font-mono font-bold tabular-nums">@s.Total</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Summary: By Career -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 mb-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-school text-secondary-400 text-sm"></i> Asistencia por Carrera Profesional
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th>Carrera</th>
+                        <th class="text-center">Asistieron</th>
+                        <th class="text-center">Faltaron</th>
+                        <th class="text-center">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.SummaryByCareer)
+                    {
+                        <tr>
+                            <td class="font-semibold text-ink-900 dark:text-ink-100">@s.Career</td>
+                            <td class="text-center font-mono font-bold text-emerald-600 tabular-nums">@s.Attended</td>
+                            <td class="text-center font-mono font-bold text-rose-600 tabular-nums">@s.Missing</td>
+                            <td class="text-center font-mono font-bold tabular-nums">@s.Total</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+else
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">
+        <i class="ti ti-user-check text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 font-medium text-sm">Selecciona un periodo para ver el reporte de asistencias.</p>
+    </section>
+}
+</div>
+
+@section Scripts {
+<script>
+    const selTerm = document.getElementById('termSelect');
+    const selModality = document.getElementById('modalitySelect');
+    const selAttendance = document.getElementById('attendanceSelect');
+
+    // Pre-select attendance filter from server model
+    @if (!string.IsNullOrEmpty(Model.Filter.AttendanceStatus) && Model.Filter.AttendanceStatus != "all")
+    {
+        <text>selAttendance.value = '@Model.Filter.AttendanceStatus';</text>
+    }
+
+    // Load modalities when term changes
+    selTerm?.addEventListener('change', async function () {
+        const termId = this.value;
+        selModality.innerHTML = '<option value="">Todas</option>';
+        if (!termId) return;
+        try {
+            const res = await fetch(`/admin/reportes/sorteo-aulas/modalities?termId=${termId}`);
+            const mods = await res.json();
+            mods.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id || m.Id;
+                opt.textContent = m.name || m.Name;
+                selModality.appendChild(opt);
+            });
+        } catch (e) { console.error(e); }
+    });
+
+    function buildQuery() {
+        const params = new URLSearchParams();
+        const termId = selTerm?.value;
+        const modId = selModality?.value;
+        const att = selAttendance?.value;
+        if (termId) params.set('termId', termId);
+        if (modId) params.set('modalityId', modId);
+        if (att && att !== 'all') params.set('attendanceStatus', att);
+        return params.toString();
+    }
+
+    function loadReport() {
+        const qs = buildQuery();
+        if (!selTerm?.value) {
+            Swal.fire({ title: 'Seleccione un periodo', icon: 'warning', confirmButtonColor: '#10b981' });
+            return;
+        }
+        window.location.href = `/admin/reportes/asistencias?${qs}`;
+    }
+
+    function exportExcel() {
+        const qs = buildQuery();
+        window.location.href = `/admin/reportes/asistencias/export/excel?${qs}`;
+    }
+
+    function exportPdf() {
+        const qs = buildQuery();
+        window.location.href = `/admin/reportes/asistencias/export/pdf?${qs}`;
+    }
+</script>
+}

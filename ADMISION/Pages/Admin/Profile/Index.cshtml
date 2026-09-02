@@ -1,0 +1,241 @@
+@model ADMISION.Models.ViewModels.Admin.ProfileViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Mi Perfil";
+    var initial = !string.IsNullOrEmpty(Model.FullName) ? Model.FullName.Trim().Substring(0, 1).ToUpper()
+                : !string.IsNullOrEmpty(Model.UserName) ? Model.UserName.Substring(0, 1).ToUpper() : "U";
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Panel</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Mi Perfil</span>
+    </div>
+    <div class="eyebrow">Cuenta personal</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Mi <span class="font-serif font-normal text-primary-600">perfil</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Actualiza tu información de contacto y tu contraseña de acceso.</p>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <!-- Tarjeta de identidad (solo lectura) -->
+    <div class="lg:col-span-1">
+        <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden sticky top-4">
+            <!-- Cabecera sólida (sin gradiente) -->
+            <div class="relative bg-secondary-1000 text-white px-6 py-8 text-center overflow-hidden">
+                <div class="relative">
+                    @if (!string.IsNullOrWhiteSpace(Model.PhotoUrl))
+                    {
+                        <img src="@Model.PhotoUrl" alt="Foto de perfil"
+                             class="w-24 h-24 rounded-full mx-auto ring-2 ring-white/30 object-cover" />
+                    }
+                    else
+                    {
+                        <div class="w-24 h-24 rounded-full bg-white/15 backdrop-blur ring-2 ring-white/25 flex items-center justify-center text-white text-4xl font-bold mx-auto">
+                            @initial
+                        </div>
+                    }
+                    <p class="text-white font-semibold text-base mt-4 leading-tight truncate">@Model.FullName</p>
+                    <span class="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/25 text-white text-[10px] font-medium uppercase tracking-[0.18em]">
+                        <i class="ti ti-shield text-[9px]"></i>
+                        @Model.Role
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-5 space-y-3">
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-8 h-8 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                        <i class="ti ti-user text-ink-400 text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Usuario</p>
+                        <p class="font-semibold text-ink-800 dark:text-ink-100 truncate">@Model.UserName</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-8 h-8 rounded-md bg-ink-100 dark:bg-ink-800 flex items-center justify-center shrink-0">
+                        <i class="ti ti-id text-ink-400 text-xs"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">@(string.IsNullOrWhiteSpace(Model.DocumentType) ? "Documento" : Model.DocumentType)</p>
+                        <p class="font-semibold text-ink-800 dark:text-ink-100 truncate">@Model.Document</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 text-sm">
+                    <div class="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <i class="ti ti-circle text-emerald-500 text-[8px]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-ink-500 uppercase tracking-[0.14em]">Estado</p>
+                        <p class="font-semibold text-emerald-700">Sesión activa</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formularios editables -->
+    <div class="lg:col-span-2 space-y-5">
+
+        <!-- Información de contacto -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-address-book text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Información de contacto</h2>
+                    <p class="text-[11.5px] text-ink-500">Actualiza tu correo y número de teléfono</p>
+                </div>
+            </div>
+
+            <form asp-action="Update" method="post" class="p-4 sm:p-5 space-y-5">
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                    <partial name="_FormInput" model='@(new {
+                        Id = "username", Name = "UserName",
+                        Label = "Nombre de usuario",
+                        Value = Model.UserName,
+                        IconLeft = "ti-lock",
+                        Readonly = true,
+                        Helper = "El nombre de usuario no puede modificarse."
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "fullname", Name = "FullName",
+                        Label = "Nombre completo",
+                        Value = Model.FullName,
+                        IconLeft = "ti-lock",
+                        Readonly = true,
+                        Helper = "Solicita cambios al administrador del sistema."
+                    })' />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                    <partial name="_FormInput" model='@(new {
+                        Id = "Email", Name = "Email", Type = "email",
+                        Label = "Correo electrónico",
+                        Placeholder = "nombre@unamad.edu.pe",
+                        Value = Model.Email,
+                        IconLeft = "ti-mail",
+                        Error = ViewData.ModelState["Email"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "PhoneNumber", Name = "PhoneNumber", Type = "tel",
+                        Label = "Número de contacto",
+                        Placeholder = "999999999",
+                        Value = Model.PhoneNumber,
+                        IconLeft = "ti-phone",
+                        InputMode = "tel",
+                        Error = ViewData.ModelState["PhoneNumber"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+                </div>
+
+                <div class="flex justify-end pt-2 border-t border-ink-200/60 dark:border-ink-800/60">
+                    <button type="submit"
+                            class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-device-floppy text-xs"></i>
+                        Guardar cambios
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Cambio de contraseña -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md bg-secondary-50/40 dark:bg-secondary-500/5">
+                <span class="w-9 h-9 rounded-md bg-secondary-100 dark:bg-secondary-500/15 text-secondary-700 dark:text-secondary-300 inline-flex items-center justify-center">
+                    <i class="ti ti-key text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Cambiar contraseña</h2>
+                    <p class="text-[11.5px] text-ink-500">Usa una contraseña fuerte de al menos 8 caracteres</p>
+                </div>
+            </div>
+
+            <form asp-action="ChangePassword" method="post" class="p-4 sm:p-5 space-y-5" id="formPassword">
+                @Html.AntiForgeryToken()
+
+                <div>
+                    <label class="form-label">Contraseña actual <span class="required">*</span></label>
+                    <div class="form-input-wrapper">
+                        <i class="ti ti-lock form-input-icon"></i>
+                        <input type="password" name="CurrentPassword" required autocomplete="current-password"
+                               class="form-input form-input--suffix"
+                               style="padding-right: 40px;" />
+                        <button type="button" class="toggle-pw absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors" aria-label="Mostrar/ocultar">
+                            <i class="ti ti-eye text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                    <div>
+                        <label class="form-label">Nueva contraseña <span class="required">*</span></label>
+                        <div class="form-input-wrapper">
+                            <i class="ti ti-key form-input-icon"></i>
+                            <input type="password" name="NewPassword" id="NewPassword" required autocomplete="new-password" minlength="8"
+                                   class="form-input form-input--suffix"
+                                   style="padding-right: 40px;" />
+                            <button type="button" class="toggle-pw absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors" aria-label="Mostrar/ocultar">
+                                <i class="ti ti-eye text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <div class="pbar">
+                                <div id="pwStrengthBar" style="width:0%; background:#f43f5e;"></div>
+                            </div>
+                            <p id="pwStrengthLabel" class="text-[10.5px] font-semibold text-ink-500 mt-1.5">Seguridad: —</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Confirmar nueva contraseña <span class="required">*</span></label>
+                        <div class="form-input-wrapper">
+                            <i class="ti ti-checks form-input-icon"></i>
+                            <input type="password" name="ConfirmPassword" id="ConfirmPassword" required autocomplete="new-password" minlength="8"
+                                   class="form-input form-input--suffix"
+                                   style="padding-right: 40px;" />
+                            <button type="button" class="toggle-pw absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors" aria-label="Mostrar/ocultar">
+                                <i class="ti ti-eye text-xs"></i>
+                            </button>
+                        </div>
+                        <p id="pwMatchLabel" class="text-[10.5px] font-semibold text-ink-400 mt-1.5">—</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-2.5 bg-secondary-50/60 dark:bg-secondary-500/10 ring-1 ring-secondary-100 dark:ring-secondary-500/20 rounded-md p-3.5">
+                    <i class="ti ti-info-circle text-secondary-600 dark:text-secondary-300 text-xs mt-0.5 shrink-0"></i>
+                    <p class="text-[11.5px] text-secondary-700 dark:text-secondary-200 leading-relaxed">
+                        La contraseña debe tener al menos <strong>8 caracteres</strong>. Para mayor seguridad, combina mayúsculas, minúsculas, números y símbolos.
+                    </p>
+                </div>
+
+                <div class="flex justify-end pt-2 border-t border-ink-200/60 dark:border-ink-800/60">
+                    <button type="submit"
+                            class="btn-grad-secondary inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-key text-xs"></i>
+                        Actualizar contraseña
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/admin/profile/index.js" asp-append-version="true"></script>
+}

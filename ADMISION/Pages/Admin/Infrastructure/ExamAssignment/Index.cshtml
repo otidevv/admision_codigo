@@ -1,0 +1,320 @@
+﻿@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Sorteo de Salones";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+    var modalities = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Modality>)(ViewBag.Modalities ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Modality>());
+    var selectedTermId = (Guid?)ViewBag.SelectedTermId;
+    var selectedModalityId = (Guid?)ViewBag.SelectedModalityId;
+    var selectedModality = (ADMISION.ENTITIES.Models.Modality.Modality?)ViewBag.SelectedModality;
+    var schedule = (ADMISION.Services.Interfaces.ExamScheduleDetailDto?)ViewBag.Schedule;
+    var existingAssignments = (int?)ViewBag.ExistingAssignments ?? 0;
+    var assignments = (IEnumerable<ADMISION.ENTITIES.Models.Infrastructure.ExamAssignment>?)ViewBag.Assignments;
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+        <a href="/admin/infrastructure" class="hover:text-primary-600 transition-colors">Infraestructura</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Sorteo de salones</span>
+    </div>
+    <div class="eyebrow">Logística del examen</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Sorteo de <span class="font-serif font-normal text-primary-600">salones</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1.5 max-w-3xl">
+        Configura las aulas, áreas temáticas y docentes para cada modalidad, luego ejecuta el sorteo.
+    </p>
+</section>
+
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo académico</label>
+            <div class="relative">
+                <i class="ti ti-calendar-event absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select name="termId" onchange="this.form.submit()"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(selectedTermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Modalidad (examen)</label>
+            <div class="relative">
+                <i class="ti ti-list absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <select name="modalityId" onchange="this.form.submit()" disabled="@(!modalities.Any())"
+                        class="w-full h-9 bg-white dark:bg-ink-800 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all disabled:opacity-60">
+                    <option value="">-- Seleccione una modalidad --</option>
+                    @foreach (var m in modalities)
+                    {
+                        var dateTxt = m.ExamDate.HasValue
+                            ? " · Examen " + m.ExamDate.Value.ToString("dd/MM/yyyy", new System.Globalization.CultureInfo("es-PE"))
+                            : "";
+                        <option value="@m.Id" selected="@(selectedModalityId == m.Id)">@m.Name@dateTxt</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </form>
+</section>
+
+@if (selectedModality == null)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">
+        <i class="ti ti-pointer text-3xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 font-semibold text-sm">Seleccione una modalidad para configurar el sorteo.</p>
+    </section>
+}
+else
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5 mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-3">
+                <span class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="@(string.IsNullOrWhiteSpace(selectedModality.IconKey) ? "ti ti-file-text" : selectedModality.IconKey) text-[15px]"></i>
+                </span>
+                <div>
+                    <p class="text-[11px] font-bold text-ink-400 uppercase tracking-widest">Modalidad</p>
+                    <p class="font-semibold text-ink-900 dark:text-ink-100">@selectedModality.Name</p>
+                </div>
+            </div>
+            @if (selectedModality.ExamDate.HasValue)
+            {
+                <div class="flex items-center gap-3 border-l border-ink-200 dark:border-ink-800 pl-6">
+                    <span class="w-10 h-10 rounded-md bg-secondary-50 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-file-pencil text-sm"></i>
+                    </span>
+                    <div>
+                        <p class="text-[11px] font-bold text-ink-400 uppercase tracking-widest">Fecha del examen</p>
+                        <p class="font-semibold text-ink-900 dark:text-ink-100">@selectedModality.ExamDate.Value.ToString("dd 'de' MMMM 'del' yyyy", new System.Globalization.CultureInfo("es-PE"))</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <div id="previewPanel" class="fade-up mb-6 hidden"></div>
+
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-5 mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <p class="text-sm font-semibold text-ink-700 dark:text-ink-200 flex items-center gap-2 flex-wrap">
+                <span>Estado actual:</span>
+                @if (schedule != null)
+                {
+                    <span class="badge b-blue">Horario configurado (@schedule.Rooms.Count aulas)</span>
+                    if (existingAssignments > 0)
+                    {
+                        <span class="badge b-green">@existingAssignments asignaciones</span>
+                    }
+                }
+                else
+                {
+                    <span class="badge b-amber">Sin horario configurado</span>
+                }
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" id="btnOpenScheduleModal"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-all hover:-translate-y-0.5">
+                <i class="ti ti-settings text-xs"></i> @(schedule != null ? "Editar horario" : "Configurar horario")
+            </button>
+
+            @if (schedule != null)
+            {
+                <button type="button" id="btnPreview"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-secondary-600 hover:bg-secondary-700 text-white text-sm font-semibold transition-all hover:-translate-y-0.5">
+                    <i class="ti ti-eye text-xs"></i> Vista previa
+                </button>
+
+                <form asp-action="Execute" method="post" class="inline" id="formExecute">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="examScheduleId" value="@schedule.Id" />
+                    <button type="button" id="btnExecute"
+                            class="btn-grad inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-arrows-shuffle text-xs"></i> Ejecutar sorteo
+                    </button>
+                </form>
+
+                @if (existingAssignments > 0)
+                {
+                    <a href="/admin/infrastructure/exam-assignment/export?examScheduleId=@schedule.Id"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all hover:-translate-y-0.5">
+                        <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                    </a>
+
+                    <form asp-action="Clear" method="post" class="inline" id="formClear">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="examScheduleId" value="@schedule.Id" />
+                        <button type="button" id="btnClear"
+                                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-sm font-semibold transition-all">
+                            <i class="ti ti-eraser text-xs"></i> Revertir sorteo
+                        </button>
+                    </form>
+                }
+            }
+        </div>
+    </section>
+
+    @if (assignments != null && assignments.Any())
+    {
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-list-check text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Asignaciones actuales</h2>
+                    <p class="text-[11.5px] text-ink-500">Resultado del último sorteo ejecutado</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="atlas w-full">
+                    <thead>
+                        <tr>
+                            <th>Pabellón</th>
+                            <th class="text-center">Piso</th>
+                            <th>Salón</th>
+                            <th class="text-center">Silla</th>
+                            <th class="text-center">Carpeta</th>
+                            <th>Área</th>
+                            <th>Docente</th>
+                            <th>Código</th>
+                            <th>Apellidos y Nombres</th>
+                            <th>Carrera</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in assignments)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="badge b-blue">@a.Classroom?.Pavilion?.Code</span>
+                                    <span class="text-ink-500 text-xs ml-1">@a.Classroom?.Pavilion?.Name</span>
+                                </td>
+                                <td class="text-center text-ink-700 dark:text-ink-200">@a.Classroom?.Floor</td>
+                                <td class="font-semibold text-ink-900 dark:text-ink-100">@a.Classroom?.Name</td>
+                                <td class="text-center text-ink-700 dark:text-ink-200">@a.SeatNumber</td>
+                                <td class="text-center text-ink-700 dark:text-ink-200 font-mono">@a.FolderNumber</td>
+                                <td><span class="badge b-secondary">@(a.TematicArea?.Code ?? "—")</span></td>
+                                <td class="text-ink-600 dark:text-ink-300">@(a.Teacher?.User?.FullName ?? "Sin docente")</td>
+                                <td class="font-mono text-ink-700 dark:text-ink-200">@a.Inscription?.CodePostulant</td>
+                                <td class="text-ink-900 dark:text-ink-100">
+                                    @($"{a.Inscription?.Postulant?.User?.FirstNameFather} {a.Inscription?.Postulant?.User?.FirstNameMother}, {a.Inscription?.Postulant?.User?.Name}")
+                                </td>
+                                <td class="text-ink-600 dark:text-ink-300">@a.Inscription?.Career?.Name</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+
+<!-- Modal de configuración de horario -->
+<div id="scheduleModal" class="adm-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="adm-modal__overlay"></div>
+    <div class="adm-modal__card adm-modal__card--xl">
+        <header class="adm-modal__header">
+            <div class="min-w-0">
+                <div class="eyebrow">Configuración del sorteo</div>
+                <h3 id="scheduleModalTitle" class="adm-modal__title mt-1">Horario de examen</h3>
+                <p class="adm-modal__subtitle">Asigna aulas, áreas temáticas y docentes</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar"><i class="ti ti-x"></i></button>
+        </header>
+        <div class="adm-modal__body" style="max-height:70vh;overflow-y:auto">
+            <form id="scheduleForm" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="scheduleId" value="@(schedule?.Id.ToString() ?? "")" />
+                <input type="hidden" id="scheduleModalityId" value="@selectedModalityId" />
+                <input type="hidden" id="scheduleTermId" value="@selectedTermId" />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-field">
+                        <label class="form-label">Nombre del examen</label>
+                        <input type="text" id="scheduleName" class="form-input" value="@(schedule?.Name ?? selectedModality?.Name ?? "")" placeholder="Nombre descriptivo" />
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-ink-200/60">
+                    <h4 class="text-[13px] font-semibold text-ink-900">Aulas configuradas</h4>
+                    <button type="button" id="btnAddRoom"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary-50 text-primary-600 text-xs font-semibold hover:bg-primary-100 transition-all">
+                        <i class="ti ti-plus text-[11px]"></i> Agregar aula
+                    </button>
+                </div>
+
+                <div id="roomsContainer" class="space-y-3">
+                    @if (schedule?.Rooms != null)
+                    {
+                        foreach (var r in schedule.Rooms)
+                        {
+                            <div class="room-row ring-1 ring-ink-200 rounded-md p-3 space-y-2" data-id="@r.Id">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                    <div class="form-field">
+                                        <label class="form-label text-[11px]">Pabellón</label>
+                                        <select class="form-input room-pavilion" data-target-class="room-classroom">
+                                            <option value="">Pabellón</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-field">
+                                        <label class="form-label text-[11px]">Aula</label>
+                                        <select class="form-input room-classroom" data-capacity-target="room-capacity">
+                                            <option value="">Aula</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-field">
+                                        <label class="form-label text-[11px]">Área temática</label>
+                                        <select class="form-input room-area">
+                                            <option value="">Área</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-field">
+                                        <label class="form-label text-[11px]">Aforo (max: <span class="room-capacity-val">—</span>)</label>
+                                        <input type="number" class="form-input room-capacity" min="1" value="@r.AssignedCapacity" />
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <div class="form-field">
+                                        <label class="form-label text-[11px]">Docente (opcional)</label>
+                                        <select class="form-input room-teacher">
+                                            <option value="">Sin docente</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end justify-end">
+                                        <button type="button" class="btn-remove-room text-rose-500 hover:text-rose-700 text-xs font-semibold px-2 py-1 rounded hover:bg-rose-50 transition-all">
+                                            <i class="ti ti-trash"></i> Quitar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </form>
+        </div>
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close class="btn-soft px-5 py-2.5 rounded-md text-sm font-semibold transition-all">Cancelar</button>
+            <button type="button" id="btnSaveSchedule"
+                    class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar horario
+            </button>
+        </footer>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.ExamScheduleConfig = {
+            scheduleId: @Html.Raw(Json.Serialize(schedule?.Id)),
+            modalityId: @Html.Raw(Json.Serialize(selectedModalityId)),
+            termId: @Html.Raw(Json.Serialize(selectedTermId)),
+            existingRooms: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(schedule?.Rooms ?? new List<ADMISION.Services.Interfaces.ExamScheduleRoomDetailDto>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
+        };
+    </script>
+    <script src="~/js/admin/infrastructure/exam-assignment/index.js" asp-append-version="true"></script>
+}

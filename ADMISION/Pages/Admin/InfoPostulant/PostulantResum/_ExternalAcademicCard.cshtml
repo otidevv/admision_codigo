@@ -1,0 +1,77 @@
+@using ADMISION.ENTITIES.Models.Integrations
+@model IReadOnlyList<ExternalAcademicInfo>?
+
+<div id="externalAcademicCard" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between gap-3 rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center">
+                <i class="ti ti-school text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Informacion academica externa</h2>
+                <p class="text-[11.5px] text-ink-500">Datos academicos consultados via API</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <div id="academicLoader" class="hidden">
+                <i class="ti ti-loader animate-spin text-primary-500 text-sm"></i>
+            </div>
+            <button type="button" id="refreshAcademicBtn"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-600 dark:text-ink-300 text-xs font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                <i class="ti ti-refresh text-[10px]"></i> Actualizar
+            </button>
+        </div>
+    </div>
+
+    <div id="academicCardError" class="hidden p-4 sm:p-5 text-sm text-rose-700 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-300 border-b border-rose-100 dark:border-rose-500/30"></div>
+
+    <div id="academicCardEmpty"
+         class="@(Model != null && Model.Count > 0 ? "hidden" : "") p-8 text-center">
+        <i class="ti ti-book-off text-3xl text-ink-300 mb-2 block"></i>
+        <p class="text-ink-500 text-sm font-semibold">Sin información académica externa</p>
+        <p class="text-ink-400 text-xs mt-1">
+            Presiona "Actualizar" para consultar la API o verifica que esté configurada.
+        </p>
+    </div>
+
+    <div id="academicCardData"
+         class="@(Model != null && Model.Count > 0 ? "" : "hidden")">
+        <div id="academicCardContent" class="p-4 sm:p-5 space-y-3">
+            @if (Model != null)
+            {
+                foreach (var item in Model)
+                {
+                    <div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-[0.12em] text-primary-600">
+                                @item.CareerName
+                            </span>
+                            <span class="badge b-emerald text-[10px]">
+                                @item.TotalCreditsApproved.ToString("F2") créditos
+                            </span>
+                        </div>
+
+                        <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">
+                            @item.PaternalSurname @item.MaternalSurname, @item.Name
+                        </p>
+
+                        <p class="text-xs text-ink-500 mt-1">@item.FacultyName</p>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Email))
+                        {
+                            <p class="text-xs text-ink-400 mt-1">
+                                <i class="ti ti-mail mr-1"></i>@item.Email
+                            </p>
+                        }
+
+                        <p class="text-[10px] text-ink-400 mt-2 font-mono">
+                            <i class="ti ti-clock mr-0.5"></i>
+                            @item.QueriedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,108 @@
+@*
+================================================================================
+  _FormTextarea.cshtml  —  Textarea con label, contador opcional, helper y error.
+
+  Uso:
+    <partial name="_FormTextarea" model='new {
+        Id = "description", Name = "Description",
+        Label = "Descripción",
+        Placeholder = "Cuéntanos más…",
+        Rows = 4,
+        MaxLength = 500,
+        ShowCounter = true,
+        Required = false,
+        Helper = "Máximo 500 caracteres."
+    }' />
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    // El binder de Razor entrega Model como dynamic; casteamos para evitar
+    // que GetValue() devuelva dynamic y rompa int.TryParse en .NET 10
+    // (donde hay overloads ambiguos string vs ReadOnlySpan<byte>).
+    object? __m = Model;
+    var t = __m?.GetType();
+    string V(string p, string d = "") => (t?.GetProperty(p)?.GetValue(__m) as object)?.ToString() ?? d;
+    int I(string p, int d = 0) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        if (v is int direct) return direct;
+        return int.TryParse(v?.ToString(), out int parsed) ? parsed : d;
+    }
+    bool B(string p, bool d = false) {
+        object? v = t?.GetProperty(p)?.GetValue(__m);
+        return v is bool b ? b : d;
+    }
+
+    var id          = V("Id", "textarea-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var name        = V("Name", id);
+    var label       = V("Label");
+    var placeholder = V("Placeholder");
+    var value       = V("Value");
+    var helperText  = V("Helper");
+    var error       = V("Error");
+    var rows        = I("Rows", 4);
+    var maxLength   = I("MaxLength", 0);
+    var required    = B("Required");
+    var disabled    = B("Disabled");
+    var readonlyTa  = B("Readonly");
+    var showCounter = B("ShowCounter", maxLength > 0);
+
+    // Atributos opcionales como cadena única (evita conflictos con el parser).
+    var extraAttrs = new List<string>();
+    if (required)         extraAttrs.Add("required");
+    if (disabled)         extraAttrs.Add("disabled");
+    if (readonlyTa)       extraAttrs.Add("readonly");
+    if (maxLength > 0)    extraAttrs.Add($"maxlength=\"{maxLength}\"");
+    var attrStr = string.Join(" ", extraAttrs);
+
+    var taClass = "form-textarea" + (string.IsNullOrEmpty(error) ? "" : " is-invalid");
+}
+
+<div class="form-field">
+    @if (!string.IsNullOrEmpty(label))
+    {
+        <label for="@id" class="form-label">
+            @label
+            @if (required)
+            {
+                <span class="required">*</span>
+            }
+        </label>
+    }
+
+    <div class="relative">
+        <textarea id="@id" name="@name" rows="@rows" placeholder="@placeholder" class="@taClass" @Html.Raw(attrStr)>@value</textarea>
+
+        @if (showCounter && maxLength > 0)
+        {
+            <span id="@(id)-counter"
+                  class="absolute bottom-2 right-3 text-[11px] font-mono text-ink-400 tabular-nums pointer-events-none">
+                <span data-counter-current>@(value.Length)</span>/@maxLength
+            </span>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <span class="form-error"><i class="ti ti-alert-circle mr-1 text-[12px]"></i>@error</span>
+    }
+    else if (!string.IsNullOrEmpty(helperText))
+    {
+        <span class="form-helper">@helperText</span>
+    }
+</div>
+
+@if (showCounter && maxLength > 0)
+{
+    <script>
+        (function () {
+            var ta = document.getElementById('@id');
+            var counter = document.querySelector('#@(id)-counter [data-counter-current]');
+            if (!ta || !counter) return;
+            ta.addEventListener('input', function () {
+                counter.textContent = ta.value.length;
+            });
+        })();
+    </script>
+}

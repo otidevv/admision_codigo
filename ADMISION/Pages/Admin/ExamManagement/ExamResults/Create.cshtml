@@ -1,0 +1,141 @@
+@model ADMISION.ENTITIES.Models.Modality.ExamResult
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuevo Documento de Resultados";
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/exam-management/results" class="hover:text-primary-600 transition-colors">Resultados</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Nuevo</span>
+    </div>
+    <div class="eyebrow">Publicación oficial</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Publicar documento de <span class="font-serif font-normal text-primary-600">resultados</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Sube el PDF oficial con los resultados de una modalidad para un periodo académico.</p>
+</section>
+
+<form id="examResultForm" asp-action="Create" method="post" enctype="multipart/form-data" class="space-y-5 max-w-3xl">
+    <!-- Card: Datos del documento -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-file-text text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del documento</h2>
+                <p class="text-[11.5px] text-ink-500">Identificación, contexto académico y visibilidad</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="All"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <partial name="_CustomSelect" model='new {
+                    Id = "TermId",
+                    Name = "TermId",
+                    Label = "Periodo Académico",
+                    Required = true,
+                    Placeholder = "Seleccionar periodo",
+                    Value = Model.TermId,
+                    Options = ((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { id = (string)t.id.ToString(), name = t.name })
+                }' />
+
+                <partial name="_CustomSelect" model='new {
+                    Id = "ModalityId",
+                    Name = "ModalityId",
+                    Label = "Modalidad",
+                    Required = true,
+                    Placeholder = "Seleccionar modalidad",
+                    Value = Model.ModalityId,
+                    Options = ((IEnumerable<dynamic>)ViewBag.Modalities).Select(m => new { id = (string)m.id.ToString(), name = m.name })
+                }' />
+            </div>
+
+            <partial name="_FormInput" model='@(new {
+                Id = "Name", Name = "Name",
+                Label = "Título del documento", Required = true,
+                Placeholder = "Ej: Resultados Examen Ordinario 2026-I",
+                Value = Model?.Name,
+                IconLeft = "ti-heading",
+                Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <div>
+                <label asp-for="Description" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">
+                    Descripción
+                </label>
+                <textarea asp-for="Description" rows="3"
+                          placeholder="Información adicional (sede, fecha de examen, notas aclaratorias...)"
+                          class="w-full bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md px-4 py-3 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"></textarea>
+                <span asp-validation-for="Description" class="text-xs text-rose-500 mt-1"></span>
+            </div>
+
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "IsActive", Name = "IsActive",
+                Label = "Publicado",
+                Hint  = "Visible en el portal público de postulantes",
+                Checked = Model?.IsActive ?? true,
+                Variant = "card"
+            })' />
+        </div>
+    </section>
+
+    <!-- Card: Archivo PDF -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-cloud-upload text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Archivo PDF</h2>
+                <p class="text-[11.5px] text-ink-500">Solo archivos PDF, hasta 100MB</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="form-input-wrapper border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-md px-6 pt-6 pb-7 hover:border-primary-500 transition-colors bg-ink-50/40 dark:bg-ink-800/30">
+                <div class="flex flex-col items-center text-center space-y-2">
+                    <i id="file-icon" class="ti ti-file-text text-4xl text-rose-400 mb-2"></i>
+                    <div id="file-info" class="hidden mb-2">
+                        <span id="file-name" class="block text-sm font-semibold text-ink-900 dark:text-ink-100"></span>
+                        <span id="file-size" class="block text-xs text-ink-500"></span>
+                    </div>
+                    <div class="flex text-sm text-ink-600 dark:text-ink-300 justify-center">
+                        <label for="pdfFile"
+                               class="relative cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white dark:bg-ink-800 ring-soft text-primary-600 font-semibold hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-all">
+                            <i class="ti ti-folder-open text-xs"></i>
+                            <span>Seleccionar PDF</span>
+                            <input id="pdfFile" name="pdfFile" type="file" accept="application/pdf,.pdf" class="sr-only" onchange="handleFileSelect(this)" required>
+                        </label>
+                    </div>
+                    <p class="text-xs text-ink-500">Solo archivos PDF, hasta 100MB</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-cloud-upload text-xs"></i> Publicar resultados
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/admin/exam-management/exam-results/create.js" asp-append-version="true"></script>
+}

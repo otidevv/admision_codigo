@@ -1,0 +1,403 @@
+@*
+    Custom Select Component (Standardized)
+*@
+
+@using System.Reflection
+@using System.Text.Json
+@{
+    object? __m = Model;
+    var type = __m?.GetType();
+
+    object? GetRawVal(string propName) {
+        return ViewData[propName] ?? type?.GetProperty(propName)?.GetValue(__m);
+    }
+
+    string GetVal(string propName, string defaultVal = "") {
+        return GetRawVal(propName)?.ToString() ?? defaultVal;
+    }
+
+    bool GetBool(string propName, bool defaultVal = false) {
+        object? val = GetRawVal(propName);
+        return val is bool b ? b : defaultVal;
+    }
+
+    var id = GetVal("Id", "customSelect_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var name = GetVal("Name", id);
+    var label = GetVal("Label", "");
+    var placeholder = GetVal("Placeholder", "Seleccione una opcion");
+    var required = GetBool("Required", false);
+    var dataUrl = GetVal("DataUrl", "");
+    var searchable = GetBool("Searchable", true);
+    var cssClass = GetVal("Class", "");
+    var selectedValue = GetVal("SelectedValue", "");
+    
+    // Extract Options if provided
+    var optionsRaw = GetRawVal("Options");
+    string optionsJson = "[]";
+    if (optionsRaw != null)
+    {
+        optionsJson = JsonSerializer.Serialize(optionsRaw, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    }
+}
+
+<div class="custom-select-group @cssClass" id="wrapper_@id">
+    @if (!string.IsNullOrEmpty(label))
+    {
+        <label for="@id" class="form-label">
+            @label @if (required) { <span class="required">*</span> }
+        </label>
+    }
+
+    <div class="relative custom-select-container" data-id="@id" data-url="@dataUrl" data-initial-options='@Html.Raw(optionsJson)'>
+        <!-- Trigger: visualmente igual a un .form-input -->
+        <button type="button"
+                id="btn_@id"
+                class="form-input form-input--suffix custom-select-trigger"
+                aria-haspopup="listbox" aria-expanded="false">
+            <span class="block truncate text-ink-400 dark:text-ink-400 select-display min-w-0" id="display_@id">@placeholder</span>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+                <!-- Clear Button -->
+                <span id="clear_@id" class="hidden hover:text-rose-500 text-ink-300 transition-colors cursor-pointer js-clear-btn" title="Limpiar selección">
+                    <i class="ti ti-circle-x text-[14px]"></i>
+                </span>
+                <i class="ti ti-chevron-down text-ink-400 text-[12px] transform transition-transform duration-200 arrow-icon"></i>
+            </div>
+        </button>
+
+        <!-- Dropdown: position:fixed para escapar cualquier overflow-hidden en ancestros.
+             JS calcula top/left/width desde el bounding rect del botón al abrir. -->
+        <div id="dropdown_@id"
+             class="hidden fixed z-[1000] bg-white dark:bg-ink-900 ring-1 ring-ink-200 dark:ring-ink-700 rounded-md shadow-card overflow-hidden">
+
+            @if (searchable)
+            {
+                <div class="p-2 border-b border-ink-100 dark:border-ink-800 bg-ink-50/60 dark:bg-ink-800/40">
+                    <div class="relative">
+                        <i class="ti ti-search absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400 text-[13px]"></i>
+                        <input type="text"
+                               id="search_@id"
+                               class="w-full pl-7 pr-3 py-2 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 text-ink-800 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 rounded-md text-[13.5px] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Buscar..." autocomplete="off">
+                    </div>
+                </div>
+            }
+
+            <ul id="options_@id"
+                class="max-h-56 overflow-y-auto py-0.5 text-[13.5px] text-ink-700 dark:text-ink-200 divide-y divide-ink-100 dark:divide-ink-800"
+                role="listbox">
+                <!-- Options injected via JS -->
+                <li class="px-3 py-2 text-center text-ink-400 dark:text-ink-500 no-results hidden">No se encontraron resultados</li>
+            </ul>
+        </div>
+
+        <!-- Real Hidden Input for Form Submission -->
+        <input type="hidden" id="@id" name="@name" class="hidden-select" @(required ? "required" : "") value="@selectedValue" />
+    </div>
+</div>
+
+<style>
+    /* Sobrescribimos algunos rasgos de .form-input para que se comporte como
+       trigger clickable (texto a la izquierda, icono a la derecha). */
+    .custom-select-trigger {
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-right: 10px;
+    }
+    .custom-select-trigger:focus { outline: none; }
+
+    .custom-select-container.open .arrow-icon { transform: rotate(180deg); }
+    .custom-select-container.open #dropdown_@id { display: block; }
+
+    .select-option { cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
+
+    /* Hover y selección — modo claro */
+    .select-option:hover { background-color: #fef2f5; color: #d10e49; }
+    .select-option.selected { background-color: #f54477; color: #fff; }
+
+    /* Hover y selección — modo dark */
+    html.dark .select-option:hover {
+        background-color: rgba(245, 68, 119, 0.12);
+        color: #f76e98;
+    }
+    html.dark .select-option.selected {
+        background-color: #f54477;
+        color: #fff;
+    }
+
+    /* Custom Scrollbar — modo claro */
+    #options_@id::-webkit-scrollbar { width: 6px; }
+    #options_@id::-webkit-scrollbar-track { background: transparent; }
+    #options_@id::-webkit-scrollbar-thumb { background: #dce0e8; border-radius: 10px; }
+    #options_@id::-webkit-scrollbar-thumb:hover { background: #bcc2cf; }
+
+    /* Custom Scrollbar — modo dark */
+    html.dark #options_@id::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); }
+    html.dark #options_@id::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+</style>
+
+<script>
+    if (!window.customSelectRegistry) window.customSelectRegistry = {};
+    
+    (function() {
+        const selectId = "@id";
+        const wrapper = document.getElementById("wrapper_" + selectId);
+        if (!wrapper) return;
+        
+        const container = wrapper.querySelector(".custom-select-container");
+        const btn = document.getElementById("btn_" + selectId);
+        const clearBtn = document.getElementById("clear_" + selectId);
+        const dropdown = document.getElementById("dropdown_" + selectId);
+        const searchInput = document.getElementById("search_" + selectId);
+        const optionsList = document.getElementById("options_" + selectId);
+        const realSelect = document.getElementById(selectId);
+        const display = document.getElementById("display_" + selectId);
+        
+        const dataUrl = container.dataset.url;
+        let originalOptions = JSON.parse(container.dataset.initialOptions || '[]').map(item => ({
+            value: item.id || item.value,
+            label: item.name || item.label || item.text
+        }));
+
+        // Initialize if options exist
+        if (originalOptions.length > 0) {
+            renderOptions(originalOptions);
+            applyInitialSelection();
+        }
+
+        function applyInitialSelection() {
+            const initialValue = realSelect.value;
+            if (!initialValue) return;
+            const match = originalOptions.find(o => String(o.value) === String(initialValue));
+            if (match) {
+                display.textContent = htmlDecode(match.label);
+                display.classList.remove('text-ink-400');
+                display.classList.add('text-ink-900', 'dark:text-ink-100', 'font-medium');
+                clearBtn?.classList.remove('hidden');
+            }
+        }
+
+        // ── Posicionamiento del dropdown (fixed) ────────────────────────────
+        // Calcula top/left/width desde el rect del botón. Si no entra debajo
+        // del botón, lo abre hacia arriba.
+        function positionDropdown() {
+            if (!container.classList.contains('open')) return;
+            const rect = btn.getBoundingClientRect();
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const margin = 8;
+
+            // Estimar altura del dropdown (max-h-60 ~ 240 + search ~ 56 + paddings)
+            const estimatedHeight = Math.min(dropdown.offsetHeight || 300, 320);
+            const spaceBelow = vh - rect.bottom;
+            const spaceAbove = rect.top;
+            const openUpward = spaceBelow < estimatedHeight + margin && spaceAbove > spaceBelow;
+
+            let top = openUpward
+                ? Math.max(margin, rect.top - estimatedHeight - margin)
+                : Math.min(vh - estimatedHeight - margin, rect.bottom + margin);
+
+            // Mantenemos el ancho del botón pero con un piso mínimo razonable.
+            const width = Math.max(rect.width, 220);
+            let left = rect.left;
+            // Si se sale por la derecha, lo recuadramos dentro del viewport.
+            if (left + width > vw - margin) {
+                left = Math.max(margin, vw - width - margin);
+            }
+
+            dropdown.style.top = top + 'px';
+            dropdown.style.left = left + 'px';
+            dropdown.style.width = width + 'px';
+
+            // Si algún ancestro del botón tiene transform/filter, ese elemento se
+            // convierte en el containing block del dropdown (position:fixed) y el
+            // offset se aplica relativo a él, no al viewport → el dropdown aparece
+            // desplazado hacia abajo-derecha. Medimos el rect REAL del dropdown
+            // (siempre en coordenadas de viewport) y corregimos el desfase.
+            const actual = dropdown.getBoundingClientRect();
+            const fixX = left - actual.left;
+            const fixY = top - actual.top;
+            if (Math.abs(fixX) > 0.5 || Math.abs(fixY) > 0.5) {
+                dropdown.style.top = (top + fixY) + 'px';
+                dropdown.style.left = (left + fixX) + 'px';
+            }
+        }
+
+        function openDropdown() {
+            container.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+            // Render primero para medir altura real.
+            positionDropdown();
+            // Re-posicionar después del paint por si el ancho cambió.
+            requestAnimationFrame(positionDropdown);
+            if (searchInput) setTimeout(() => searchInput.focus(), 10);
+            if (dataUrl && originalOptions.length === 0) loadData();
+
+            // Reaccionar a scroll/resize: el dropdown sigue al botón o se cierra
+            // si el botón sale del viewport.
+            window.addEventListener('scroll', onWindowChange, true);
+            window.addEventListener('resize', onWindowChange);
+        }
+
+        function closeDropdown() {
+            container.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+            window.removeEventListener('scroll', onWindowChange, true);
+            window.removeEventListener('resize', onWindowChange);
+        }
+
+        function onWindowChange() {
+            const rect = btn.getBoundingClientRect();
+            // Si el botón salió del viewport, cerrar.
+            if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                closeDropdown();
+                return;
+            }
+            positionDropdown();
+        }
+
+        // Cerrar al clickear fuera (el dropdown sigue siendo descendiente del
+        // container, así que el contains() funciona aunque esté en position:fixed).
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) closeDropdown();
+        });
+
+        // Cerrar con Escape para teclado.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && container.classList.contains('open')) closeDropdown();
+        });
+
+        btn.addEventListener('click', (e) => {
+            // Si fue click en el botón de limpiar, no togglear dropdown.
+            if (e.target.closest('.js-clear-btn')) return;
+
+            if (container.classList.contains('open')) closeDropdown();
+            else openDropdown();
+        });
+
+        clearBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetSelection();
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                filterOptions(term);
+            });
+        }
+
+        async function loadData(urlOverride = null) {
+            const url = urlOverride || dataUrl;
+            if (!url) return;
+            
+            optionsList.innerHTML = '<li class="px-3 py-2 text-center text-ink-400 dark:text-ink-500"><i class="ti ti-loader-2 fa-spin mr-2"></i> Cargando...</li>';
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                originalOptions = data.map(item => ({
+                    value: item.id || item.value,
+                    label: item.name || item.label || item.text
+                }));
+
+                renderOptions(originalOptions);
+                applyInitialSelection();
+            } catch (error) {
+                optionsList.innerHTML = '<li class="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Error al cargar datos</li>';
+            }
+        }
+
+        function renderOptions(options) {
+            optionsList.innerHTML = '';
+            
+            if (options.length === 0) {
+                optionsList.innerHTML = '<li class="px-3 py-2 text-center text-ink-400 dark:text-ink-500 italic">No hay opciones disponibles</li>';
+                return;
+            }
+
+            options.forEach(opt => {
+                const li = document.createElement('li');
+                li.className = 'px-3 py-2 select-option transition-all';
+                li.textContent = opt.label;
+                li.dataset.value = opt.value;
+                li.addEventListener('click', () => selectValue(opt.value, opt.label));
+                optionsList.appendChild(li);
+            });
+        }
+
+        function filterOptions(term) {
+            const items = optionsList.querySelectorAll('.select-option');
+            let found = false;
+            items.forEach(item => {
+                const matches = item.textContent.toLowerCase().includes(term);
+                item.classList.toggle('hidden', !matches);
+                if (matches) found = true;
+            });
+            
+            const noResults = optionsList.querySelector('.no-results');
+            if (noResults) noResults.classList.toggle('hidden', found);
+        }
+
+        function htmlDecode(input) {
+            if (!input) return input;
+            const doc = new DOMParser().parseFromString(input, 'text/html');
+            return doc.documentElement.textContent;
+        }
+
+        function selectValue(value, label) {
+            realSelect.value = value;
+            display.textContent = htmlDecode(label);
+            display.classList.remove('text-ink-400');
+            display.classList.add('text-ink-900', 'font-medium');
+
+            clearBtn?.classList.remove('hidden');
+
+            closeDropdown();
+
+            // Trigger change event for cascading
+            realSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function resetSelection() {
+            realSelect.value = "";
+            display.textContent = @Html.Raw(JsonSerializer.Serialize(placeholder));
+            display.classList.add('text-ink-400');
+            display.classList.remove('text-ink-900', 'dark:text-ink-100', 'font-medium');
+            clearBtn?.classList.add('hidden');
+
+            realSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // External API for cascading
+        window.customSelectRegistry[selectId] = {
+            load: (url) => loadData(url),
+            clear: () => resetSelection(),
+            setValue: (value, label) => selectValue(value, label),
+            setOptions: (items, preserveSelection = false) => {
+                originalOptions = (items || []).map(it => ({
+                    value: it.id ?? it.value,
+                    label: it.name ?? it.label ?? it.text
+                }));
+                renderOptions(originalOptions);
+                if (preserveSelection) applyInitialSelection();
+                else resetSelection();
+            },
+            getOptions: () => originalOptions.slice(),
+            disable: () => {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed', 'pointer-events-none');
+                clearBtn?.classList.add('hidden');
+            },
+            enable: () => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60', 'cursor-not-allowed', 'pointer-events-none');
+            }
+        };
+    })();
+</script>

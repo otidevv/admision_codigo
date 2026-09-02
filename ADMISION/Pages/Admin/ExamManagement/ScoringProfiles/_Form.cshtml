@@ -1,0 +1,254 @@
+@model ADMISION.Models.ViewModels.Admin.ScoringProfileFormModel
+@{
+    var terms = (ViewData["Terms"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var modalities = (ViewData["Modalities"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var typeModalities = (ViewData["TypeModalities"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var careers = (ViewData["Careers"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+}
+
+<div asp-validation-summary="ModelOnly"
+     class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md mb-5"></div>
+
+<!-- Datos generales -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-tag text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos generales</h2>
+            <p class="text-[11.5px] text-ink-500">Nombre y estado del perfil</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="md:col-span-2">
+            <partial name="_FormInput" model='@(new {
+                Id = "Name", Name = "Name",
+                Label = "Nombre del perfil", Required = true,
+                Placeholder = "Ej: Examen Ordinario 2026-I",
+                Value = Model?.Name,
+                IconLeft = "ti-signature",
+                Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+        </div>
+        <div class="flex items-end pb-1">
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "IsActive", Name = "IsActive",
+                Label = "Perfil activo",
+                Hint = "Disponible para el procesado",
+                Checked = Model?.IsActive ?? true,
+                Variant = "switch"
+            })' />
+        </div>
+        <div class="md:col-span-3">
+            <partial name="_FormTextarea" model='@(new {
+                Id = "Description", Name = "Description",
+                Label = "Descripción (opcional)",
+                Placeholder = "Detalles de cuándo y para qué se usa este perfil...",
+                Rows = 2, MaxLength = 500,
+                Value = Model?.Description,
+                Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+        </div>
+    </div>
+</section>
+
+<!-- Modo de calificación -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-adjustments-horizontal text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Modo de calificación</h2>
+            <p class="text-[11.5px] text-ink-500">Puntaje plano por pregunta o ponderado por rangos</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-md ring-1 ring-ink-200 dark:ring-ink-700 bg-ink-50/40 dark:bg-ink-800/30 p-4 cursor-pointer js-mode-card" data-mode="false">
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "modeSimple", Name = "IsWeighted",
+                Type = "radio", Value = "false",
+                Label = "Simple (sin ponderación)",
+                Hint = "Cada pregunta vale lo mismo. Puntos por correcta, blanco e incorrecta.",
+                Checked = Model != null && !Model.IsWeighted,
+                Variant = "card"
+            })' />
+        </div>
+        <div class="rounded-md ring-1 ring-ink-200 dark:ring-ink-700 bg-ink-50/40 dark:bg-ink-800/30 p-4 cursor-pointer js-mode-card" data-mode="true">
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "modeWeighted", Name = "IsWeighted",
+                Type = "radio", Value = "true",
+                Label = "Ponderado por rangos",
+                Hint = "Bloques de preguntas con puntaje por correcta propio (ej. 1–8, 9–12...).",
+                Checked = Model != null && Model.IsWeighted,
+                Variant = "card"
+            })' />
+        </div>
+    </div>
+</section>
+
+<!-- Parámetros de evaluación -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-calculator text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Parámetros de evaluación</h2>
+            <p class="text-[11.5px] text-ink-500">Puntajes globales y manejo de anuladas</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Puntos por correcta</label>
+            <input type="number" step="0.0001" name="PuntosCorrecta" value="@(Model?.PuntosCorrecta.ToString(System.Globalization.CultureInfo.InvariantCulture))" class="form-input" />
+            <span class="text-xs text-rose-500 font-medium">@ViewData.ModelState["PuntosCorrecta"]?.Errors.FirstOrDefault()?.ErrorMessage</span>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Puntos por blanco</label>
+            <input type="number" step="0.0001" name="PuntosBlanco" value="@(Model?.PuntosBlanco.ToString(System.Globalization.CultureInfo.InvariantCulture))" class="form-input" />
+            <span class="text-xs text-rose-500 font-medium">@ViewData.ModelState["PuntosBlanco"]?.Errors.FirstOrDefault()?.ErrorMessage</span>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Puntos por incorrecta</label>
+            <input type="number" step="0.0001" name="PuntosIncorrecta" value="@(Model?.PuntosIncorrecta.ToString(System.Globalization.CultureInfo.InvariantCulture))" class="form-input" />
+            <span class="text-xs text-rose-500 font-medium">@ViewData.ModelState["PuntosIncorrecta"]?.Errors.FirstOrDefault()?.ErrorMessage</span>
+        </div>
+        <div>
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">
+                Nota mínima de ingreso
+                <span class="text-[10px] text-ink-400 font-normal">(puntaje bruto)</span>
+            </label>
+            <input type="number" step="0.0001" name="NotaMinimaIngreso" value="@(Model?.NotaMinimaIngreso.ToString(System.Globalization.CultureInfo.InvariantCulture))" class="form-input" />
+            <span class="text-xs text-rose-500 font-medium">@ViewData.ModelState["NotaMinimaIngreso"]?.Errors.FirstOrDefault()?.ErrorMessage</span>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Manejo de anuladas</label>
+            <select name="ManejoAnuladas" class="form-input">
+                <option value="Ignorar" selected="@(Model?.ManejoAnuladas == "Ignorar")">Ignorar (0 puntos)</option>
+                <option value="Redistribuir" selected="@(Model?.ManejoAnuladas == "Redistribuir")">Redistribuir (correctas para todos)</option>
+                <option value="Descontar" selected="@(Model?.ManejoAnuladas == "Descontar")">Descontar del total</option>
+            </select>
+        </div>
+        <div class="flex items-center gap-2 md:col-span-2 pt-6">
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "AplicarVigesimal", Name = "AplicarVigesimal",
+                Label = "Incluir escala vigesimal (0-20)",
+                Checked = Model?.AplicarVigesimal ?? false,
+                Variant = "switch"
+            })' />
+        </div>
+    </div>
+</section>
+
+<!-- Rangos ponderados -->
+<section id="rangesSection" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft @(Model?.IsWeighted == true ? "" : "hidden")">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-secondary-50 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center">
+                <i class="ti ti-subtask text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Rangos de preguntas</h2>
+                <p class="text-[11.5px] text-ink-500">Cada bloque define el puntaje por correcta de sus preguntas</p>
+            </div>
+        </div>
+        <button type="button" id="btnAddRange"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-500/10 ring-1 ring-primary-200 dark:ring-primary-500/30 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-colors">
+            <i class="ti ti-plus text-[11px]"></i> Agregar rango
+        </button>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div id="rangesEmpty" class="py-10 text-center @(Model?.Ranges.Count > 0 ? "hidden" : "")">
+            <i class="ti ti-alert-circle text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-500 text-sm font-medium">Aún no hay rangos. Agrega al menos uno para calificar de forma ponderada.</p>
+        </div>
+
+        <div id="rangesContainer" class="space-y-3">
+            @for (var i = 0; i < Model.Ranges.Count; i++)
+            {
+                var r = Model.Ranges[i];
+                <div class="range-row grid grid-cols-12 gap-3 items-end">
+                    <div class="col-span-5 md:col-span-3">
+                        <label class="block text-[11px] font-semibold text-ink-600 dark:text-ink-300 uppercase tracking-wide mb-1.5">Desde</label>
+                        <input type="number" min="1" name="Ranges[@i].FromQuestion" value="@r.FromQuestion"
+                               class="form-input range-from" placeholder="1" />
+                    </div>
+                    <div class="col-span-5 md:col-span-3">
+                        <label class="block text-[11px] font-semibold text-ink-600 dark:text-ink-300 uppercase tracking-wide mb-1.5">Hasta</label>
+                        <input type="number" min="1" name="Ranges[@i].ToQuestion" value="@r.ToQuestion"
+                               class="form-input range-to" placeholder="12" />
+                    </div>
+                    <div class="col-span-10 md:col-span-4">
+                        <label class="block text-[11px] font-semibold text-ink-600 dark:text-ink-300 uppercase tracking-wide mb-1.5">Puntos por correcta</label>
+                        <input type="number" step="0.0001" min="0" name="Ranges[@i].PuntosCorrecta" value="@(r.PuntosCorrecta.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                               class="form-input range-points" placeholder="5.0000" />
+                    </div>
+                    <div class="col-span-2 md:col-span-2 flex items-end justify-end">
+                        <button type="button"
+                                class="range-remove w-9 h-9 rounded-md ring-1 ring-ink-200 dark:ring-ink-700 text-ink-400 hover:text-rose-600 hover:ring-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all inline-flex items-center justify-center">
+                            <i class="ti ti-trash text-[13px]"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Alcance -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-world text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Alcance (opcional)</h2>
+            <p class="text-[11.5px] text-ink-500">Restringe el perfil a un periodo, modalidad, tipo o carrera</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "TermId",
+                Label = "Periodo académico",
+                Placeholder = "Todos los periodos",
+                Options = terms.Select(t => new { id = t.Id, name = t.Name }),
+                SelectedValue = Model?.TermId?.ToString()
+            }' />
+        </div>
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "ModalityId",
+                Label = "Modalidad",
+                Placeholder = "Todas las modalidades",
+                Options = modalities.Select(m => new { id = m.Id, name = m.Name }),
+                SelectedValue = Model?.ModalityId?.ToString()
+            }' />
+        </div>
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "TypeModalityId",
+                Label = "Tipo de modalidad",
+                Placeholder = "Todos los tipos",
+                Options = typeModalities.Select(t => new { id = t.Id, name = t.Name }),
+                SelectedValue = Model?.TypeModalityId?.ToString()
+            }' />
+        </div>
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "CareerId",
+                Label = "Carrera",
+                Placeholder = "Todas las carreras",
+                Options = careers.Select(c => new { id = c.Id, name = c.Name }),
+                SelectedValue = Model?.CareerId?.ToString()
+            }' />
+        </div>
+    </div>
+</section>

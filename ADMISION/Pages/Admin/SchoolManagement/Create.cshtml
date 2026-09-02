@@ -1,0 +1,162 @@
+@model ADMISION.ENTITIES.Models.Schools.Schools
+
+@{
+    ViewData["Title"] = "Nuevo Colegio";
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var departmentOptions = ((IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Departments)
+        .Select(i => new { id = i.Value, name = i.Text });
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a asp-action="Index" class="hover:text-primary-600 transition-colors">Colegios</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Nuevo</span>
+    </div>
+    <div class="eyebrow">Catálogo institucional</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Registrar nuevo <span class="font-serif font-normal text-primary-600">colegio</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Completa los datos de la institución y su ubicación.</p>
+</section>
+
+<form asp-action="Create" method="post" class="space-y-5 max-w-4xl">
+    <!-- Validation summary -->
+    <div asp-validation-summary="ModelOnly"
+         class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Card: Datos de la Institución -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-school text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos de la institución</h2>
+                    <p class="text-[11.5px] text-ink-500">Identificación oficial y nivel educativo</p>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-5">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Name", Name = "Name",
+                    Label = "Nombre del colegio", Required = true,
+                    Placeholder = "Ej. Colegio Nacional San José",
+                    Value = Model?.Name,
+                    IconLeft = "ti-school",
+                    Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "Code", Name = "Code",
+                    Label = "Código modular",
+                    Placeholder = "Ej. 1632751",
+                    Value = Model?.Code,
+                    IconLeft = "ti-hash",
+                    Error = ViewData.ModelState["Code"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "UgelName", Name = "UgelName",
+                    Label = "Nombre UGEL",
+                    Placeholder = "Ej. Andahuaylas",
+                    Value = Model?.UgelName,
+                    IconLeft = "ti-building-bank",
+                    Error = ViewData.ModelState["UgelName"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-4">
+                    <partial name="_FormInput" model='@(new {
+                        Id = "Modality", Name = "Modality",
+                        Label = "Modalidad",
+                        Placeholder = "Ej. EBR",
+                        Value = Model?.Modality,
+                        IconLeft = "ti-stack-2",
+                        Error = ViewData.ModelState["Modality"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "Level", Name = "Level",
+                        Label = "Nivel / Ciclo",
+                        Placeholder = "Ej. Secundaria",
+                        Value = Model?.Level,
+                        IconLeft = "ti-school",
+                        Error = ViewData.ModelState["Level"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+                </div>
+
+                <partial name="_CustomSelect" model='@(new {
+                    Id = "Management", Name = "Management",
+                    Label = "Gestión",
+                    Required = true,
+                    Searchable = false,
+                    Options = new[] {
+                        new { id = "PÚBLICO", name = "Público" },
+                        new { id = "PRIVADO", name = "Privado" }
+                    },
+                    SelectedValue = Model?.Management ?? "PÚBLICO"
+                })' />
+            </div>
+        </section>
+
+        <!-- Card: Ubicación -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-map-pin text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Ubicación (Ubigeo)</h2>
+                    <p class="text-[11.5px] text-ink-500">Departamento, provincia, distrito y dirección</p>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-5">
+                <partial name="_CustomSelect" model='new { Id = "departmentSelect", Name = "departmentSelect", Label = "Departamento", Placeholder = "-- Seleccione Departamento --", Options = departmentOptions }' />
+
+                <partial name="_CustomSelect" model='new { Id = "provinceSelect", Name = "provinceSelect", Label = "Provincia", Placeholder = "-- Seleccione Provincia --" }' />
+
+                <div>
+                    <partial name="_CustomSelect" model='new { Id = "DistritId", Name = "DistritId", Label = "Distrito", Placeholder = "-- Seleccione Distrito --", Required = true }' />
+                    <span asp-validation-for="DistritId" class="text-xs text-rose-500 mt-1"></span>
+                </div>
+
+                <div>
+                    <label asp-for="Address" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">
+                        Dirección
+                    </label>
+                    <textarea asp-for="Address" rows="2"
+                              placeholder="Ej. Av. Principal 123"
+                              class="w-full bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md px-4 py-3 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"></textarea>
+                    <span asp-validation-for="Address" class="text-xs text-rose-500 mt-1"></span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar colegio
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        window.SchoolCreateConfig = {
+            provincesUrl: '/admin/colegios/GetProvinces',
+            districtsUrl: '/admin/colegios/GetDistricts'
+        };
+    </script>
+    <script src="~/js/admin/school-management/create.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,132 @@
+@model ADMISION.ENTITIES.Models.Info.FaqItem
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <!-- Columna principal -->
+    <div class="lg:col-span-2 space-y-4">
+
+        <!-- Card: Pregunta y respuesta -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-message-dots text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Pregunta y respuesta</h2>
+                    <p class="text-[11.5px] text-ink-500">Cómo se mostrará al postulante en el chatbot.</p>
+                </div>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Question", Name = "Question",
+                    Label = "Pregunta", Required = true,
+                    Placeholder = "Ej: ¿Cómo me inscribo al examen de admisión?",
+                    Value = Model.Question,
+                    IconLeft = "ti-help-circle",
+                    MaxLength = "300",
+                    Error = ViewData.ModelState["Question"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormTextarea" model='@(new {
+                    Id = "Answer", Name = "Answer",
+                    Label = "Respuesta", Required = true,
+                    Placeholder = "Escribe la respuesta que verá el postulante. Puedes usar texto plano; se respetan saltos de línea.",
+                    Value = Model.Answer,
+                    Rows = 6,
+                    Error = ViewData.ModelState["Answer"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+        </section>
+
+        <!-- Card: Matching -->
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-secondary-500/10 text-secondary-700 inline-flex items-center justify-center">
+                    <i class="ti ti-search text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Matching del chatbot</h2>
+                    <p class="text-[11.5px] text-ink-500">Palabras clave / sinónimos que ayudan al bot a encontrar esta pregunta.</p>
+                </div>
+            </div>
+            <div class="p-4 sm:p-5">
+                <partial name="_FormTextarea" model='@(new {
+                    Id = "Keywords", Name = "Keywords",
+                    Label = "Palabras clave (separadas por coma)",
+                    Placeholder = "inscripcion, registrarme, postular, cómo me inscribo, modalidad ordinaria",
+                    Value = Model.Keywords,
+                    Rows = 3,
+                    MaxLength = 500,
+                    Helper = "Tip: agrega variantes con/sin tildes y términos coloquiales. Cada coincidencia suma al score del matching."
+                })' />
+            </div>
+        </section>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="space-y-4 lg:sticky lg:top-24 self-start">
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-folder-open text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Categoría y visibilidad</h2>
+                    <p class="text-[11.5px] text-ink-500">Agrupa preguntas relacionadas en el portal.</p>
+                </div>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Category", Name = "Category",
+                    Label = "Categoría",
+                    Placeholder = "Ej: Inscripción, Pagos, Examen…",
+                    Value = Model.Category,
+                    IconLeft = "ti-tag",
+                    MaxLength = "80"
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "DisplayOrder", Name = "DisplayOrder",
+                    Label = "Orden de visualización",
+                    Type = "number",
+                    Value = Model.DisplayOrder.ToString(),
+                    IconLeft = "ti-sort-descending-numbers"
+                })' />
+
+                <partial name="_FormCheckbox" model='@(new {
+                    Id = "IsActive", Name = "IsActive",
+                    Label = "Pregunta activa",
+                    Hint = "Visible al chatbot y al listado público",
+                    Checked = Model.IsActive,
+                    Variant = "switch"
+                })' />
+
+                <div>
+                    <label for="ParentId" class="form-label">Opción padre</label>
+                    <select id="ParentId" name="ParentId" class="form-select">
+                        @if (ViewBag.ParentOptions != null)
+                        {
+                            foreach (var opt in ViewBag.ParentOptions)
+                            {
+                                var selected = Model.ParentId.HasValue && Model.ParentId.Value.ToString() == opt.Value;
+                                <option value="@opt.Value" selected="@selected">@opt.Text</option>
+                            }
+                        }
+                    </select>
+                    <p class="form-helper mt-1">Si es sub-opción, selecciona a qué opción pertenece. Dejar vacío para opción raíz.</p>
+                </div>
+            </div>
+        </section>
+
+        @if (Model.Id != Guid.Empty)
+        {
+            <section class="fade-up bg-ink-50/60 dark:bg-ink-800/40 rounded-md ring-soft p-4">
+                <div class="eyebrow mb-2">Estadísticas</div>
+                <div class="flex items-baseline gap-2">
+                    <span class="font-mono text-2xl font-bold text-ink-900 dark:text-ink-100 tabular-nums">@Model.HitCount</span>
+                    <span class="text-[11px] text-ink-500">veces resuelta por el bot</span>
+                </div>
+            </section>
+        }
+    </aside>
+</div>

@@ -1,0 +1,1627 @@
+@model ADMISION.Services.Interfaces.InscriptionValidationGroup
+@using ADMISION.ENTITIES.Constants
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = ViewBag.User as ADMISION.ENTITIES.Models.Users.Users;
+    var insc = ViewBag.Inscription as ADMISION.ENTITIES.Models.Postulante.Inscription;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id ?? Guid.Empty;
+    var inscriptionId = Model.InscriptionId;
+    ViewData["Title"] = "Expediente — " + fullName;
+
+    var externalAcademic = ViewBag.ExternalAcademic as IReadOnlyList<ADMISION.ENTITIES.Models.Integrations.ExternalAcademicInfo>;
+    var photos = ViewBag.Photos as IReadOnlyList<ADMISION.Services.Interfaces.PostulantPhotoListItem>;
+    var fingerprints = ViewBag.Fingerprints as IReadOnlyList<ADMISION.Services.Interfaces.FingerprintListItem>;
+    var disabilityTypes = ViewBag.DisabilityTypes as IReadOnlyList<ADMISION.Services.Interfaces.DisabilityTypeListItem>;
+    var postulantDisabilities = postulant?.Disabilities?.Select(d => d.DisabilityTypeId).ToHashSet() ?? new HashSet<Guid>();
+    var conadisNumber = postulant?.ConadisNumber;
+
+    var pct = Model.PercentComplete;
+    var photoCount = photos?.Count ?? 0;
+    var fpCount = fingerprints?.Count ?? 0;
+
+    var isSuperAdmin = User.IsInRole(AppConstants.Roles.SuperAdmin);
+    var pendingRequirements = ViewBag.PendingRequirements as IReadOnlyList<ADMISION.Services.Interfaces.RequirementOption>
+        ?? Array.Empty<ADMISION.Services.Interfaces.RequirementOption>();
+
+    var annulments = ViewBag.Annulments as IReadOnlyList<ADMISION.ENTITIES.Models.Postulant.Annulment>
+        ?? Array.Empty<ADMISION.ENTITIES.Models.Postulant.Annulment>();
+    var now = DateTimeOffset.UtcNow;
+    var activeAnnulment = annulments.FirstOrDefault(a => a.StartDate <= now && a.EndDate >= now);
+}
+
+<!-- Breadcrumb -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Busqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId/inscriptions" class="hover:text-primary-600 transition-colors">Inscripciones</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Vista unificada</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Expediente de <span class="font-serif font-normal text-primary-600">@user?.Name</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@user?.DocumentType @user?.Document &middot; @(insc?.Career?.Name ?? "—") &middot; @(insc?.Modality?.Term?.Name ?? "")</p>
+        </div>
+    </div>
+</section>
+
+<div class="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-5 items-start">
+
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="hidden xl:block sticky top-16 space-y-4">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-4 text-center">
+        <div class="w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-500/10 text-primary-600 flex items-center justify-center font-bold text-xl mx-auto mb-2 overflow-hidden">
+            @if (!string.IsNullOrEmpty(user?.PhotoUrl))
+            {
+                <img src="/@user.PhotoUrl" alt="foto" class="w-full h-full object-cover" />
+            }
+            else
+            {
+                @((user?.Name?.Length > 0 ? user.Name[0].ToString() : "") + (user?.FirstNameFather?.Length > 0 ? user.FirstNameFather[0].ToString() : ""))
+            }
+        </div>
+        <div class="text-[13px] font-bold text-ink-900 dark:text-ink-100">@fullName</div>
+        <div class="text-[11px] text-ink-500 font-mono">@user?.Document</div>
+        <hr class="my-3 border-ink-200/60 dark:border-ink-800/60" />
+        <div class="space-y-1.5 text-left">
+            <div class="flex justify-between text-[11.5px]"><span class="text-ink-500">Modalidad</span><span class="font-semibold text-ink-800 dark:text-ink-100 max-w-[130px]">@(insc?.Modality?.Name ?? "—")</span></div>
+            <div class="flex justify-between text-[11.5px]"><span class="text-ink-500">Carrera</span><span class="font-semibold text-ink-800 dark:text-ink-100 max-w-[130px]">@(insc?.Career?.Name ?? "—")</span></div>
+            <div class="flex justify-between text-[11.5px]"><span class="text-ink-500">Codigo</span><span class="font-mono font-semibold text-ink-800 dark:text-ink-100 text-[11px]">@Model.CodePostulant</span></div>
+        </div>
+        <hr class="my-3 border-ink-200/60 dark:border-ink-800/60" />
+        <div class="text-[11px] text-ink-400 mb-1">Archivos validados</div>
+        <div class="text-lg font-bold text-ink-900 dark:text-ink-100 font-mono">@Model.ValidatedCount/@Model.TotalFiles</div>
+        <div class="h-1.5 bg-ink-100 dark:bg-ink-800 rounded-full mt-2 overflow-hidden">
+            <div class="h-full @(pct == 100 ? "bg-emerald-500" : "bg-primary-500") transition-[width] duration-500" style="width:@pct%"></div>
+        </div>
+    </div>
+
+    <nav class="bg-white dark:bg-ink-900 rounded-md ring-soft p-2">
+        <a href="#personales" class="block p-2 expediente-nav-item active" data-section="personales"><span class="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span> Datos personales</a>
+        <a href="#archivos" class="block p-2 expediente-nav-item" data-section="archivos"><span class="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span> Archivos <span class="ml-auto text-[10px] bg-ink-100 dark:bg-ink-800 text-ink-500 px-1.5 py-0.5 rounded-full font-mono">@Model.ValidatedCount/@Model.TotalFiles</span></a>
+        <a href="#postulacion" class="block p-2 expediente-nav-item" data-section="postulacion"><span class="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span> Datos de postulacion</a>
+        <a href="#biometria" class="block p-2 expediente-nav-item" data-section="biometria"><span class="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span> Fotografia y huellas</a>
+    </nav>
+</aside>
+
+<!-- ================= MAIN CONTENT ================= -->
+<div class="space-y-5 min-w-0">
+
+@Html.AntiForgeryToken()
+
+<!-- ═══════════ DATOS PERSONALES ═══════════ -->
+<section id="personales" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden scroll-mt-20">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center shrink-0">
+            <i class="ti ti-address-book text-sm"></i>
+        </span>
+        <div class="flex-1 min-w-0">
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos personales</h2>
+            <p class="text-[11.5px] text-ink-500">Informacion de contacto e identidad declarada</p>
+        </div>
+        <button type="button" data-toggle-edit="personales"
+                class="js-toggle-edit inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-700 dark:text-primary-300 text-[11.5px] font-semibold hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors">
+            <i class="ti ti-edit text-[10px]"></i> Editar
+        </button>
+    </div>
+    <div class="p-4 sm:p-5">
+        <!-- READ MODE -->
+        <div id="personales-view" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Nombres</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.Name ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Apellido paterno</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.FirstNameFather ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Apellido materno</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.FirstNameMother ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Tipo documento</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.DocumentType ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">N° documento</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5 font-mono">@user?.Document</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Fecha de nacimiento</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5 tabular-nums">@(user?.Birthdate.ToString("dd/MM/yyyy") ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Genero</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.Genero == "M" ? "Masculino" : user?.Genero == "F" ? "Femenino" : "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Estado civil</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.CivilStatus ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Direccion</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.Address ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3 md:col-span-2">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Correo electronico</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.Email ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Celular</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(user?.PhoneNumber ?? "—")</p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3 md:col-span-2">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Discapacidad (Ley 29973)</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">
+                    @if (postulant?.Disabilities != null && postulant.Disabilities.Any() && disabilityTypes != null)
+                    {
+                        var activeDisabilities = postulant.Disabilities
+                            .Join(disabilityTypes, pd => pd.DisabilityTypeId, dt => dt.Id, (pd, dt) => dt.Name);
+                        @string.Join(", ", activeDisabilities)
+                    }
+                    else
+                    {
+                        @:Ninguna registrada
+                    }
+                </p>
+            </div>
+            <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">N° CONADIS</p>
+                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(conadisNumber ?? "—")</p>
+            </div>
+        </div>
+
+        <!-- EDIT MODE (hidden by default) -->
+        <form id="personales-form" class="hidden">
+            <input type="hidden" name="Id" value="@user?.Id" />
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-field">
+                    <label class="form-label">Nombres <span class="required">*</span></label>
+                    <input name="Name" value="@user?.Name" class="form-input" required />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Apellido paterno <span class="required">*</span></label>
+                    <input name="FirstNameFather" value="@user?.FirstNameFather" class="form-input" required />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Apellido materno <span class="required">*</span></label>
+                    <input name="FirstNameMother" value="@user?.FirstNameMother" class="form-input" required />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Tipo documento <span class="required">*</span></label>
+                    <select name="DocumentType" class="form-input" required>
+                        <option value="DNI" selected="@(user?.DocumentType == "DNI")">DNI</option>
+                        <option value="CE" selected="@(user?.DocumentType == "CE")">Carnet de Extranjeria</option>
+                        <option value="PAS" selected="@(user?.DocumentType == "PAS")">Pasaporte</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">N° documento <span class="required">*</span></label>
+                    <input name="Document" value="@user?.Document" class="form-input" required />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Fecha de nacimiento</label>
+                    <input name="Birthdate" type="date" class="form-input" value="@(user?.Birthdate.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Genero</label>
+                    <select name="Genero" class="form-input">
+                        <option value="M" selected="@(user?.Genero == "M")">Masculino</option>
+                        <option value="F" selected="@(user?.Genero == "F")">Femenino</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Estado civil</label>
+                    <select name="CivilStatus" class="form-input">
+                        <option value="">— Seleccione —</option>
+                        <option value="Soltero" selected="@(user?.CivilStatus == "Soltero")">Soltero</option>
+                        <option value="Casado" selected="@(user?.CivilStatus == "Casado")">Casado</option>
+                        <option value="Divorciado" selected="@(user?.CivilStatus == "Divorciado")">Divorciado</option>
+                        <option value="Viudo" selected="@(user?.CivilStatus == "Viudo")">Viudo</option>
+                        <option value="Conviviente" selected="@(user?.CivilStatus == "Conviviente")">Conviviente</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Direccion</label>
+                    <input name="Address" value="@user?.Address" class="form-input" placeholder="Av. Principal 123..." />
+                </div>
+                <div class="form-field md:col-span-2">
+                    <label class="form-label">Correo electronico <span class="required">*</span></label>
+                    <input name="Email" type="email" value="@user?.Email" class="form-input" required />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Celular</label>
+                    <input name="PhoneNumber" value="@user?.PhoneNumber" class="form-input" />
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 mt-4 flex items-center gap-2">Discapacidad <span class="text-ink-300 text-[9px] font-semibold tracking-normal normal-case">Ley 29973</span> <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="form-field md:col-span-2">
+                    <label class="form-label">Tipo de discapacidad</label>
+                    @if (disabilityTypes != null && disabilityTypes.Any())
+                    {
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            @foreach (var dt in disabilityTypes)
+                            {
+                                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md ring-1 ring-ink-200/60 dark:ring-ink-700/60 bg-ink-50/60 dark:bg-ink-800/40 cursor-pointer hover:bg-primary-50/60 dark:hover:bg-primary-500/10 transition-colors text-sm">
+                                    <input type="checkbox" name="DisabilityTypeIds" value="@dt.Id"
+                                           @(postulantDisabilities.Contains(dt.Id) ? "checked" : "")
+                                           class="accent-primary-600 w-3.5 h-3.5" />
+                                    <span class="text-ink-700 dark:text-ink-200 text-[13px]">@dt.Name</span>
+                                </label>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-ink-400 mt-1">No hay tipos de discapacidad registrados.</p>
+                    }
+                </div>
+                <div class="form-field">
+                    <label class="form-label">N° Carnet/Resolución CONADIS</label>
+                    <input name="ConadisNumber" value="@(conadisNumber ?? "")" class="form-input" placeholder="Ej. 12345-2023-DIR" />
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-ink-200/60 dark:border-ink-800/60">
+                <button type="button" data-cancel-edit="personales" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-device-floppy text-xs"></i> Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+<!-- ═══════════ ARCHIVOS DE LA INSCRIPCION ═══════════ -->
+@if (Model.Files.Count == 0)
+{
+    <section id="archivos" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-14 text-center scroll-mt-20">
+        <i class="ti ti-folder-open text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 text-sm font-medium">Esta inscripcion no tiene archivos para validar.</p>
+        @if (isSuperAdmin && pendingRequirements.Any())
+        {
+            <button type="button" data-modal-open="uploadRequirementsModal"
+                    class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+                <i class="ti ti-upload text-xs"></i> Subir archivos de requisito
+            </button>
+        }
+    </section>
+}
+else
+{
+    <section id="archivos" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden scroll-mt-20">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center shrink-0">
+                <i class="ti ti-file-text text-sm"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Archivos de la inscripcion</h2>
+                <p class="text-[11.5px] text-ink-500">Valida o rechaza cada archivo subido por el postulante.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                @if (isSuperAdmin && pendingRequirements.Any())
+                {
+                    <button type="button" data-modal-open="uploadRequirementsModal"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary-600 text-white text-[11.5px] font-semibold hover:bg-primary-700 transition-colors">
+                        <i class="ti ti-upload text-[10px]"></i> Subir archivos
+                        <span class="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full font-mono tabular-nums">@pendingRequirements.Count</span>
+                    </button>
+                }
+                <span class="badge b-gray text-[10px]">
+                    <span class="font-mono tabular-nums">@Model.ValidatedCount</span>/<span class="font-mono tabular-nums">@Model.TotalFiles</span> validados
+                </span>
+                @{
+                    var stateBadge = Model.State switch
+                    {
+                        AppConstants.InscripcionState.Aprobado => "badge b-green",
+                        AppConstants.InscripcionState.Observado => "badge b-amber",
+                        AppConstants.InscripcionState.Rechazado => "badge b-red",
+                        AppConstants.InscripcionState.Retirado => "badge b-gray",
+                        _ => "badge b-blue"
+                    };
+                }
+                <span class="@stateBadge text-[10px]">@Model.State</span>
+            </div>
+        </div>
+
+        <div class="px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-ink-200/60 dark:border-ink-800/60">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md @(pct == 100 ? "bg-emerald-50 text-emerald-600" : "bg-primary-50 text-primary-600") inline-flex items-center justify-center">
+                    <i class="ti @(pct == 100 ? "ti-circle-check" : "ti-list-check") text-sm"></i>
+                </span>
+                <div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Progreso de validacion</div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">
+                        <span class="font-mono tabular-nums">@Model.ValidatedCount</span> / <span class="font-mono tabular-nums">@Model.TotalFiles</span> archivos validados
+                    </h2>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-2xl font-bold text-ink-900 dark:text-ink-100 tabular-nums leading-none">@pct<span class="text-ink-400 text-sm font-normal">%</span></div>
+                @if (pct == 100)
+                {
+                    <span class="badge b-green text-[10px] mt-1"><i class="ti ti-circle-check text-[9px]"></i> Completo</span>
+                }
+            </div>
+        </div>
+        <div class="h-1.5 bg-ink-100 dark:bg-ink-800">
+            <div class="h-full @(pct == 100 ? "bg-emerald-500" : "bg-primary-500") transition-[width] duration-700" style="width:@pct%"></div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="atlas">
+                <thead>
+                    <tr>
+                        <th class="w-[220px]">Requisito</th>
+                        <th class="w-[200px]">Archivo</th>
+                        <th class="w-[80px]">Tipo</th>
+                        <th class="w-[80px]">Tamano</th>
+                        <th class="w-[180px]">Validacion</th>
+                        <th>Observacion</th>
+                        <th class="w-[120px]">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var file in Model.Files)
+                    {
+                        var isPayment = file.Kind == "payment";
+                        var toggleUrl = isPayment
+                            ? $"/admin/info-postulant/postulant/postulant-resum/{postulantId}/payment/{file.Id}/validate"
+                            : $"/admin/info-postulant/postulant/postulant-resum/{postulantId}/file/{file.Id}/validate";
+                        var replaceUrl = isPayment
+                            ? ""
+                            : $"/admin/info-postulant/postulant/postulant-resum/{postulantId}/file/{file.Id}/replace";
+                        var iconCls = isPayment ? "ti-cash" : "ti-file-text";
+                        var stampBg = isPayment ? "bg-amber-50 text-amber-600" : "bg-primary-50 text-primary-600";
+
+                        <tr class="validation-row"
+                            data-toggle-url="@toggleUrl"
+                            data-replace-url="@replaceUrl"
+                            data-validated="@(file.IsValidated ? "true" : "false")"
+                            data-kind="@file.Kind"
+                            @if (isPayment)
+                            {
+                                @Html.Raw($"data-operation-code=\"{System.Net.WebUtility.HtmlEncode(file.OperationCode ?? "")}\"")
+                            }
+                            @if (isPayment)
+                            {
+                                @Html.Raw($"data-payment-id=\"{file.Id}\"")
+                            }
+                            @if (isPayment)
+                            {
+                                @Html.Raw($"data-has-external=\"{(file.HasExternalAssociation ? "true" : "false")}\"")
+                            }
+                            @if (isPayment)
+                            {
+                                @Html.Raw($"data-edit-url=\"/admin/info-postulant/postulant/postulant-resum/{postulantId}/payment/{file.Id}/edit\"")
+                            }
+                            >
+                                <td>
+                                    <div class="text-[12.5px] font-semibold text-ink-900 dark:text-ink-100">
+                                        @if (isPayment)
+                                        {
+                                            <span>Comprobante de pago</span>
+                                            @if (!string.IsNullOrEmpty(file.PaymentMethodName))
+                                            {
+                                                <span class="text-ink-500 font-normal"> — @file.PaymentMethodName</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @file.FieldLabel
+                                        }
+                                    </div>
+                                    @if (isPayment)
+                                    {
+                                        <div class="flex items-center gap-1.5 mt-1">
+                                            <span class="text-[10px] text-ink-400 font-mono">op.</span>
+                                            <span class="js-op-code text-[11px] text-ink-600 font-mono font-medium" data-current="@file.OperationCode">@(string.IsNullOrEmpty(file.OperationCode) ? "—" : file.OperationCode)</span>
+                                            <span class="text-[10px] text-ink-400 mx-0.5">|</span>
+                                            <span class="text-[10px] text-ink-400 font-mono">S/ @(file.Amount.ToString("F2"))</span>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-8 h-8 rounded-md @stampBg inline-flex items-center justify-center shrink-0">
+                                            <i class="ti @iconCls text-[12px]"></i>
+                                        </span>
+                                        <div class="min-w-0">
+                                            @if (isPayment)
+                                            {
+                                                <span class="badge b-amber text-[9px] mr-1"><i class="ti ti-credit-card text-[8px]"></i> Pago</span>
+                                                @if (file.HasExternalAssociation)
+                                                {
+                                                    <span class="badge b-teal text-[9px] mr-1"><i class="ti ti-link text-[7px]"></i> Asoc. API</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge b-gray text-[9px] mr-1"><i class="ti ti-link-off text-[7px]"></i> Sin asoc.</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="badge b-primary text-[9px] mr-1"><i class="ti ti-paperclip text-[8px]"></i> Requisito</span>
+                                            }
+                                            <div class="text-[10.5px] text-ink-500 truncate max-w-[200px]" title="@file.FileName">@file.FileName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-[10.5px] text-ink-500 font-mono truncate block max-w-[70px]" title="@file.FileType">@file.FileType</span>
+                                </td>
+                                <td>
+                                    <span class="text-[11px] text-ink-600 tabular-nums">@file.FileSize</span>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <label class="form-switch mb-0">
+                                            <input type="checkbox" class="js-validate-toggle" @(file.IsValidated ? "checked" : "") />
+                                        </label>
+                                        @if (file.IsValidated && file.ValidatedAt.HasValue)
+                                        {
+                                            <span class="text-[10px] text-emerald-600 font-medium leading-tight">
+                                                por @file.ValidatedBy<br>@file.ValidatedAt.Value.LocalDateTime.ToString("dd/MM HH:mm")
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(file.ValidationNote))
+                                    {
+                                        <div class="text-[11px] text-amber-700 bg-amber-50 ring-1 ring-amber-200/60 rounded px-2 py-1 leading-relaxed">
+                                            <i class="ti ti-message text-[9px] mr-1"></i> @file.ValidationNote
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[11px] text-ink-400 italic">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-1">
+                                        @if (!string.IsNullOrWhiteSpace(file.FilePath))
+                                        {
+                                            <a href="/@file.FilePath.TrimStart('/')" target="_blank"
+                                                class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                                title="Abrir archivo">
+                                                <i class="ti ti-external-link text-[10px]"></i>
+                                            </a>
+                                        }
+                                        @if (isPayment)
+                                        {
+                                            if (file.HasExternalAssociation)
+                                            {
+                                                <button type="button" data-modal-open="validationVoucherModal-@file.Id"
+                                                        class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-teal-200 dark:ring-teal-500/30 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-500/10 transition-colors"
+                                                        title="Ver pago externo asociado">
+                                                    <i class="ti ti-link text-[10px]"></i>
+                                                </button>
+                                            }
+                                            <button type="button"
+                                                    class="js-edit-payment inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-amber-200 dark:ring-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors"
+                                                    title="Editar comprobante">
+                                                <i class="ti ti-pencil text-[10px]"></i>
+                                            </button>
+                                        }
+                                        <button type="button"
+                                                class="js-add-note inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-ink-200 dark:ring-ink-700 text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors"
+                                                title="Agregar observacion"
+                                                data-existing-note="@(file.ValidationNote ?? "")">
+                                            <i class="ti ti-message-dots text-[10px]"></i>
+                                        </button>
+                                        @if (!isPayment)
+                                        {
+                                            <button type="button"
+                                                    class="js-replace-file inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-amber-200 dark:ring-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors"
+                                                    title="Reemplazar archivo">
+                                                <i class="ti ti-upload text-[10px]"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+    <!-- Informacion academica externa -->
+    <section id="academic" class="fade-up scroll-mt-20" id="academicData">
+        @await Html.PartialAsync("~/Pages/Admin/InfoPostulant/PostulantResum/_ExternalAcademicCard.cshtml", externalAcademic)
+    </section>
+
+
+<!-- ═══════════ DATOS DE LA POSTULACION ═══════════ -->
+<section id="postulacion" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden scroll-mt-20">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3">
+        <span class="w-9 h-9 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center shrink-0">
+            <i class="ti ti-school text-sm"></i>
+        </span>
+        <div class="flex-1 min-w-0">
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos de la postulacion</h2>
+            <p class="text-[11.5px] text-ink-500">Formacion academica, residencia e institucion de procedencia</p>
+        </div>
+        <button type="button" data-toggle-edit="postulacion"
+                class="js-toggle-edit inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-1 ring-secondary-200 dark:ring-secondary-500/30 text-secondary-700 dark:text-secondary-300 text-[11.5px] font-semibold hover:bg-secondary-50 dark:hover:bg-secondary-500/10 transition-colors">
+            <i class="ti ti-edit text-[10px]"></i> Editar
+        </button>
+    </div>
+    <div class="p-4 sm:p-5">
+
+        <!-- READ MODE -->
+        <div id="postulacion-view">
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Formacion academica <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Carrera profesional</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Career?.Name ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Modalidad de ingreso</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Modality?.Name ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Tipo de modalidad</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.TypeModality?.Name ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Tipo de postulante</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.TypePostulantInscription?.Name ?? "—")</p>
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Lugar de Nacimiento <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Codigo Ubigeo</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Distrit?.Code ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Pais</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Country?.Name ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Departamento</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Distrit?.Province?.Department?.Name ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Provincia</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Distrit?.Province?.Name ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Distrito</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Distrit?.Name ?? "—")</p>
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Institucion educativa de procedencia <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Colegio registrado</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.School?.Name ?? insc?.OtherSchool ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Nivel educativo</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.EducationalLevel ?? "—")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Grado</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(insc?.Grade != null ? insc.Grade + "°" : "—")</p>
+                </div>
+            </div>
+
+            @{
+                var parent = insc?.Parents?.FirstOrDefault();
+            }
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Apoderado <span class="text-amber-600 text-[9px] font-semibold tracking-normal normal-case">Solo si es menor de edad</span> <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Nombres del apoderado</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(parent?.Name != null ? $"{parent.FirstNameFather} {parent.FirstNameMother}, {parent.Name}" : "No registra")</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">N° de documento</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5">@(parent?.NumberDocument ?? "No registra")</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- EDIT MODE (hidden by default) -->
+        <form id="postulacion-form" class="hidden">
+            <input type="hidden" name="Id" value="@inscriptionId" />
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Estado y formacion <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="form-field">
+                    <label class="form-label">Estado <span class="required">*</span></label>
+                    <select name="State" class="form-input" required>
+                        @foreach (var s in (List<string>)ViewBag.States)
+                        {
+                            <option value="@s" selected="@(insc?.State == s)">@s</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Carrera profesional <span class="required">*</span></label>
+                    <select name="CareerId" id="CareerId" class="form-input" required>
+                        @foreach (var c in (IEnumerable<dynamic>)ViewBag.Careers)
+                        {
+                            <option value="@c.id" selected="@(insc?.CareerId == (Guid)c.id)">@c.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Modalidad de ingreso <span class="required">*</span></label>
+                    <select name="ModalityId" id="ModalityId" class="form-input" required>
+                        @foreach (var m in (IEnumerable<dynamic>)ViewBag.Modalities)
+                        {
+                            <option value="@m.id" selected="@(insc?.ModalityId == (Guid)m.id)">@m.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Tipo de modalidad</label>
+                    <select name="TypeModalityId" id="TypeModalityId" class="form-input">
+                        <option value="">— Sin tipo especifico —</option>
+                        @foreach (var t in (IEnumerable<dynamic>)ViewBag.TypeModalities)
+                        {
+                            <option value="@t.id" selected="@(insc?.TypeModalityId == (Guid)t.id)">@t.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Tipo de postulante</label>
+                    <select name="TypePostulantInscriptionId" class="form-input">
+                        <option value="">— Sin tipo —</option>
+                        @foreach (var t in (IEnumerable<dynamic>)ViewBag.TypePostulants)
+                        {
+                            <option value="@t.id" selected="@(insc?.TypePostulantInscriptionId == (Guid)t.id)">@t.name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Lugar de residencia <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="form-field">
+                    <label class="form-label">Pais <span class="required">*</span></label>
+                    <select name="CountryId" id="ubCountry" class="form-input" required>
+                        <option value="">— Seleccione pais —</option>
+                        @foreach (var c in (IEnumerable<dynamic>)ViewBag.Countries)
+                        {
+                            <option value="@c.id" selected="@(insc?.CountryId == (Guid)c.id)">@c.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Departamento</label>
+                    <select id="ubDepartment" class="form-input">
+                        <option value="">— Seleccione departamento —</option>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.Departments)
+                        {
+                            <option value="@d.id" selected="@((Guid?)ViewBag.CurrentDepartmentId == (Guid)d.id)">@d.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Provincia</label>
+                    <select id="ubProvince" class="form-input">
+                        <option value="">— Seleccione provincia —</option>
+                        @foreach (var p in (IEnumerable<dynamic>)ViewBag.Provinces)
+                        {
+                            <option value="@p.id" selected="@((Guid?)ViewBag.CurrentProvinceId == (Guid)p.id)">@p.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Distrito</label>
+                    <select name="DistritId" id="ubDistrict" class="form-input">
+                        <option value="">— Seleccione distrito —</option>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.Districts)
+                        {
+                            <option value="@d.id" selected="@(insc?.DistritId == (Guid)d.id)">@d.name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="bg-amber-50 dark:bg-amber-500/5 ring-1 ring-amber-200 dark:ring-amber-500/20 rounded-md p-3 flex items-center gap-3 mb-4">
+                <i class="ti ti-info-circle text-amber-600 text-sm shrink-0"></i>
+                <p class="text-[12px] text-ink-600 dark:text-ink-300">
+                    Al cambiar el distrito, se aplicara el ubigeo a <strong>todas las inscripciones</strong> del postulante para uniformizar.
+                </p>
+            </div>
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Institucion educativa <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="form-field">
+                    <label class="form-label">Departamento del colegio</label>
+                    <select id="schDepartment" class="form-input">
+                        <option value="">— Seleccione departamento —</option>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.SchoolDepartments)
+                        {
+                            <option value="@d.id" selected="@((Guid?)ViewBag.SchoolDepartmentId == (Guid)d.id)">@d.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Provincia del colegio</label>
+                    <select id="schProvince" class="form-input">
+                        <option value="">— Seleccione provincia —</option>
+                        @foreach (var p in (IEnumerable<dynamic>)ViewBag.SchoolProvinces)
+                        {
+                            <option value="@p.id" selected="@((Guid?)ViewBag.SchoolProvinceId == (Guid)p.id)">@p.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Distrito del colegio</label>
+                    <select id="schDistrict" class="form-input">
+                        <option value="">— Seleccione distrito —</option>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.SchoolDistricts)
+                        {
+                            <option value="@d.id" selected="@((Guid?)ViewBag.SchoolDistrictId == (Guid)d.id)">@d.name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="form-field">
+                    <label class="form-label">Colegio registrado</label>
+                    <select name="SchoolId" id="SchoolId" class="form-input">
+                        <option value="">— Selecciona primero el distrito —</option>
+                        @if (insc?.School != null)
+                        {
+                            <option value="@insc.School.Id" selected="selected">@insc.School.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Otro colegio (texto libre)</label>
+                    <input name="OtherSchool" id="OtherSchool" value="@insc?.OtherSchool" class="form-input" placeholder="Solo si no aparece en la lista" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="form-field">
+                    <label class="form-label">Gestion educativa</label>
+                    <select name="SchoolType" id="SchoolType" class="form-input">
+                        <option value="">— Sin especificar —</option>
+                        <option value="Publico" selected="@(insc?.SchoolType == "Publico")">Publica</option>
+                        <option value="Privado" selected="@(insc?.SchoolType == "Privado")">Privada</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Nivel educativo</label>
+                    <select name="EducationalLevel" id="EducationalLevel" class="form-input">
+                        <option value="">— Sin especificar —</option>
+                        <option value="Primaria" selected="@(insc?.EducationalLevel == "Primaria")">Primaria</option>
+                        <option value="Secundaria" selected="@(insc?.EducationalLevel == "Secundaria")">Secundaria</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Grado</label>
+                    <select name="Grade" id="Grade" class="form-input">
+                        <option value="">— Sin especificar —</option>
+                        @for (int gi = 1; gi <= 6; gi++)
+                        {
+                            <option value="@gi" selected="@(insc?.Grade == gi.ToString())">@gi°</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-3 flex items-center gap-2">Apoderado <span class="text-amber-600 text-[9px] font-semibold tracking-normal normal-case">Solo si es menor de edad</span> <span class="flex-1 h-px bg-ink-200/60 dark:bg-ink-800/60"></span></p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="form-field">
+                    <label class="form-label">Nombres del apoderado</label>
+                    <input name="Parents[0].Name" value="@(parent?.Name ?? "")" class="form-input" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Apellido paterno</label>
+                    <input name="Parents[0].FirstNameFather" value="@(parent?.FirstNameFather ?? "")" class="form-input" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Apellido materno</label>
+                    <input name="Parents[0].FirstNameMother" value="@(parent?.FirstNameMother ?? "")" class="form-input" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Tipo de documento</label>
+                    <select name="Parents[0].TypeDocument" class="form-input">
+                        <option value="">— Seleccione —</option>
+                        <option value="DNI" selected="@(parent?.TypeDocument == "DNI")">DNI</option>
+                        <option value="CE" selected="@(parent?.TypeDocument == "CE")">Carnet de Extranjeria</option>
+                        <option value="PAS" selected="@(parent?.TypeDocument == "PAS")">Pasaporte</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">N° de documento</label>
+                    <input name="Parents[0].NumberDocument" value="@(parent?.NumberDocument ?? "")" class="form-input" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Telefono</label>
+                    <input name="Parents[0].Phone" value="@(parent?.Phone ?? "")" class="form-input" />
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Correo electronico</label>
+                    <input name="Parents[0].Email" type="email" value="@(parent?.Email ?? "")" class="form-input" />
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-ink-200/60 dark:border-ink-800/60">
+                <button type="button" data-cancel-edit="postulacion" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-device-floppy text-xs"></i> Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- ═══════════ FOTOGRAFIA Y HUELLAS ═══════════ -->
+<section id="biometria" class="fade-up scroll-mt-20">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Foto -->
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-start justify-between gap-4">
+
+                <div class="flex items-start gap-3 min-w-0">
+                    <span class="w-9 h-9 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center shrink-0">
+                        <i class="ti ti-camera text-sm"></i>
+                    </span>
+
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">
+                            Fotografía de perfil
+                        </h2>
+                        <p class="text-[11.5px] text-ink-500">
+                            Captura del rostro del postulante
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button"
+                            onclick="PhotoCapture.open()"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary-600 text-white text-[11.5px] font-semibold hover:bg-secondary-700 transition-colors">
+                        <i class="ti ti-camera text-[10px]"></i>
+                        Capturar foto
+                    </button>
+
+                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-1 ring-secondary-200 dark:ring-secondary-500/30 text-secondary-700 dark:text-secondary-300 text-[11.5px] font-semibold hover:bg-secondary-50 dark:hover:bg-secondary-500/10 transition-colors cursor-pointer">
+                        <i class="ti ti-upload text-[10px]"></i>
+                        Subir archivo
+                        <input type="file" accept="image/*" class="hidden" onchange="PhotoCapture.uploadFromFile(this)" />
+                    </label>
+                </div>
+
+            </div>
+            <div class="p-4 sm:p-5">
+                <div class="flex flex-col items-center">
+                    <div id="primaryPhotoContainer" class="w-44 h-44 rounded-md bg-ink-50 dark:bg-ink-800 ring-1 ring-ink-200/60 dark:ring-ink-700 flex flex-col items-center justify-center text-ink-300 overflow-hidden">
+                        @if (!string.IsNullOrEmpty(user?.PhotoUrl))
+                        {
+                            <img id="primaryPhotoImg" src="/@user.PhotoUrl" alt="foto" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <i class="ti ti-user text-5xl"></i>
+                            <p class="text-[10px] mt-2 uppercase font-bold tracking-[0.16em]">Sin capturar</p>
+                        }
+                    </div>
+                    <p class="text-[11px] text-ink-400 mt-2 font-mono">@photoCount foto(s) registrada(s)</p>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-2 mt-3">
+
+                    <button type="button" id="btnDeletePrimaryPhoto"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-1 ring-red-200 dark:ring-red-500/30 text-red-600 dark:text-red-400 text-[11.5px] font-semibold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors @(string.IsNullOrEmpty(user?.PhotoUrl) ? "hidden" : "")">
+                        <i class="ti ti-trash text-[10px]"></i> Eliminar foto
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-2">Galeria de fotos</div>
+                    <div id="photoGallery" class="grid grid-cols-4 gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Huellas -->
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center shrink-0">
+                    <i class="ti ti-fingerprint text-sm"></i>
+                </span>
+                <div class="flex-1">
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Huellas dactilares</h2>
+                    <p class="text-[11.5px] text-ink-500">Sincronizacion con dispositivo biometrico</p>
+                </div>
+            </div>
+            <div class="p-4 sm:p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="badge b-primary">Total: <span id="fpCountDisplay">@fpCount</span>/10</span>
+                    <button type="button" id="btnCaptureFingerprint"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary-600 text-white text-[11.5px] font-semibold hover:bg-primary-700 transition-colors">
+                        <i class="ti ti-fingerprint text-[10px]"></i> Capturar huella
+                    </button>
+                </div>
+                <div id="fingerprintGrid" class="grid grid-cols-5 gap-2">
+                    @for (int i = 0; i < 10; i++)
+                    {
+                        var hasFp = fingerprints != null && i < fingerprints.Count;
+                        <div class="aspect-square rounded-md @(hasFp ? "bg-primary-50 ring-1 ring-primary-200 text-primary-600" : "bg-ink-50 dark:bg-ink-800 ring-1 ring-ink-200/60 dark:ring-ink-800 text-ink-300") flex items-center justify-center">
+                            <i class="ti ti-fingerprint text-lg"></i>
+                        </div>
+                    }
+                </div>
+                <div class="mt-4 p-3 bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 rounded-md flex items-start gap-3">
+                    <i class="ti ti-info-circle text-ink-400 text-sm shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-semibold text-ink-800 dark:text-ink-100">Requisito: BiometricBridge</p>
+                        <p class="text-[11px] text-ink-500 leading-relaxed mt-0.5">Para capturar huellas conecte el lector ZK9500 y ejecute BiometricBridge en localhost:5000.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- ═══════════ ANULACIÓN DE INSCRIPCIÓN ═══════════ -->
+<section id="anulacion" class="xl:col-start-2 fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden scroll-mt-20">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3">
+        <span class="w-9 h-9 rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-500 inline-flex items-center justify-center shrink-0">
+            <i class="ti ti-ban text-sm"></i>
+        </span>
+        <div class="flex-1 min-w-0">
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Anulación de inscripción</h2>
+            <p class="text-[11.5px] text-ink-500">Restricción del postulante para nuevos procesos por periodo.</p>
+        </div>
+        <button type="button" data-modal-open="registerAnnulmentModal"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-rose-600 text-white text-[11.5px] font-semibold hover:bg-rose-700 transition-colors">
+            <i class="ti ti-plus text-[10px]"></i> Registrar anulación
+        </button>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        @if (activeAnnulment != null)
+        {
+            <div class="rounded-md bg-rose-50 dark:bg-rose-500/10 ring-1 ring-rose-200 dark:ring-rose-500/30 p-4 mb-4 flex items-start gap-3">
+                <i class="ti ti-alert-triangle text-rose-500 text-lg mt-0.5 shrink-0"></i>
+                <div class="min-w-0">
+                    <p class="text-[13px] font-bold text-rose-700 dark:text-rose-300">
+                        Anulación vigente — el postulante tiene restringida la inscripción.
+                    </p>
+                    <p class="text-[11.5px] text-rose-600 dark:text-rose-300/80 mt-1">
+                        Desde el <strong>@activeAnnulment.StartDate.LocalDateTime.ToString("dd/MM/yyyy")</strong> hasta el
+                        <strong>@activeAnnulment.EndDate.LocalDateTime.ToString("dd/MM/yyyy")</strong> no podra registrarse en el portal publico.
+                    </p>
+                    @if (!string.IsNullOrEmpty(activeAnnulment.Description))
+                    {
+                        <p class="text-[11.5px] text-rose-600 dark:text-rose-300/80 mt-2 bg-white/50 dark:bg-ink-900/40 rounded-md px-3 py-2">
+                            <span class="font-semibold">Motivo:</span> @activeAnnulment.Description
+                        </p>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (annulments.Any())
+        {
+            <div class="space-y-3">
+                @foreach (var a in annulments)
+                {
+                    var isActive = a.StartDate <= now && a.EndDate >= now;
+                    <article class="rounded-md ring-1 ring-ink-200/60 dark:ring-ink-800 p-4">
+                        <div class="flex items-start justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-9 h-9 rounded-md @(isActive ? "bg-rose-50 text-rose-500" : "bg-ink-50 text-ink-400") inline-flex items-center justify-center shrink-0">
+                                    <i class="ti @(isActive ? "ti-ban" : "ti-checkbox") text-sm"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[13px] font-semibold text-ink-900 dark:text-ink-100">
+                                        @a.StartDate.LocalDateTime.ToString("dd/MM/yyyy") <span class="text-ink-400 font-normal">→</span> @a.EndDate.LocalDateTime.ToString("dd/MM/yyyy")
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(a.Description))
+                                    {
+                                        <p class="text-[11.5px] text-ink-500 mt-0.5 truncate max-w-[420px]" title="@a.Description">@a.Description</p>
+                                    }
+                                    <p class="text-[10px] text-ink-400 mt-1">
+                                        Registrada: @a.CreatedAt.LocalDateTime.ToString("dd/MM/yyyy HH:mm") · por @a.CreatedBy
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="badge @(isActive ? "b-rose" : "b-gray") text-[10px]">
+                                <i class="ti @(isActive ? "ti-ban" : "ti-check") text-[9px] mr-1"></i>
+                                @(isActive ? "Vigente" : "Finalizada")
+                            </span>
+                            @if (isSuperAdmin)
+                            {
+                                <form method="post"
+                                      action="/admin/info-postulant/postulant/postulant-resum/@postulantId/annulments/@a.Id/delete"
+                                      onsubmit="return confirm('¿Eliminar esta anulación? Esta acción no se puede deshacer.');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="returnInscriptionId" value="@inscriptionId" />
+                                    <button type="submit"
+                                            class="inline-flex items-center justify-center w-7 h-7 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                            title="Eliminar anulación">
+                                        <i class="ti ti-trash text-[10px]"></i>
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(a.File))
+                        {
+                            <a href="/@a.File" target="_blank"
+                                class="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-500/10 text-xs font-semibold transition-colors">
+                                <i class="ti ti-file-text"></i> Ver documento de anulación
+                            </a>
+                        }
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="py-8 text-center">
+                <i class="ti ti-shield-check text-3xl text-emerald-300 mb-2 block"></i>
+                <p class="text-ink-500 dark:text-ink-300 text-sm font-semibold">Sin anulaciones registradas.</p>
+                <p class="text-ink-400 text-xs mt-1">El postulante no tiene restricciones de inscripción.</p>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- ═══════════ MODAL DE CAPTURA DE FOTO (PANTALLA COMPLETA) ═══════════ -->
+<div id="captureModal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-ink-950/95 backdrop-blur-xl animate-in fade-in duration-300"></div>
+
+    <div class="relative h-full flex flex-col md:flex-row p-6 md:p-12 gap-12">
+        <!-- Close Button -->
+        <button onclick="PhotoCapture.close()"
+                class="absolute top-8 right-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all z-50 flex items-center justify-center">
+            <i class="ti ti-x"></i>
+        </button>
+
+        <!-- Camera Section -->
+        <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden rounded-md bg-black ring-1 ring-white/10">
+            <video id="webcam" autoplay playsinline class="w-full h-full object-cover transition-opacity duration-500"></video>
+            <canvas id="captureCanvas" class="hidden"></canvas>
+
+            <!-- Selection Frame -->
+            <div id="selectionFrame"
+                 class="absolute border-[3px] border-primary-500/60 cursor-move flex items-center justify-center group/frame"
+                 style="width: 280px; height: 280px; left: calc(50% - 140px); top: calc(50% - 140px);">
+                <div class="w-full h-full border-2 border-dashed border-white/80 rounded-md relative">
+                    <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary-500 rounded-tl-md cursor-nwse-resize" data-handle="nw"></div>
+                    <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary-500 rounded-tr-md cursor-nesw-resize" data-handle="ne"></div>
+                    <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary-500 rounded-bl-md cursor-nesw-resize" data-handle="sw"></div>
+                    <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary-500 rounded-br-md cursor-nwse-resize" data-handle="se"></div>
+                    <div class="absolute top-1/2 left-0 w-full h-[1px] bg-white/20"></div>
+                    <div class="absolute top-0 left-1/2 h-full w-[1px] bg-white/20"></div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-8 px-6 py-2 bg-black/60 backdrop-blur-md rounded-full ring-1 ring-white/10 text-white text-[10px] font-bold uppercase tracking-[0.2em]">
+                Encuadre de ID Biométrico
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="w-full md:w-96 flex flex-col justify-center animate-in slide-in-from-right duration-500">
+            <div class="bg-white/5 backdrop-blur-2xl rounded-md p-8 ring-1 ring-white/10">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-md bg-primary-500/20 flex items-center justify-center text-primary-300">
+                        <i class="ti ti-adjustments-horizontal"></i>
+                    </div>
+                    <h4 class="text-white font-semibold tracking-tight">Ajustes de imagen</h4>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-[10px] font-bold text-white/50 uppercase tracking-[0.16em]">Brillo</label>
+                            <span id="briVal" class="text-xs font-mono font-bold text-primary-300 tabular-nums">100%</span>
+                        </div>
+                        <input type="range" id="briRange" min="50" max="150" value="100"
+                               class="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-primary-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-[10px] font-bold text-white/50 uppercase tracking-[0.16em]">Contraste</label>
+                            <span id="conVal" class="text-xs font-mono font-bold text-primary-300 tabular-nums">100%</span>
+                        </div>
+                        <input type="range" id="conRange" min="50" max="150" value="100"
+                               class="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-primary-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-[10px] font-bold text-white/50 uppercase tracking-[0.16em]">Saturación</label>
+                            <span id="satVal" class="text-xs font-mono font-bold text-primary-300 tabular-nums">100%</span>
+                        </div>
+                        <input type="range" id="satRange" min="0" max="200" value="100"
+                               class="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-primary-500">
+                    </div>
+                </div>
+
+                <div class="mt-10 space-y-3">
+                    <button id="btnCapture"
+                            class="w-full h-14 bg-primary-500 hover:bg-primary-600 text-white rounded-md font-bold text-sm hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-3 tracking-[0.08em] uppercase">
+                        <i class="ti ti-camera"></i> Capturar foto
+                    </button>
+                    <button onclick="PhotoCapture.resetFilters()"
+                            class="w-full py-3 text-white/50 hover:text-white text-[10px] font-bold uppercase tracking-[0.16em] transition-colors">
+                        <i class="ti ti-arrow-back-up mr-2"></i> Restablecer ajustes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /grid -->
+
+<form id="fileReplaceForm" method="post" enctype="multipart/form-data" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="file" id="replaceFileInput" name="newFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
+</form>
+
+@* Modales de voucher externo asociado *@
+@foreach (var file in Model.Files.Where(f => f.HasExternalAssociation && f.ExternalVoucher != null))
+{
+    var voucher = file.ExternalVoucher!;
+    <div id="validationVoucherModal-@file.Id" class="adm-modal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="adm-modal__overlay" data-modal-close></div>
+        <div class="adm-modal__card adm-modal__card--md">
+            <header class="adm-modal__header">
+                <div class="min-w-0">
+                    <div class="eyebrow">Pago externo asociado</div>
+                    <h3 class="adm-modal__title mt-1">@voucher.SerialVoucher</h3>
+                    <p class="adm-modal__subtitle">@voucher.FullName</p>
+                </div>
+                <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                    <i class="ti ti-x"></i>
+                </button>
+            </header>
+            <div class="adm-modal__body">
+                <div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-4 mb-4">
+                    <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                        <div>
+                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Usuario</span>
+                            <p class="font-mono text-ink-900 dark:text-ink-100">@voucher.UserName</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Nombre completo</span>
+                            <p class="text-ink-900 dark:text-ink-100">@voucher.FullName</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Serie del voucher</span>
+                            <p class="font-mono text-ink-900 dark:text-ink-100">@voucher.SerialVoucher</p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Fecha de consulta</span>
+                            <p class="font-mono text-ink-900 dark:text-ink-100">@voucher.QueriedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+                    </div>
+                </div>
+
+                @if (voucher.Payments != null && voucher.Payments.Count > 0)
+                {
+                    <div class="space-y-4">
+                        @foreach (var detail in voucher.Payments)
+                        {
+                            <div class="rounded-lg bg-white dark:bg-ink-800/60 ring-1 ring-ink-200/60 dark:ring-ink-700/60 overflow-hidden">
+                                <div class="bg-primary/5 dark:bg-primary-500/10 px-4 py-2.5 border-b border-ink-200/40 dark:border-ink-700/40 flex items-center justify-between">
+                                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">@detail.Description</p>
+                                    <div class="flex items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(detail.Acronym))
+                                        {
+                                            <span class="badge b-primary text-[9px]">@detail.Acronym</span>
+                                        }
+                                        @if (detail.IsBankPayment)
+                                        {
+                                            <span class="badge b-teal text-[9px]"><i class="ti ti-building-bank text-[8px]"></i> Banco</span>
+                                        }
+                                        @(detail.Status == 1 ? Html.Raw("<span class=\"badge b-green text-[9px]\">Activo</span>") : Html.Raw("<span class=\"badge b-gray text-[9px]\">Inactivo</span>"))
+                                    </div>
+                                </div>
+                                <div class="p-4 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                                    @if (!string.IsNullOrEmpty(detail.TermName))
+                                    {
+                                        <div>
+                                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Periodo / Modalidad</span>
+                                            <p class="text-ink-900 dark:text-ink-100">@detail.TermName</p>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(detail.TypeUser))
+                                    {
+                                        <div>
+                                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Tipo de usuario</span>
+                                            <p class="text-ink-900 dark:text-ink-100">@detail.TypeUser</p>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(detail.Name))
+                                    {
+                                        <div>
+                                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Nombre concepto</span>
+                                            <p class="text-ink-900 dark:text-ink-100">@detail.Name</p>
+                                        </div>
+                                    }
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Subtotal</span>
+                                        <p class="font-mono tabular-nums text-ink-700 dark:text-ink-200">S/ @detail.SubTotal.ToString("F2")</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Descuento</span>
+                                        <p class="font-mono tabular-nums text-ink-700 dark:text-ink-200">S/ @detail.Discount.ToString("F2")</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Total</span>
+                                        <p class="font-mono tabular-nums font-bold text-emerald-600">S/ @detail.Total.ToString("F2")</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Cantidad</span>
+                                        <p class="font-mono tabular-nums text-ink-700 dark:text-ink-200">@detail.Quantity</p>
+                                    </div>
+                                    @if (detail.PaymentDate.HasValue)
+                                    {
+                                        <div>
+                                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Fecha de pago</span>
+                                            <p class="font-mono text-ink-900 dark:text-ink-100">@detail.PaymentDate.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(detail.Cashier))
+                                    {
+                                        <div>
+                                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Cajero</span>
+                                            <p class="text-ink-900 dark:text-ink-100">@detail.Cashier</p>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(detail.CreatedBy))
+                                    {
+                                        <div>
+                                            <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Registrado por</span>
+                                            <p class="text-ink-900 dark:text-ink-100">@detail.CreatedBy</p>
+                                        </div>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(detail.AmountInWords))
+                                {
+                                    <div class="px-4 py-2.5 bg-ink-50/60 dark:bg-ink-800/40 border-t border-ink-200/40 dark:border-ink-700/40">
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Monto en letras: </span>
+                                        <span class="text-[12px] text-ink-700 dark:text-ink-200 italic">@detail.AmountInWords</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-sm text-ink-400 text-center py-4">Sin detalle de pagos</p>
+                }
+            </div>
+            <footer class="adm-modal__footer">
+                <button type="button" data-modal-close
+                        class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                    Cerrar
+                </button>
+            </footer>
+        </div>
+    </div>
+}
+
+<div id="editPaymentModal" class="adm-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="adm-modal__overlay" data-modal-close></div>
+    <div class="adm-modal__card adm-modal__card--lg">
+        <header class="adm-modal__header">
+            <div class="min-w-0">
+                <div class="eyebrow">Editar comprobante</div>
+                <h3 class="adm-modal__title mt-1" id="editPaymentTitle">Comprobante de pago</h3>
+                <p class="adm-modal__subtitle" id="editPaymentSubtitle"></p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                <i class="ti ti-x"></i>
+            </button>
+        </header>
+        <div class="adm-modal__body space-y-5">
+            @* ── Numero de operacion ── *@
+            <div>
+                <label class="text-[10px] uppercase tracking-widest font-semibold text-ink-400 block mb-1.5">Numero de operacion / comprobante</label>
+                <input type="text" id="editPaymentOpCode"
+                       class="w-full rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 px-3 py-2 text-sm font-mono text-ink-900 dark:text-ink-100 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                       placeholder="Ej: 001-2024" />
+            </div>
+
+            @* ── Archivo del comprobante ── *@
+            <div>
+                <label class="text-[10px] uppercase tracking-widest font-semibold text-ink-400 block mb-1.5">Archivo del comprobante</label>
+                <div id="editPaymentFileInfo" class="text-[11px] text-ink-500 mb-2"></div>
+                <label class="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-md border-2 border-dashed border-ink-200 dark:border-ink-700 hover:border-primary-400 dark:hover:border-primary-500/50 bg-ink-50/40 dark:bg-ink-800/40 cursor-pointer transition-colors group">
+                    <i class="ti ti-upload text-ink-400 group-hover:text-primary-500 text-sm"></i>
+                    <span class="text-[11px] text-ink-500 group-hover:text-primary-600" id="editPaymentFileLabel">Seleccionar archivo (opcional)</span>
+                    <input type="file" id="editPaymentFileInput" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
+                </label>
+                <div id="editPaymentFilePreview" class="hidden mt-2 flex items-center gap-2 rounded-md bg-primary-50/60 dark:bg-primary-500/10 px-3 py-2">
+                    <i class="ti ti-file text-primary-600 text-sm"></i>
+                    <span class="text-[11px] text-primary-700 dark:text-primary-300 font-medium truncate" id="editPaymentFileName"></span>
+                    <button type="button" id="editPaymentFileRemove" class="ml-auto text-ink-400 hover:text-red-500 transition-colors" title="Quitar archivo">
+                        <i class="ti ti-x text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            @* ── Asociacion con pago externo ── *@
+            <div class="rounded-lg ring-1 ring-ink-200/60 dark:ring-ink-700/60 overflow-hidden">
+                <div class="bg-ink-50/60 dark:bg-ink-800/40 px-4 py-2.5 border-b border-ink-200/40 dark:border-ink-700/40 flex items-center justify-between">
+                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Voucher externo (API)</span>
+                    <span id="editPaymentAssocBadge" class="badge b-gray text-[9px]">Sin asociar</span>
+                </div>
+                <div class="p-4">
+                    <div id="editPaymentAssocEmpty" class="text-center py-3">
+                        <p class="text-[11px] text-ink-400 mb-2">No hay voucher externo asociado a este comprobante.</p>
+                        <button type="button" id="editPaymentSearchExternal"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 text-[11px] font-semibold hover:bg-teal-100 dark:hover:bg-teal-500/20 transition-colors">
+                            <i class="ti ti-search text-[10px]"></i> Buscar voucher externo
+                        </button>
+                    </div>
+                    <div id="editPaymentAssocCurrent" class="hidden">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-md bg-teal-50 dark:bg-teal-500/10 text-teal-600 inline-flex items-center justify-center shrink-0">
+                                <i class="ti ti-link text-sm"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold text-ink-900 dark:text-ink-100 font-mono" id="editPaymentAssocSerial"></p>
+                                <p class="text-[11px] text-ink-500" id="editPaymentAssocName"></p>
+                            </div>
+                            <button type="button" id="editPaymentDisassociate"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-semibold hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+                                <i class="ti ti-unlink text-[9px]"></i> Desasociar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="editPaymentAssocSearch" class="hidden">
+                        <div id="editPaymentAssocLoading" class="hidden text-center py-4">
+                            <i class="ti ti-loader-2 animate-spin text-lg text-primary-500"></i>
+                            <p class="text-[11px] text-ink-500 mt-1">Consultando vouchers...</p>
+                        </div>
+                        <div id="editPaymentAssocEmptyList" class="hidden text-center py-4">
+                            <p class="text-[11px] text-ink-400">No hay vouchers externos sin asociar.</p>
+                        </div>
+                        <div id="editPaymentAssocList" class="space-y-2 hidden max-h-[200px] overflow-y-auto"></div>
+                        <div class="flex justify-end gap-2 mt-3">
+                            <button type="button" id="editPaymentCancelSearch"
+                                    class="px-3 py-1.5 rounded-md text-[11px] font-semibold text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="button" id="editPaymentConfirmAssoc" disabled
+                                    class="px-3 py-1.5 rounded-md bg-teal-600 text-white text-[11px] font-semibold hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                Asociar seleccionado
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close
+                    class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                Cancelar
+            </button>
+            <button type="button" id="editPaymentSaveBtn"
+                    class="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar cambios
+            </button>
+        </footer>
+    </div>
+</div>
+
+@if (isSuperAdmin && pendingRequirements.Any())
+{
+    <div id="uploadRequirementsModal" class="adm-modal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="adm-modal__overlay" data-modal-close></div>
+        <div class="adm-modal__card adm-modal__card--lg">
+            <header class="adm-modal__header">
+                <div class="min-w-0">
+                    <div class="eyebrow">Subir archivos de requisito</div>
+                    <h3 class="adm-modal__title mt-1">Requisitos pendientes</h3>
+                    <p class="adm-modal__subtitle">Según la modalidad y tipo de modalidad registrados en la inscripción</p>
+                </div>
+                <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                    <i class="ti ti-x"></i>
+                </button>
+            </header>
+            <div class="adm-modal__body">
+                <form id="uploadRequirementsForm">
+                    <p class="text-[11.5px] text-ink-500 mb-3">
+                        Seleccione un archivo para cada requisito que aún no fue subido. Si el requisito ya tiene
+                        archivo no se registrará otro: se edita desde la tabla con la opción de reemplazar.
+                    </p>
+                    <div class="space-y-3">
+                        @foreach (var req in pendingRequirements)
+                        {
+                            <div class="rounded-md ring-1 ring-ink-200/60 dark:ring-ink-700/60 overflow-hidden">
+                                <div class="px-3 py-2 bg-ink-50/60 dark:bg-ink-800/40 border-b border-ink-200/40 dark:border-ink-700/40 flex items-center justify-between gap-3">
+                                    <span class="text-[12.5px] font-semibold text-ink-900 dark:text-ink-100">@req.Name</span>
+                                    <span class="badge b-primary text-[9px]">Pendiente</span>
+                                </div>
+                                <div class="p-3">
+                                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-md border-2 border-dashed border-ink-200 dark:border-ink-700 hover:border-primary-400 dark:hover:border-primary-500/50 bg-ink-50/40 dark:bg-ink-800/40 cursor-pointer transition-colors group">
+                                        <i class="ti ti-upload text-ink-400 group-hover:text-primary-500 text-sm"></i>
+                                        <span class="text-[11px] text-ink-500 group-hover:text-primary-600 truncate" data-upload-label>Seleccionar archivo (PDF, JPG, PNG)</span>
+                                        <input type="file" name="newFile" class="hidden"
+                                               data-requirement-id="@req.Id"
+                                               data-requirement-name="@System.Text.Encodings.Web.HtmlEncoder.Default.Encode(req.Name)"
+                                               accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" />
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <p id="uploadRequirementsError" class="hidden mt-3 text-[11.5px] text-red-600 bg-red-50 ring-1 ring-red-200/60 rounded-md px-3 py-2"></p>
+                </form>
+            </div>
+            <footer class="adm-modal__footer">
+                <button type="button" data-modal-close
+                        class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                    Cancelar
+                </button>
+                <button type="button" id="uploadRequirementsBtn"
+                        class="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                    <i class="ti ti-upload text-xs"></i> Subir archivos
+                </button>
+            </footer>
+        </div>
+    </div>
+}
+
+<!-- Modal: Registrar anulación -->
+<div id="registerAnnulmentModal" class="adm-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="adm-modal__overlay" data-modal-close></div>
+    <div class="adm-modal__card adm-modal__card--lg">
+        <header class="adm-modal__header">
+            <div class="min-w-0">
+                <div class="eyebrow">Anulación de inscripción</div>
+                <h3 class="adm-modal__title mt-1">Registrar anulación</h3>
+                <p class="adm-modal__subtitle">Restringe la inscripcion del postulante en el portal publico durante el periodo indicado.</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                <i class="ti ti-x"></i>
+            </button>
+        </header>
+        <div class="adm-modal__body">
+            <form method="post" action="/admin/info-postulant/postulant/postulant-resum/@postulantId/annulments" enctype="multipart/form-data" id="annulmentForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnInscriptionId" value="@inscriptionId" />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div class="form-field">
+                        <label class="form-label">Fecha de inicio <span class="required">*</span></label>
+                        <input type="date" name="StartDate" required class="form-input w-full" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Fecha de fin <span class="required">*</span></label>
+                        <input type="date" name="EndDate" required class="form-input w-full" />
+                    </div>
+                </div>
+                <div class="form-field mb-4">
+                    <label class="form-label">Motivo de la anulacion <span class="required">*</span></label>
+                    <textarea name="Description" rows="3" required class="form-input w-full" placeholder="Falta cometida por el postulante y justificacion..."></textarea>
+                </div>
+                <div class="form-field">
+                    <label class="form-label">Documento de anulacion (opcional)</label>
+                    <input type="file" name="File" accept=".pdf,.jpg,.jpeg,.png" class="form-input w-full" />
+                </div>
+            </form>
+        </div>
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close
+                    class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                Cancelar
+            </button>
+            <button type="submit" form="annulmentForm"
+                    class="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-md text-sm font-semibold transition-all bg-rose-600">
+                <i class="ti ti-ban text-xs"></i> Guardar anulacion
+            </button>
+        </footer>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin/info-postulant/postulant-resum/unified-expediente.js" asp-append-version="true"></script>
+    <script src="~/js/admin/postulants/photo-capture.js" asp-append-version="true"></script>
+    <script src="~/js/admin/postulants/finger-print.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            const postulantId = '@postulantId';
+            const inscriptionId = '@inscriptionId';
+
+            PhotoCapture.init(postulantId);
+            FingerCapture.init(postulantId);
+
+            // ── Academic data refresh ──
+            function showLoader() { document.getElementById('academicLoader')?.classList.remove('hidden'); }
+            function hideLoader() { document.getElementById('academicLoader')?.classList.add('hidden'); }
+            function showError(msg) { const el = document.getElementById('academicCardError'); if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+            function hideError() { document.getElementById('academicCardError')?.classList.add('hidden'); }
+            function showEmpty() { document.getElementById('academicCardEmpty')?.classList.remove('hidden'); }
+            function hideEmpty() { document.getElementById('academicCardEmpty')?.classList.add('hidden'); }
+            function showData() { document.getElementById('academicCardData')?.classList.remove('hidden'); }
+            function hideData() { document.getElementById('academicCardData')?.classList.add('hidden'); }
+
+            function renderRecords(records) {
+                const container = document.querySelector('#academicCardContent');
+                if (!container) return;
+                if (!records || records.length === 0) { container.innerHTML = ''; return; }
+                let html = '';
+                records.forEach(function (r) {
+                    const credits = (r.totalCreditsApproved || 0).toFixed(2);
+                    const queried = r.queriedAt ? new Date(r.queriedAt).toLocaleString('es-PE') : '';
+                    html += '<div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">' +
+                        '<div class="flex items-center justify-between mb-2">' +
+                        '<span class="text-xs font-bold uppercase tracking-[0.12em] text-primary-600">' + (r.careerName || '') + '</span>' +
+                        '<span class="badge b-emerald text-[10px]">' + credits + ' creditos</span></div>' +
+                        '<p class="text-sm font-semibold text-ink-900 dark:text-ink-100">' + (r.paternalSurname || '') + ' ' + (r.maternalSurname || '') + ', ' + (r.name || '') + '</p>' +
+                        '<p class="text-xs text-ink-500 mt-1">' + (r.facultyName || '') + '</p>' +
+                        (r.email ? '<p class="text-xs text-ink-400 mt-1"><i class="ti ti-mail mr-1"></i>' + r.email + '</p>' : '') +
+                        '<p class="text-[10px] text-ink-400 mt-2 font-mono"><i class="ti ti-clock mr-0.5"></i> ' + queried + '</p></div>';
+                });
+                container.innerHTML = html;
+            }
+
+            document.getElementById('refreshAcademicBtn')?.addEventListener('click', function () {
+                showLoader(); hideError();
+                fetch('/admin/info-postulant/postulant/postulant-resum/' + postulantId + '/external-academic/refresh')
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        hideLoader();
+                        var hasData = result.success && result.data && result.data.length > 0;
+                        if (hasData) { renderRecords(result.data); hideEmpty(); showData(); }
+                        else { hideData(); showEmpty(); }
+                        if (!result.success && result.message && result.message !== 'sin_api') showError(result.message);
+                    })
+                    .catch(function() { hideLoader(); showError('Error de red al consultar datos academicos.'); });
+            });
+
+            // ── Sidebar navigation ──
+            var sections = ['personales', 'postulacion', 'archivos', 'biometria'];
+            var navItems = document.querySelectorAll('.expediente-nav-item');
+
+            function setActiveNav(id) {
+                navItems.forEach(function (n) { n.classList.toggle('active', n.dataset.section === id); });
+            }
+
+            if ('IntersectionObserver' in window) {
+                var observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (e) {
+                        if (e.isIntersecting) setActiveNav(e.target.id);
+                    });
+                }, { rootMargin: '-20% 0px -70% 0px' });
+                sections.forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) observer.observe(el);
+                });
+            }
+
+            navItems.forEach(function (n) {
+                n.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var el = document.getElementById(n.dataset.section);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        })();
+    </script>
+}

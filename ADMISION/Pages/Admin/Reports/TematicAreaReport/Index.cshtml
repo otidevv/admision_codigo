@@ -1,0 +1,230 @@
+﻿@model ADMISION.Models.ViewModels.Reports.TematicAreaReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Postulantes por Área Temática";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+    var modalities = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Modality>)(ViewBag.Modalities ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Modality>());
+    var typeModalities = (IEnumerable<ADMISION.Services.Interfaces.TypeModalityOption>)(ViewBag.TypeModalities ?? Enumerable.Empty<ADMISION.Services.Interfaces.TypeModalityOption>());
+    var typePostulants = (IEnumerable<ADMISION.Services.Interfaces.CatalogOption>)(ViewBag.TypePostulants ?? Enumerable.Empty<ADMISION.Services.Interfaces.CatalogOption>());
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Postulantes por Área Temática</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Reporte analítico</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Postulantes por <span class="font-serif font-normal text-primary-600">área temática</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Resumen de inscritos agrupados por área temática y carrera, con filtros por periodo, modalidad, tipo de modalidad y tipo de postulante.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros del reporte</h2>
+                <p class="text-[11.5px] text-ink-500">Refina los datos por periodo, modalidad y tipo de postulante</p>
+            </div>
+        </div>
+        <span class="badge b-primary">Análisis</span>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo Académico</label>
+                <select name="termId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.TermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Modalidad</label>
+                <select name="modalityId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" @(modalities.Any() ? "" : "disabled")>
+                    <option value="">-- Todas --</option>
+                    @foreach (var m in modalities)
+                    {
+                        <option value="@m.Id" selected="@(Model.ModalityId == m.Id)">@m.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Modalidad</label>
+                <select name="typeModalityId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed" @(typeModalities.Any() ? "" : "disabled")>
+                    <option value="">-- Todos --</option>
+                    @foreach (var tm in typeModalities)
+                    {
+                        <option value="@tm.Id" selected="@(Model.TypeModalityId == tm.Id)">@tm.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Postulante</label>
+                <select name="typePostulantId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var tp in typePostulants)
+                    {
+                        <option value="@tp.Id" selected="@(Model.TypePostulantId == tp.Id)">@tp.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="md:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-ink-200/60 dark:border-ink-800/60">
+                <div class="flex flex-wrap gap-2">
+                    <button type="submit" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-filter text-xs"></i> Aplicar filtros
+                    </button>
+                    <a href="/admin/reportes/postulantes-por-area" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-ink-700 hover:bg-ink-100 text-sm font-semibold transition-all">
+                        <i class="ti ti-rotate text-xs"></i> Limpiar
+                    </a>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a id="btnExportExcel" href="#" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition-all">
+                        <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                    </a>
+                    <a id="btnExportPdf" href="#" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-all">
+                        <i class="ti ti-file-text text-xs"></i> Exportar PDF
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- KPIs -->
+<section class="fade-up grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalInscripciones.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total de inscritos</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.Areas.Count.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Áreas con postulantes</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-shape"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.Areas.Sum(a => a.Careers.Count).ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Carreras con postulantes</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-700 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-school"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (!Model.TermId.HasValue)
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">
+        <i class="ti ti-filter text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 font-medium text-sm">Seleccione un periodo para generar el reporte.</p>
+    </section>
+}
+else if (!Model.Areas.Any())
+{
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft py-16 text-center">
+        <i class="ti ti-chart-bar text-4xl text-ink-300 mb-3 block"></i>
+        <p class="text-ink-400 font-medium text-sm">No hay postulantes que coincidan con los filtros seleccionados.</p>
+    </section>
+}
+else
+{
+    <section class="fade-up space-y-5">
+        @foreach (var area in Model.Areas)
+        {
+            <div class="bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md bg-primary-50/40 dark:bg-primary-500/5">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center font-bold text-sm">@area.AreaCode</span>
+                        <div>
+                            <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-primary-600">Área Temática</div>
+                            <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">@area.AreaCode · @area.Careers.Count carrera(s)</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Subtotal</div>
+                        <p class="font-mono text-2xl font-bold text-primary-600 tabular-nums">@area.Subtotal.ToString("N0")</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="atlas w-full">
+                        <thead>
+                            <tr>
+                                <th class="w-24">Código</th>
+                                <th>Carrera</th>
+                                <th class="text-center w-32">Inscritos</th>
+                                <th class="text-center w-40">% del área</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in area.Careers)
+                            {
+                                var pct = area.Subtotal == 0 ? 0 : Math.Round((double)c.Inscritos / area.Subtotal * 100, 1);
+                                <tr>
+                                    <td><span class="badge b-gray font-mono">@c.CareerCode</span></td>
+                                    <td class="font-semibold text-ink-900 dark:text-ink-100">@c.CareerName</td>
+                                    <td class="text-center font-mono font-bold text-ink-900 dark:text-ink-100 tabular-nums">@c.Inscritos.ToString("N0")</td>
+                                    <td class="text-center">
+                                        <div class="inline-flex items-center gap-2">
+                                            <span class="pbar w-20">
+                                                <span class="block bg-primary-500" style="width:@(pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%; height: 100%;"></span>
+                                            </span>
+                                            <span class="text-[11px] font-semibold text-ink-500 tabular-nums">@pct.ToString("0.0")%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-4 sm:p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="w-11 h-11 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center text-lg">
+                    <i class="ti ti-chart-bar"></i>
+                </span>
+                <div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Total general</div>
+                    <p class="text-sm font-semibold text-ink-700 dark:text-ink-200">Sumatoria de todas las áreas</p>
+                </div>
+            </div>
+            <p class="font-mono text-3xl font-bold text-primary-600 tabular-nums">@Model.TotalInscripciones.ToString("N0")</p>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <script src="~/js/admin/reports/tematic-area-report/index.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,79 @@
+@*
+    Teaser de las 3 categorías principales de documentos.
+    Cada card lleva al listado filtrado en /documentos/{slug}.
+    Estilo Atlas: glass card + lift + orb + CTA gradient.
+*@
+
+@{
+    var docs = new[] {
+        new {
+            icono       = "ti ti-book",
+            imagen      = "/img/temario.jpeg",
+            titulo      = "Temarios",
+            descripcion = "Temas que necesitas saber para los exámenes de admisión: Lenguaje, Literatura, Aritmética, Física, Química y más.",
+            href        = "/documentos/temarios",
+            primary     = true,
+        },
+        new {
+            icono       = "ti ti-gavel",
+            imagen      = "/img/reglamento.jpeg",
+            titulo      = "Reglamento",
+            descripcion = "Reglamento General de Admisión vigente de la Universidad Nacional Amazónica de Madre de Dios.",
+            href        = "/documentos/reglamento",
+            primary     = false,
+        },
+        new {
+            icono       = "ti ti-school",
+            imagen      = "/img/prospecto.jpeg",
+            titulo      = "Prospecto",
+            descripcion = "Versión digital del Prospecto Universitario vigente y de los procesos de admisión anteriores.",
+            href        = "/documentos/prospectos",
+            primary     = true,
+        },
+    };
+}
+
+<div class="max-w-5xl mx-auto px-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        @foreach (var doc in docs)
+        {
+            var iconTagBg = doc.primary ? "bg-primary-50 text-primary-600" : "bg-secondary-50 text-secondary-600";
+            var orbBg     = doc.primary ? "bg-primary-500/15"               : "bg-secondary-500/15";
+            var bannerBg  = doc.primary ? "bg-primary-50"                   : "bg-secondary-50";
+            var bannerIc  = doc.primary ? "text-primary-200"                : "text-secondary-200";
+            var hoverBg   = doc.primary ? "bg-primary"                      : "bg-secondary";
+
+            <a href="@doc.href"
+               class="lift fade-up group bg-white ring-soft rounded-md overflow-hidden flex flex-col no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400">
+
+                <!-- Banner con hover overlay sólido -->
+                <div class="relative h-36 @bannerBg overflow-hidden flex items-center justify-center">
+                    <img src="@doc.imagen" alt="@doc.titulo" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0" />
+                    <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center @hoverBg">
+                        <i class="@doc.icono text-white text-6xl drop-shadow-md"></i>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="relative p-5 flex flex-col flex-1">
+                    <div class="flex items-center gap-2.5 mb-2.5">
+                        <span class="w-8 h-8 rounded-md @iconTagBg flex items-center justify-center shrink-0">
+                            <i class="@doc.icono text-md"></i>
+                        </span>
+                        <h3 class="text-md font-bold text-ink-800 uppercase tracking-[0.16em]">@doc.titulo</h3>
+                    </div>
+                    <p class="text-ink-500 text-md leading-relaxed flex-1 mb-4">
+                        @doc.descripcion
+                    </p>
+                    <span class="inline-flex items-center justify-center gap-2 btn-grad px-3 py-2 rounded-md text-xs font-semibold mt-auto">
+                        <span>Ir al contenido</span>
+                        <i class="ti ti-arrow-right text-[10px] transition-transform duration-150 group-hover:translate-x-1"></i>
+                    </span>
+                </div>
+
+            </a>
+        }
+
+    </div>
+</div>

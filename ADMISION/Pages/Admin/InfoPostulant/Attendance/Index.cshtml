@@ -1,0 +1,222 @@
+﻿@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Control de Asistencia Biométrica";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Información del postulante</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Control de Asistencia</span>
+        </div>
+        <div class="eyebrow">Verificación biométrica</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Validación de <span class="font-serif font-normal text-primary-600">acceso</span> a examen
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Búsqueda rápida y verificación dactilar del postulante en sala.</p>
+    </div>
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-xs font-semibold">
+        <i class="ti ti-satellite animate-pulse"></i> Puente Biométrico Online
+    </div>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <!-- Search Card -->
+    <div class="lg:col-span-1">
+        <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft sticky top-6">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-barcode text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Búsqueda rápida</h2>
+                    <p class="text-[11.5px] text-ink-500">Código o DNI del postulante</p>
+                </div>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-4">
+                <div class="form-field">
+                    <label for="searchInput" class="form-label">Código de postulante / DNI</label>
+                    <div class="form-input-wrapper">
+                        <i class="ti ti-search form-input-icon"></i>
+                        <input type="text" id="searchInput" class="form-input font-mono" placeholder="Ej. P2024-001..." autocomplete="off" />
+                    </div>
+                </div>
+
+                <button id="btnSearch"
+                         class="btn-grad w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                     <i class="ti ti-search text-xs"></i> Buscar expediente
+                 </button>
+
+                 <div class="pt-4 mt-2 border-t border-ink-200/60 dark:border-ink-800/60">
+                     <button id="btnToggleScanner"
+                             class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                         <i class="ti ti-camera text-xs"></i> Escanear QR
+                     </button>
+                     <div id="qrScannerContainer" class="hidden mt-3">
+                         <div id="qrScanner" class="w-full rounded-md overflow-hidden ring-soft bg-ink-50" style="min-height:240px"></div>
+                         <p class="text-[11px] text-ink-400 mt-2 text-center">Apunta la cámara hacia el código QR de la constancia</p>
+                     </div>
+                 </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Result / Actions Card -->
+    <div class="lg:col-span-2">
+
+        <!-- Empty State -->
+        <section id="emptyState" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-10 text-center flex flex-col items-center justify-center min-h-[400px]">
+            <div class="w-20 h-20 rounded-md bg-primary-50 dark:bg-primary-500/10 flex items-center justify-center text-primary-500 mb-5">
+                <i class="ti ti-fingerprint text-4xl"></i>
+            </div>
+            <h3 class="text-base font-semibold text-ink-700 dark:text-ink-200">Esperando postulante...</h3>
+            <p class="text-sm text-ink-500 mt-2 max-w-sm">Ingrese el código de postulante en el panel lateral para cargar el expediente y proceder con la validación biométrica.</p>
+        </section>
+
+        <!-- Loaded State -->
+        <section id="loadedState" class="hidden fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+
+            <!-- Header strip -->
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 bg-ink-50/60 dark:bg-ink-800/40 flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-id text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Expediente cargado</h2>
+                    <p class="text-[11.5px] text-ink-500">Información oficial del postulante</p>
+                </div>
+            </div>
+
+            <!-- Photo + Info -->
+            <div class="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start">
+                <!-- Photo -->
+                <div id="postulantPhoto" class="w-28 h-28 rounded-md bg-white dark:bg-ink-800 ring-soft p-1.5 flex-shrink-0">
+                    <div class="w-full h-full rounded-md bg-ink-100 dark:bg-ink-800 ring-1 ring-ink-200/60 overflow-hidden flex items-center justify-center text-ink-300">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-50 dark:bg-primary-500/10 ring-1 ring-primary-200/60 text-primary-700 dark:text-primary-300 text-[10px] font-bold uppercase tracking-widest mb-2">
+                        <i class="ti ti-hash text-[9px]"></i> <span id="postulantCode" class="font-mono">P-XXXX</span>
+                    </span>
+                    <h3 id="postulantName" class="text-xl font-semibold text-ink-900 dark:text-ink-100 tracking-tight mb-4 truncate">Nombre Apellido</h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md p-3">
+                            <span class="text-[10px] font-bold text-ink-500 uppercase tracking-widest block mb-1">Carrera</span>
+                            <span id="postulantCareer" class="text-sm font-semibold text-ink-900 dark:text-ink-100 truncate block">Ingeniería...</span>
+                        </div>
+                        <div class="bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md p-3">
+                            <span class="text-[10px] font-bold text-ink-500 uppercase tracking-widest block mb-1">DNI</span>
+                            <span id="postulantDni" class="text-sm font-mono font-semibold text-ink-900 dark:text-ink-100 block">12345678</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer (alerts + actions) -->
+            <div class="px-4 sm:px-5 py-5 bg-ink-50/60 dark:bg-ink-800/40 border-t border-ink-200/60 dark:border-ink-800/60">
+
+                <!-- Alert: Already Verified -->
+                <div id="alertAlreadyVerified" class="hidden mb-5 bg-emerald-50 ring-1 ring-emerald-200 rounded-md p-4 flex items-start gap-4 text-emerald-800">
+                    <div class="w-10 h-10 rounded-md bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0">
+                        <i class="ti ti-checks text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold">Asistencia registrada exitosamente</h4>
+                        <p class="text-sm mt-1">Este postulante ya completó el control de acceso biométrico. No es necesaria otra verificación para el periodo actual (<span id="verifiedTermName" class="font-bold"></span>).</p>
+                        <div class="mt-3 text-xs bg-white/80 ring-1 ring-emerald-200/50 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 font-mono">
+                            <i class="ti ti-clock text-emerald-600"></i> Registrado el: <span id="verifiedDate" class="font-bold"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert: Not Approved -->
+                <div id="alertNotApproved" class="hidden mb-5 bg-amber-50 ring-1 ring-amber-200 rounded-md p-4 flex items-start gap-4 text-amber-800">
+                    <div class="w-10 h-10 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0">
+                        <i class="ti ti-alert-triangle text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold">No se puede registrar asistencia</h4>
+                        <p class="text-sm mt-1">La inscripción se encuentra en estado <strong id="notApprovedState"></strong>. Solo se permite registrar asistencia para inscripciones <strong>Aprobadas</strong>.</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div id="actionButtons" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-semibold text-ink-900 dark:text-ink-100">Estado biométrico</h4>
+                        <span id="fingerprintsCountBadge" class="badge b-violet">
+                            <i class="ti ti-fingerprint"></i> <span id="fingerprintsCount">0</span> huellas registradas
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="btnVerifyBio"
+                                class="btn-grad flex-1 inline-flex items-center justify-center gap-3 px-5 py-3.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+                            <i class="ti ti-fingerprint text-base"></i>
+                            VERIFICAR BIOMÉTRICO
+                        </button>
+
+                        <button onclick="showManualModal()"
+                                class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                            <i class="ti ti-edit text-xs"></i> Registro manual
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- Manual Verification Modal -->
+<div id="manualModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-ink-900/60 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft w-full max-w-md overflow-hidden">
+            <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-amber-50 text-amber-600 inline-flex items-center justify-center">
+                    <i class="ti ti-edit text-sm"></i>
+                </span>
+                <div>
+                    <h3 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Validación manual</h3>
+                    <p class="text-[11.5px] text-ink-500">Excepción al puente biométrico</p>
+                </div>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4">
+                <p class="text-sm text-ink-600 dark:text-ink-300 leading-relaxed">
+                    Si el lector no funciona, el postulante tiene daños dactilares o se presenta un caso excepcional, justifique el acceso mediante verificación de DNI visual.
+                </p>
+                <partial name="_FormTextarea" model='@(new {
+                    Id = "manualReason", Name = "manualReason",
+                    Label = "Motivo de la excepción",
+                    Required = true,
+                    Rows = 3,
+                    Placeholder = "Ej. Lector de huellas no reconoce, se validó DNI holográfico en puerta..."
+                })' />
+            </div>
+            <div class="px-4 sm:px-5 py-4 bg-ink-50/60 dark:bg-ink-800/40 border-t border-ink-200/60 dark:border-ink-800/60 flex justify-end gap-3">
+                <button onclick="hideManualModal()"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    Cancelar
+                </button>
+                <button id="btnSaveManual"
+                        class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-device-floppy text-xs"></i> Registrar asistencia
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/lib/html5-qrcode/html5-qrcode.min.js"></script>
+    <script src="~/js/admin/info-postulant/attendance/index.js" asp-append-version="true"></script>
+}

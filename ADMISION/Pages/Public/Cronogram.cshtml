@@ -1,0 +1,98 @@
+@model ADMISION.Models.ViewModels.Public.ScheduleViewModel
+@{
+    ViewData["Title"] = "Cronograma";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+}
+
+<section class="relative py-12 sm:py-16 md:py-20 overflow-hidden">
+
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+
+        <!-- Page hero -->
+        <div class="text-center mb-10 sm:mb-12 fade-up max-w-2xl mx-auto">
+            <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                <i class="ti ti-calendar-event text-[10px]"></i>
+                Proceso de Admisión
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+                Cronograma de <span class="font-serif font-normal text-primary-600">admisión</span>
+            </h1>
+            <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+                Actividades, fechas, horario y lugar del proceso de admisión. Selecciona el proceso para ver su cronograma oficial.
+            </p>
+        </div>
+
+        @if (Model.SelectedTerm == null)
+        {
+            <div class="bg-white ring-soft rounded-md py-16 sm:py-20 text-center">
+                <i class="ti ti-alert-circle text-3xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 font-medium text-sm">No hay un período académico activo en este momento.</p>
+            </div>
+        }
+        else if (!Model.Phases.Any())
+        {
+            <div class="bg-white ring-soft rounded-md py-16 sm:py-20 text-center">
+                <i class="ti ti-history text-3xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 font-medium text-sm">
+                    El cronograma del proceso <span class="font-bold text-primary-600">@Model.SelectedTerm.Name</span> aún no está disponible.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-4">
+                @foreach (var fase in Model.Phases)
+                {
+                    var labelColor = fase.Accent ? "text-primary-700"   : "text-secondary-700";
+                    var iconBg     = fase.Accent ? "bg-primary-100"     : "bg-secondary-100";
+                    var iconColor  = fase.Accent ? "text-primary-600"   : "text-secondary-600";
+                    var headerBg   = fase.Accent ? "bg-primary-50"      : "bg-secondary-50";
+                    var headerBdr  = fase.Accent ? "border-primary-100" : "border-secondary-100";
+
+                    <div class="lift fade-up bg-white ring-soft rounded-md overflow-hidden">
+                        <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b @headerBdr @headerBg">
+                            <span class="w-8 h-8 rounded-md @iconBg flex items-center justify-center shrink-0">
+                                <i class="@fase.Icon @iconColor text-xs"></i>
+                            </span>
+                            <h2 class="font-bold @labelColor text-sm uppercase tracking-[0.15em]">@fase.Label</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs sm:text-[13px] border-collapse" style="min-width:560px">
+                                <thead>
+                                    <tr class="bg-ink-50 text-ink-600 uppercase font-semibold text-[10px] tracking-[0.15em]">
+                                        <th class="px-4 py-2.5 text-left border-r border-ink-200/60" style="min-width:220px">Descripción</th>
+                                        <th class="px-4 py-2.5 text-center border-r border-ink-200/60" style="width:170px">Fecha</th>
+                                        <th class="px-4 py-2.5 text-center border-r border-ink-200/60" style="width:180px">Horario</th>
+                                        <th class="px-4 py-2.5 text-center" style="min-width:150px">Lugar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int fi = 0; fi < fase.Items.Count; fi++)
+                                    {
+                                        var item = fase.Items[fi];
+                                        var bg   = fi % 2 == 0 ? "bg-white" : "bg-ink-50/50";
+                                        var fecha = item.EndDate.HasValue
+                                            ? $"{item.StartDate:dd/MM/yyyy} – {item.EndDate:dd/MM/yyyy}"
+                                            : item.StartDate.ToString("dd/MM/yyyy");
+                                        <tr class="@bg hover:bg-primary-50/40 transition-colors border-b border-ink-100 last:border-b-0">
+                                            <td class="px-4 py-3 font-medium text-ink-800 leading-snug border-r border-ink-100">@item.Description</td>
+                                            <td class="px-4 py-3 text-center text-ink-700 border-r border-ink-100 leading-snug tabular-nums">@fecha</td>
+                                            <td class="px-4 py-3 text-center text-ink-700 border-r border-ink-100 leading-snug">@item.Schedule</td>
+                                            @if (fi == 0)
+                                            {
+                                                <td rowspan="@fase.Items.Count" class="px-4 py-3 text-center text-ink-600 align-middle leading-snug">
+                                                    @fase.Location
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>

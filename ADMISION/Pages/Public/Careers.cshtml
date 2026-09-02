@@ -1,0 +1,136 @@
+@model ADMISION.Models.ViewModels.Public.CareersPublicViewModel
+@{
+    ViewData["Title"] = "Carreras";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+    var allCareers = Model.Faculties.SelectMany(f => f.Careers).ToList();
+}
+
+<section class="relative py-12 sm:py-16 md:py-20 overflow-hidden">
+
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+
+        <!-- Page hero -->
+        <div class="text-center mb-10 sm:mb-14 fade-up max-w-2xl mx-auto">
+            <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                <i class="ti ti-school text-[10px]"></i>
+                Oferta Académica
+            </div>
+            <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+                Carreras <span class="font-serif font-normal text-primary-600">profesionales</span>
+            </h1>
+            <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+                Conoce nuestras carreras profesionales y revisa el plan de estudios de cada una.
+            </p>
+        </div>
+
+        @if (!allCareers.Any())
+        {
+            <div class="bg-white ring-soft rounded-md py-16 sm:py-20 text-center">
+                <i class="ti ti-alert-circle text-3xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 font-medium text-sm">No hay carreras publicadas.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var fac in Model.Faculties)
+            {
+                <div class="mb-10 fade-up">
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="w-9 h-9 rounded-md bg-primary-50 ring-1 ring-primary-100 flex items-center justify-center">
+                            <i class="ti ti-building-bank text-primary-600 text-sm"></i>
+                        </span>
+                        <h2 class="text-base sm:text-lg font-bold text-ink-900 tracking-tight">@fac.Name</h2>
+                    </div>
+
+                    <div class="space-y-3" id="accordion-@fac.Id">
+                        @foreach (var carrera in fac.Careers)
+                        {
+                            var itemId    = $"car-{carrera.Id:N}";
+                            var contentId = $"car-content-{carrera.Id:N}";
+
+                            <div class="bg-white ring-soft rounded-md overflow-hidden transition-all duration-300" id="@itemId">
+                                <button type="button" onclick="toggleCareer('@itemId','@contentId')"
+                                        class="w-full flex items-center gap-4 px-4 sm:px-5 py-4 hover:bg-ink-50 transition-colors text-left">
+                                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-md bg-ink-100 flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-ink-200/60">
+                                        @if (!string.IsNullOrWhiteSpace(carrera.LogoUrl))
+                                        {
+                                            <img src="/@carrera.LogoUrl" alt="@carrera.Name"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                                 class="w-full h-full object-cover" />
+                                            <span class="text-xs font-bold text-primary-600 hidden w-full h-full items-center justify-center">@(carrera.Initials ?? carrera.Code)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-xs font-bold text-primary-600 w-full h-full flex items-center justify-center">@(carrera.Initials ?? carrera.Code)</span>
+                                        }
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm sm:text-[15px] font-semibold text-ink-900 leading-snug tracking-tight">@carrera.Name</p>
+                                        <p class="text-ink-400 text-xs mt-0.5">@fac.Name</p>
+                                    </div>
+                                    <i class="ti ti-chevron-down text-primary-500 text-xs shrink-0 transition-transform duration-300" id="chevron-@itemId"></i>
+                                </button>
+
+                                <div id="@contentId" class="hidden border-t border-ink-200/60 bg-ink-50/60 px-4 sm:px-5 py-5">
+                                    @if (!string.IsNullOrWhiteSpace(carrera.Description))
+                                    {
+                                        <p class="text-ink-700 text-sm leading-relaxed mb-4">@carrera.Description</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-ink-400 text-xs mb-4">Descripción pendiente de publicación.</p>
+                                    }
+
+                                    <div class="flex flex-wrap gap-4 text-[11px] text-ink-500 mb-4">
+                                        @if (carrera.DurationSemesters.HasValue)
+                                        {
+                                            <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-primary-600"></i> @carrera.DurationSemesters semestres</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(carrera.DegreeTitle))
+                                        {
+                                            <span class="inline-flex items-center gap-1.5"><i class="ti ti-certificate text-secondary-600"></i> @carrera.DegreeTitle</span>
+                                        }
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <a href="/carreras/@carrera.Id"
+                                           class="btn-grad inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full">
+                                            <i class="ti ti-arrow-right"></i>
+                                            Ver más información
+                                        </a>
+                                        @if (!string.IsNullOrWhiteSpace(carrera.StudyPlanUrl))
+                                        {
+                                            <a href="@carrera.StudyPlanUrl" target="_blank"
+                                               class="btn-grad-secondary inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full">
+                                                <i class="ti ti-download"></i>
+                                                Plan de Estudios (PDF)
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</section>
+
+<script>
+    function toggleCareer(itemId, contentId) {
+        const content = document.getElementById(contentId);
+        const item    = document.getElementById(itemId);
+        const chevron = document.getElementById('chevron-' + itemId);
+        const isHidden = content.classList.contains('hidden');
+
+        document.querySelectorAll('[id^="car-content-"]').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('[id^="chevron-car-"]').forEach(el => el.classList.remove('rotate-180'));
+
+        if (isHidden) {
+            content.classList.remove('hidden');
+            chevron.classList.add('rotate-180');
+        }
+    }
+</script>

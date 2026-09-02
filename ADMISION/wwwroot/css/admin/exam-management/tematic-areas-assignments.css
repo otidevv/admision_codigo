@@ -1,0 +1,16 @@
+/* Tabla de matriz — vista compacta para asignación de áreas temáticas. */
+#matrixTable_wrapper thead th {
+    font-size: 0.7rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    vertical-align: middle;
+    text-align: center;
+}
+
+#matrixTable_wrapper tbody tr {
+    border-bottom: 1px solid rgb(229 231 235 / 0.6);
+}
+
+html.dark #matrixTable_wrapper tbody tr {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}

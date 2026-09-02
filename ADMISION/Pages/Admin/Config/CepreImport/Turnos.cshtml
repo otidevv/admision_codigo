@@ -1,0 +1,186 @@
+@model ADMISION.Models.ViewModels.Admin.CepreTurnosViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Turnos CEPRE — Configuración";
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/config" class="hover:text-primary-600 transition-colors">Configuración</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Turnos CEPRE</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Configuración</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Turnos <span class="font-serif font-normal text-primary-600">CEPRE</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Asignar turnos de importación a usuarios de soporte</p>
+        </div>
+        <a href="/admin/config" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300 text-xs font-semibold hover:bg-ink-200 dark:hover:bg-ink-700 transition-colors">
+            <i class="ti ti-arrow-left text-[11px]"></i> Volver
+        </a>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-circle-check"></i><span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-alert-circle"></i><span>@TempData["Error"]</span>
+    </div>
+}
+
+@* ── Selector de período ── *@
+<div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-calendar text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Seleccionar Período</h2>
+            <p class="text-[11.5px] text-ink-500">Filtre los turnos por período</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-6">
+        <form asp-controller="CepreTurnos" asp-action="Index" method="get" class="space-y-4">
+            <div class="max-w-md">
+                @{
+                    var termOptions = Model.Terms.Select(t => new { id = t.Id, name = t.Name });
+                }
+                <partial name="_CustomSelect" model='new { Id = "termSelect", Name = "termId", Label = "Período Académico", Placeholder = "-- Seleccionar período --", Required = true, Options = termOptions, SelectedValue = Model.SelectedTermId?.ToString() ?? "" }' />
+            </div>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+                <i class="ti ti-search text-xs"></i> Filtrar
+            </button>
+        </form>
+    </div>
+</div>
+
+@if (Model.SelectedTermId.HasValue)
+{
+    @* ── Crear turno ── *@
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-5">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center">
+                <i class="ti ti-plus text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Crear Turno</h2>
+                <p class="text-[11.5px] text-ink-500">Asigne un turno de importación a un usuario de soporte</p>
+            </div>
+        </div>
+        <div class="p-4 sm:p-6">
+            <form asp-controller="CepreTurnos" asp-action="Create" method="post" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="SelectedTermId" value="@Model.SelectedTermId" />
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        @{
+                            var userOptions = Model.SupportUsers.Select(u => new { id = u.Id, name = u.FullName });
+                        }
+                        <partial name="_CustomSelect" model='new { Id = "userSelect", Name = "SelectedUserId", Label = "Usuario Soporte", Placeholder = "-- Seleccionar usuario --", Required = true, Options = userOptions }' />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-ink-600 dark:text-ink-300 mb-1">Fecha/Hora Inicio</label>
+                        <input type="datetime-local" name="TurnStartDate" class="form-input form-input--suffix w-full" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-ink-600 dark:text-ink-300 mb-1">Fecha/Hora Fin</label>
+                        <input type="datetime-local" name="TurnEndDate" class="form-input form-input--suffix w-full" required />
+                    </div>
+                </div>
+
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                    <i class="ti ti-plus text-xs"></i> Crear Turno
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @* ── Lista de turnos ── *@
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-secondary-50 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center">
+                <i class="ti ti-clock text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Turnos Registrados</h2>
+                <p class="text-[11.5px] text-ink-500">@Model.Turns.Count turno(s) registrado(s)</p>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Turns.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-ink-400 py-4">No hay turnos registrados para este período</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        var now = DateTimeOffset.UtcNow;
+                        @foreach (var turn in Model.Turns)
+                        {
+                            var isActive = turn.StartDate <= now && turn.EndDate >= now;
+                            var isFuture = turn.StartDate > now;
+
+                            <tr>
+                                <td class="font-medium">@turn.User?.FullName</td>
+                                <td class="font-mono">@turn.StartDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="font-mono">@turn.EndDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (isActive)
+                                    {
+                                        <span class="badge b-green">Activo</span>
+                                    }
+                                    else if (isFuture)
+                                    {
+                                        <span class="badge b-amber">Programado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge b-gray">Expirado</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <form asp-controller="CepreTurnos" asp-action="Delete" method="post" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="turnId" value="@turn.Id" />
+                                        <input type="hidden" name="SelectedTermId" value="@Model.SelectedTermId" />
+                                        <button type="submit"
+                                                onclick="return confirm('¿Está seguro de eliminar este turno?')"
+                                                class="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-rose-50 text-rose-600 text-[11px] font-semibold hover:bg-rose-100 transition-colors">
+                                            <i class="ti ti-trash text-[10px]"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,53 @@
+@model ADMISION.Models.ViewModels.Public.DocumentsPageViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+    var iconBg   = Model.AccentPrimary ? "bg-primary text-white" : "bg-secondary text-white";
+    var iconSoft = Model.AccentPrimary ? "text-primary-300"      : "text-secondary-300";
+    var eyebrowColor = Model.AccentPrimary ? "text-primary-700"  : "text-secondary-700";
+}
+
+<!-- Hero -->
+<section class="relative overflow-hidden bg-ink-50 border-b border-ink-200/60">
+
+
+    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-5">
+            <a href="/" class="hover:text-primary-600 transition-colors">Inicio</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 font-medium">@Model.Title</span>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center gap-4 fade-up">
+            <div class="w-20 h-20 md:w-24 md:h-24 rounded-md @iconBg flex items-center justify-center shadow-glow shrink-0">
+                <i class="@Model.Icon text-4xl md:text-5xl"></i>
+            </div>
+            <div>
+                <p class="@eyebrowColor text-[11px] font-bold uppercase tracking-[0.22em] mb-1.5">@Model.Subtitle</p>
+                <h1 class="text-3xl md:text-4xl lg:text-[44px] font-semibold tracking-[-0.025em] leading-tight text-ink-900 mb-2">@Model.Title</h1>
+                <p class="text-sm md:text-base text-ink-500 max-w-2xl leading-relaxed">@Model.Description</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Lista -->
+<section class="py-12 sm:py-14">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 fade-up">
+            <h2 class="text-base sm:text-lg font-semibold text-ink-900 flex items-center gap-2 tracking-tight">
+                <i class="ti ti-folder @iconSoft"></i>
+                @(Model.Items.Any() ? $"{Model.Items.Count} {(Model.Items.Count == 1 ? "documento disponible" : "documentos disponibles")}" : "Sin documentos disponibles")
+            </h2>
+            <a href="/" class="inline-flex items-center gap-2 text-xs font-bold text-primary-600 hover:text-primary-700 uppercase tracking-[0.16em]">
+                <i class="ti ti-arrow-left"></i>
+                Volver al inicio
+            </a>
+        </div>
+
+        <partial name="Components/_DocumentCard" model="Model.Items" />
+    </div>
+</section>

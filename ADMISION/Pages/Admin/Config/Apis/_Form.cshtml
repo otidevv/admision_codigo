@@ -1,0 +1,126 @@
+@model ADMISION.ENTITIES.Models.Integrations.ExternalApi
+@{
+    var methodOptions = new[] {
+        new { id = "GET",  name = "GET" },
+        new { id = "POST", name = "POST" }
+    };
+    var authOptions = new[] {
+        new { id = "None",   name = "None — sin autenticación" },
+        new { id = "Bearer", name = "Bearer (token JWT)" }
+    };
+    var currentMethod = string.IsNullOrWhiteSpace(Model.HttpMethod) ? "GET" : Model.HttpMethod;
+    var currentAuth   = string.IsNullOrWhiteSpace(Model.AuthType)   ? "None" : Model.AuthType;
+    var isNew         = Model.Id == Guid.Empty;
+}
+
+<div asp-validation-summary="ModelOnly"
+     class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md mb-5"></div>
+
+<!-- Bloque: Identificación -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+    <div class="md:col-span-2">
+        <span class="text-[11px] font-bold uppercase tracking-[0.16em] text-secondary-700 dark:text-secondary-300">Identificación</span>
+        <div class="mt-1 border-b border-ink-200/60 dark:border-ink-800/60"></div>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="Name" class="form-label">Nombre <span class="required">*</span></label>
+        <div class="form-input-wrapper">
+            <i class="ti ti-tag form-input-icon"></i>
+            <input asp-for="Name" class="form-input" placeholder="Ej. Consulta académica" required />
+        </div>
+        <span asp-validation-for="Name" class="form-error"></span>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="Description" class="form-label">Descripción</label>
+        <div class="form-input-wrapper">
+            <i class="ti ti-align-left form-input-icon"></i>
+            <input asp-for="Description" class="form-input" placeholder="Para qué se usa esta API…" />
+        </div>
+    </div>
+
+    <div class="form-field">
+        <label asp-for="Category" class="form-label">Categoría</label>
+        <div class="form-input-wrapper">
+            <i class="ti ti-category form-input-icon"></i>
+            <select asp-for="Category" class="form-input">
+                <option value="Generic">Generic — uso general</option>
+                <option value="Academic">Academic — consulta académica por DNI</option>
+                <option value="Payment">Payment — consulta de pagos por DNI</option>
+            </select>
+        </div>
+        <span class="form-helper">Determina cómo se muestran los resultados al ejecutar la consulta.</span>
+    </div>
+
+    <div class="md:col-span-2 pt-1">
+        <label asp-for="IsActive"
+               class="inline-flex items-center gap-2 text-sm text-ink-700 dark:text-ink-200 font-medium cursor-pointer">
+            <input asp-for="IsActive" type="checkbox"
+                   class="w-4 h-4 rounded ring-1 ring-ink-300 text-primary-600 focus:ring-primary-500" />
+            Activa (puede invocarse)
+        </label>
+    </div>
+</div>
+
+<!-- Bloque: Endpoint -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mt-6">
+    <div class="md:col-span-3">
+        <span class="text-[11px] font-bold uppercase tracking-[0.16em] text-secondary-700 dark:text-secondary-300">Endpoint</span>
+        <div class="mt-1 border-b border-ink-200/60 dark:border-ink-800/60"></div>
+    </div>
+
+    <div>
+        <partial name="_CustomSelect" model='new {
+            Id = "HttpMethod",
+            Name = "HttpMethod",
+            Label = "Método",
+            Required = true,
+            Searchable = false,
+            Options = methodOptions,
+            SelectedValue = currentMethod
+        }' />
+    </div>
+    <div class="md:col-span-2">
+        <div class="form-field">
+            <label asp-for="Url" class="form-label">Base URL <span class="required">*</span></label>
+            <div class="form-input-wrapper">
+                <i class="ti ti-link form-input-icon"></i>
+                <input asp-for="Url" class="form-input font-mono" placeholder="https://api.servicio.com/recurso" required />
+            </div>
+            <span asp-validation-for="Url" class="form-error"></span>
+            <span class="form-helper">Incluye <span class="font-mono">{dni}</span> al final de la URL. Ej: <span class="font-mono">https://api.com/persona/{dni}</span></span>
+        </div>
+    </div>
+</div>
+
+<!-- Bloque: Autenticación -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mt-6">
+    <div class="md:col-span-2">
+        <span class="text-[11px] font-bold uppercase tracking-[0.16em] text-secondary-700 dark:text-secondary-300">Autenticación</span>
+        <div class="mt-1 border-b border-ink-200/60 dark:border-ink-800/60"></div>
+    </div>
+
+    <div>
+        <partial name="_CustomSelect" model='new {
+            Id = "AuthType",
+            Name = "AuthType",
+            Label = "Autenticación",
+            Required = true,
+            Searchable = false,
+            Options = authOptions,
+            SelectedValue = currentAuth
+        }' />
+    </div>
+
+    <div class="form-field">
+        <label asp-for="AuthValue" class="form-label">Token</label>
+        <div class="form-input-wrapper">
+            <i class="ti ti-lock form-input-icon"></i>
+            <input asp-for="AuthValue" type="password" autocomplete="new-password" value=""
+                   placeholder="@(isNew ? "Token JWT" : "Dejar vacío para conservar")"
+                   class="form-input" />
+        </div>
+        <span class="form-helper">Token JWT que se enviará como <span class="font-mono">Bearer {token}</span> en el header.</span>
+    </div>
+</div>

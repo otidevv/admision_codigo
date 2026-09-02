@@ -1,0 +1,254 @@
+@using ADMISION.Models.Shared
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@model IEnumerable<ADMISION.ENTITIES.Models.Users.Users>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Gestión de Usuarios";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Usuario",         Field = "userName",        Type = "combined", SubField = "fullName", Sortable = true },
+        new() { Label = "Documento",       Field = "document",        Type = "code",     Sortable = true },
+        new() { Label = "Rol",             Field = "rolNames",        Type = "badge",    BadgeMap = new Dictionary<string, string> { { "SuperAdmin", "purple" }, { "Admin", "blue" }, { "Soporte", "green" } } },
+        new() { Label = "Estado",          Field = "isDisabled",      Type = "badge",    BadgeMap = new Dictionary<string, string> { { "Activo", "green" }, { "Bloqueado", "red" } } },
+    };
+
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "profile", Label = "Ver perfil", Icon = "ti-id", Href = "/admin/usuarios/perfil/{id}" },
+        new() { Key = "reset-pass", Label = "Enviar credenciales", Icon = "ti-mail-forward" },
+        new() { Key = "edit",    Label = "Editar",     Icon = "ti-edit" },
+        new() { Key = "delete",  Label = "Eliminar",   Icon = "ti-trash", Danger = true, Separator = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["TableId"] = "usersTable";
+    ViewData["ClientSide"] = true;
+    ViewData["EmptyTitle"] = "No se encontraron usuarios";
+    ViewData["EmptySubtitle"] = "Asegúrate de que existan usuarios administrativos registrados.";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin" class="hover:text-primary-600 transition-colors">Panel</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Usuarios</span>
+        </div>
+        <div class="eyebrow">Accesos del sistema</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Administradores del <span class="font-serif font-normal text-primary-600">sistema</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Gestión de accesos, roles y perfiles administrativos.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+        <button type="button" id="bulkResetPassBtn"
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-mail-forward text-xs"></i>
+            Enviar credenciales por correo
+        </button>
+        <button type="button" onclick="openUserModal()"
+                class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-user-plus text-xs"></i>
+            Nuevo usuario
+        </button>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Búsqueda rápida</h2>
+            <p class="text-[11.5px] text-ink-500">Filtra por nombre, usuario o documento</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-5">
+        <div class="max-w-md">
+            <label for="filterText" class="form-label">Buscar</label>
+            <div class="form-input-wrapper">
+                
+                <input type="text" id="filterText"
+                       class="form-input form-input--suffix"
+                       placeholder="Buscar por nombre, usuario o DNI…"
+                       autocomplete="off" />
+                <i class="ti ti-search form-input-icon form-input-icon--right"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up">
+    <div id="tableContainer">
+        @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+    </div>
+</section>
+
+@{
+    var __afToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+
+@*  Modal de usuario (crear / editar) — markup inline para poder embeber partials.
+    La API ADM.Modal se carga globalmente desde /js/admin/modal-api.js.  *@
+<div id="userModal" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="userModal-title" aria-hidden="true">
+    <div class="adm-modal__overlay"></div>
+
+    <div class="adm-modal__card adm-modal__card--xl">
+        <header class="adm-modal__header">
+            <div class="min-w-0">
+                <div class="eyebrow">Cuenta administrativa</div>
+                <h3 id="userModal-title" class="adm-modal__title mt-1">Nuevo usuario</h3>
+                <p class="adm-modal__subtitle">Completa los datos del administrador</p>
+            </div>
+            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                <i class="ti ti-x"></i>
+            </button>
+        </header>
+
+        <div class="adm-modal__body" id="userModal-body">
+            <form id="userForm" class="space-y-5">
+                <input name="__RequestVerificationToken" type="hidden" value="@__afToken" />
+                <input type="hidden" id="userId" name="Id" />
+
+                <!-- Sección: Datos personales -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60">
+                    <span class="w-8 h-8 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-id-badge-2 text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Datos personales</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <partial name="_FormInput" model='new { Id = "name", Name = "Name", Label = "Nombres", Required = true, Placeholder = "Ej: Juan", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "firstNameFather", Name = "FirstNameFather", Label = "Ap. paterno", Required = true, Placeholder = "Ej: Pérez", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "firstNameMother", Name = "FirstNameMother", Label = "Ap. materno", Required = true, Placeholder = "Ej: García", Autocomplete = "off" }' />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-field">
+                        <label for="documentType" class="form-label">Tipo de documento</label>
+                        <select id="documentType" name="DocumentType" class="form-input">
+                            <option value="DNI">DNI</option>
+                            <option value="CE">C.E.</option>
+                            <option value="PASAPORTE">Pasaporte</option>
+                        </select>
+                    </div>
+                    <partial name="_FormInput" model='new { Id = "document", Name = "Document", Label = "Número de documento", Placeholder = "Número de documento", IconLeft = "ti-id", InputMode = "numeric", MaxLength = "20", Autocomplete = "off" }' />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-field">
+                        <label for="genero" class="form-label">Género</label>
+                        <select id="genero" name="Genero" class="form-input">
+                            <option value="">Seleccione…</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="civilStatus" class="form-label">Estado civil</label>
+                        <select id="civilStatus" name="CivilStatus" class="form-input">
+                            <option value="">Seleccione…</option>
+                            <option value="Soltero">Soltero</option>
+                            <option value="Casado">Casado</option>
+                            <option value="Divorciado">Divorciado</option>
+                            <option value="Viudo">Viudo</option>
+                            <option value="Conviviente">Conviviente</option>
+                        </select>
+                    </div>
+                    <partial name="_FormDate" model='new { Id = "birthdate", Name = "Birthdate", Label = "Fecha de nacimiento", Max = DateTime.Today.ToString("yyyy-MM-dd"), Placeholder = "Selecciona una fecha" }' />
+                </div>
+
+                <!-- Sección: Contacto -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60 pt-2">
+                    <span class="w-8 h-8 rounded-md bg-secondary-100 text-secondary-700 inline-flex items-center justify-center">
+                        <i class="ti ti-address-book text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Contacto</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <partial name="_FormInput" model='new { Id = "email", Name = "Email", Type = "email", Label = "Correo electrónico", Placeholder = "ejemplo@correo.com", IconLeft = "ti-mail", Autocomplete = "off" }' />
+                    <partial name="_FormInput" model='new { Id = "phoneNumber", Name = "PhoneNumber", Type = "tel", Label = "Teléfono / celular", Placeholder = "999888777", IconLeft = "ti-phone", InputMode = "tel", MaxLength = "15", Autocomplete = "off" }' />
+                </div>
+
+                <partial name="_FormInput" model='new { Id = "address", Name = "Address", Label = "Dirección", Placeholder = "Calle, Av, Jr…", IconLeft = "ti-map-pin", Autocomplete = "off" }' />
+
+                <!-- Sección: Credenciales -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60 pt-2">
+                    <span class="w-8 h-8 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-key text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Credenciales de acceso</h4>
+                </div>
+
+                <partial name="_FormInput" model='new { Id = "userName", Name = "UserName", Label = "Nombre de usuario", Required = true, Placeholder = "Ej: jperez", IconLeft = "ti-user", Autocomplete = "off" }' />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <partial name="_FormInput" model='new { Id = "password", Name = "Password", Type = "password", Label = "Contraseña", IconLeft = "ti-lock", Autocomplete = "new-password", Helper = "Dejar en blanco para mantener la actual." }' />
+                    <partial name="_FormInput" model='new { Id = "confirmPassword", Name = "ConfirmPassword", Type = "password", Label = "Confirmar contraseña", IconLeft = "ti-checks", Autocomplete = "new-password" }' />
+                </div>
+
+                <!-- Sección: Roles -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60 pt-2">
+                    <span class="w-8 h-8 rounded-md bg-secondary-100 text-secondary-700 inline-flex items-center justify-center">
+                        <i class="ti ti-shield text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Roles asignados</h4>
+                </div>
+
+                <div id="rolesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-ink-50 rounded-md ring-1 ring-ink-200/60 max-h-44 overflow-y-auto">
+                    <!-- Roles inyectados por JS (usan .form-check para coincidir con _FormCheckbox) -->
+                </div>
+
+                <!-- Sección: Estado de la cuenta -->
+                <div class="flex items-center gap-3 pb-2 border-b border-ink-200/60 pt-2">
+                    <span class="w-8 h-8 rounded-md bg-secondary-100 text-secondary-700 inline-flex items-center justify-center">
+                        <i class="ti ti-toggle-left text-xs"></i>
+                    </span>
+                    <h4 class="text-[13px] font-semibold text-ink-900 tracking-tight">Estado de la cuenta</h4>
+                </div>
+
+                <partial name="_FormCheckbox" model='new {
+                    Id = "disableUser",
+                    Name = "IsDisabled",
+                    Label = "Deshabilitar usuario",
+                    Hint = "El usuario no podrá iniciar sesión hasta que se rehabilite.",
+                    Variant = "switch"
+                }' />
+            </form>
+        </div>
+
+        <footer class="adm-modal__footer">
+            <button type="button" data-modal-close
+                    class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                Cancelar
+            </button>
+            <button type="submit" form="userForm"
+                    class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                <i class="ti ti-device-floppy text-xs"></i> Guardar usuario
+            </button>
+        </footer>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.AdminUsersData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(u => new {
+            u.Id,
+            u.UserName,
+            u.FullName,
+            u.Document,
+            u.IsDisabled,
+            u.Email,
+            RolNames = string.Join(", ", u.UserRols?.Select(ur => ur.Rol?.Name) ?? Array.Empty<string>())
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/users/index.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,108 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Modality.ExamResult>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Publicación de Resultados";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Documento",  Field = "name",       Type = "combined", SubField = "description", Sortable = true },
+        new() { Label = "Modalidad",  Field = "modality",   Type = "text",     Sortable = true },
+        new() { Label = "Periodo",    Field = "term",       Type = "text",     Sortable = true },
+        new() { Label = "Archivo",    Field = "fileDetails", Type = "text" },
+        new() { Label = "Publicado",  Field = "publishedOn", Type = "text",    Sortable = true },
+        new() { Label = "Estado",     Field = "statusText", Type = "badge",
+                BadgeMap = new Dictionary<string, string> { { "Publicado", "green" }, { "Oculto", "gray" } } },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["TableId"] = "examResultsTable";
+    ViewData["ClientSide"] = true;
+    ViewData["EmptyIcon"] = "ti-file-type-pdf";
+    ViewData["EmptyTitle"] = "Sin documentos publicados";
+    ViewData["EmptySubtitle"] = "Aún no hay PDFs de resultados publicados para los periodos.";
+    ViewData["Actions"] = new List<DataTableAction>
+    {
+        new() { Key="download", Label="Descargar PDF", Icon="ti-download",  Href="/{fileUrl}", Target="_blank" },
+        new() { Key="edit",     Label="Editar",        Icon="ti-edit",      Href="/admin/exam-management/results/editar/{id}" },
+        new() { Key="delete",   Label="Eliminar",      Icon="ti-trash", Danger=true }
+    };
+}
+
+<!-- Page Hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Resultados</span>
+        </div>
+        <div class="eyebrow">Publicación oficial</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Documentos de <span class="font-serif font-normal text-primary-600">resultados</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Sube y administra los PDFs oficiales de resultados por periodo y modalidad.</p>
+    </div>
+    <a href="/admin/exam-management/results/crear"
+       class="btn-grad inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i> Nuevo documento
+    </a>
+</section>
+
+<!-- Filter bar -->
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-4 sm:p-5 mb-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "filterTerm",
+                Label = "Periodo Académico",
+                Placeholder = "Todos los periodos",
+                Options = ((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { id = (string)t.id.ToString(), name = t.name })
+            }' />
+        </div>
+        <div>
+            <partial name="_CustomSelect" model='new {
+                Id = "filterModality",
+                Label = "Modalidad",
+                Placeholder = "Todas las modalidades",
+                Options = ((IEnumerable<dynamic>)ViewBag.Modalities).Select(m => new { id = (string)m.id.ToString(), name = m.name })
+            }' />
+        </div>
+        <div>
+            <label for="filterName" class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Buscar por nombre</label>
+            <div class="relative">
+                <i class="ti ti-search absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 text-sm"></i>
+                <input type="text" id="filterName"
+                       class="w-full h-9 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md pl-11 pr-4 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                       placeholder="Nombre del documento...">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="fade-up" id="tableContainer">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+<form id="antiForgeryForm" class="hidden">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script>
+        window.ExamResultsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(r => new {
+            r.Id,
+            r.Name,
+            r.Description,
+            r.FileName,
+            r.FileUrl,
+            TermId = r.TermId,
+            ModalityId = r.ModalityId,
+            Modality = r.Modality != null ? r.Modality.Name : "-",
+            Term = r.Term != null ? r.Term.Name : "-",
+            FileDetails = $"{r.FileType} ({r.FileSize})",
+            PublishedOn = r.PublishedAt.HasValue ? r.PublishedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-",
+            StatusText = r.IsActive ? "Publicado" : "Oculto"
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/exam-management/exam-results/index.js" asp-append-version="true"></script>
+}

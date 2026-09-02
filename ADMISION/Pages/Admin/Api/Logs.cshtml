@@ -1,0 +1,148 @@
+@using ADMISION.ENTITIES.Models.Api
+@model List<ApiRequestLog>
+
+@{
+    ViewData["Title"] = "Registro de Consultas API";
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    int currentPage = ViewBag.CurrentPage;
+    int totalPages = ViewBag.TotalPages;
+    var filterUser = (string?)ViewBag.FilterUser;
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <nav class="flex items-center gap-2 text-xs text-ink-400 mb-2" aria-label="Breadcrumb">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/config" class="hover:text-primary-600 transition-colors">Configuración</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Consultas API</span>
+    </nav>
+    <div class="eyebrow">Auditoría de APIs</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Consultas <span class="font-serif font-normal text-primary-600">API</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1 max-w-2xl">
+        Registro detallado de todas las llamadas a los endpoints API por usuarios con rol ApiConsumer, incluyendo usuarios que ya no tienen ese rol.
+    </p>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtrar registros</h2>
+            <p class="text-[11.5px] text-ink-500">Refina por nombre de usuario</p>
+        </div>
+    </div>
+    <form method="get" class="p-4 sm:p-5 flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[240px] form-field">
+            <label class="form-label">Buscar por usuario</label>
+            <div class="form-input-wrapper">
+                <i class="ti ti-user form-input-icon"></i>
+                <input type="text" name="user" class="form-input" placeholder="Nombre de usuario..." value="@filterUser" />
+            </div>
+        </div>
+        <button type="submit"
+                class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-filter text-xs"></i> Filtrar
+        </button>
+        @if (!string.IsNullOrEmpty(filterUser))
+        {
+            <a href="/admin/config/api-logs"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                <i class="ti ti-x text-xs"></i> Limpiar
+            </a>
+        }
+    </form>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="atlas w-full">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Método</th>
+                    <th>Ruta</th>
+                    <th class="text-center">Código</th>
+                    <th class="text-right">Duración</th>
+                    <th>Origen</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var log in Model)
+                    {
+                        <tr>
+                            <td class="text-xs text-ink-600 dark:text-ink-300 whitespace-nowrap font-mono">
+                                @log.RequestedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                            </td>
+                            <td>
+                                <div class="font-semibold text-ink-900 dark:text-ink-100 text-xs">@log.UserName</div>
+                                @if (!string.IsNullOrEmpty(log.JwtId))
+                                {
+                                    <div class="text-[10px] text-ink-400 font-mono truncate max-w-[100px]" title="jti: @log.JwtId">@log.JwtId[..Math.Min(8, log.JwtId.Length)]…</div>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(log.HttpMethod == "GET" ? "b-green" : log.HttpMethod == "POST" ? "b-primary" : "b-secondary") font-mono text-[10px]">@log.HttpMethod</span>
+                            </td>
+                            <td class="max-w-xs">
+                                <div class="text-xs text-ink-700 dark:text-ink-200 font-mono break-all">@log.Path</div>
+                                @if (!string.IsNullOrEmpty(log.QueryString))
+                                {
+                                    <div class="text-[10px] text-ink-400 font-mono break-all truncate max-w-[300px]" title="@log.QueryString">@log.QueryString</div>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(log.StatusCode >= 200 && log.StatusCode < 300 ? "b-green" : log.StatusCode >= 400 ? "b-amber" : "b-gray") font-mono">@log.StatusCode</span>
+                            </td>
+                            <td class="text-right text-xs text-ink-500 font-mono tabular-nums">@log.DurationMs ms</td>
+                            <td class="text-xs text-ink-500 truncate max-w-[120px]" title="@log.Origin">@(!string.IsNullOrEmpty(log.Origin) ? log.Origin : "—")</td>
+                            <td class="text-xs text-ink-400 font-mono">@log.IpAddress</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model == null || !Model.Any())
+    {
+        <div class="py-14 text-center">
+            <i class="ti ti-api-app text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 text-sm font-medium">Sin consultas API registradas.</p>
+            <p class="text-ink-400 text-xs mt-1">Aún no se ha realizado ninguna llamada a los endpoints API.</p>
+        </div>
+    }
+</section>
+
+@if (totalPages > 1)
+{
+    <div class="fade-up mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <span class="text-ink-500">Página <strong class="text-ink-700 dark:text-ink-200">@currentPage</strong> de <strong class="text-ink-700 dark:text-ink-200">@totalPages</strong> — @ViewBag.TotalItems registros</span>
+        <div class="flex gap-2">
+            @if (currentPage > 1)
+            {
+                <a href="/admin/config/api-logs?user=@filterUser&page=@(currentPage - 1)"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    <i class="ti ti-chevron-left text-[10px]"></i> Anterior
+                </a>
+            }
+            @if (currentPage < totalPages)
+            {
+                <a href="/admin/config/api-logs?user=@filterUser&page=@(currentPage + 1)"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    Siguiente <i class="ti ti-chevron-right text-[10px]"></i>
+                </a>
+            }
+        </div>
+    </div>
+}

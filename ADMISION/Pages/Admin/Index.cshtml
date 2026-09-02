@@ -1,0 +1,617 @@
+@using ADMISION.Models.ViewModels.Admin
+@using ADMISION.ENTITIES.Constants
+@model AdminDashboardDto
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Dashboard";
+    var terms = ViewBag.Terms as List<ADMISION.ENTITIES.Models.Modality.Term>;
+    var canViewDashboard = User.IsInRole(AppConstants.Roles.SuperAdmin)
+        || User.IsInRole(AppConstants.Roles.Admin)
+        || User.IsInRole(AppConstants.Roles.Consultor);
+}
+
+@if (canViewDashboard)
+{
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<!-- Page Hero -->
+<section class="fade-up relative overflow-hidden rounded-md bg-secondary-1000 text-white p-6 md:p-8 mb-5 ring-soft">
+
+    <div class="relative z-10">
+        <p class="text-[10px] font-bold tracking-[0.18em] uppercase text-primary-300 mb-1.5">
+            <i class="ti ti-chart-line mr-1"></i> Sistema de Admisión
+        </p>
+        <h1 class="text-2xl md:text-[28px] font-semibold tracking-[-0.02em] text-white leading-tight">
+            Dashboard de <span class="font-serif font-normal text-primary-300">postulantes</span>
+        </h1>
+        <p class="text-sm mt-1.5 text-white/70">Estadísticas en tiempo real del proceso de admisión.</p>
+    </div>
+
+    <div class="relative z-10 mt-4 flex flex-wrap items-center gap-2 text-xs">
+        <span class="w-2 h-2 rounded-full bg-primary-400 pulse-dot"></span>
+        <span id="period-label" class="font-medium text-white/75">Mostrando: @Model.SelectedTermName</span>
+        <span class="ml-auto text-white/45">
+            última actualización:
+            <span class="font-semibold text-white tabular-nums">@DateTime.Now.AddHours(-5).ToString("dd/MM/yyyy, hh:mm tt")</span>
+        </span>
+    </div>
+</section>
+
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-4 sm:p-5 mb-6 relative" id="filtersCard">
+    <div id="dashboardLoading"
+         class="hidden absolute inset-0 z-10 rounded-md bg-white/70 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white ring-soft text-xs font-semibold text-ink-700">
+            <i class="ti ti-loader-2 fa-spin text-primary-500"></i>
+            Actualizando estadísticas
+        </span>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div class="min-w-0">
+                <div class="eyebrow">Filtros</div>
+                <h2 class="text-base sm:text-lg font-semibold text-ink-900 leading-tight">Acotar resultados</h2>
+            </div>
+        </div>
+        @{
+            var hasAnyFilter = Model.SelectedModalityId.HasValue
+                || Model.SelectedTypeModalityId.HasValue
+                || Model.SelectedCareerId.HasValue
+                || Model.SelectedTematicAreaId.HasValue;
+        }
+        <button type="button" id="clearFilters"
+                class="text-xs font-semibold text-ink-500 hover:text-primary-600 px-2 py-1 transition-colors inline-flex items-center gap-1 @(hasAnyFilter ? "" : "hidden")">
+            <i class="ti ti-x"></i> Limpiar filtros
+        </button>
+    </div>
+
+    <div id="dashboardFilters" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+
+        <!-- Periodo -->
+        <div>
+            @{
+                var termOptions = (ViewBag.Terms as IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)?
+                    .OrderByDescending(t => t.Year).ThenByDescending(t => t.Number)
+                    .Select(t => new { id = t.Id.ToString(), name = $"{t.Name} ({t.Year})" })
+                    .ToList();
+            }
+            <partial name="_CustomSelect" model='@(new {
+                Id = "filterTermId",
+                Name = "termId",
+                Label = "Periodo académico",
+                Placeholder = "Seleccionar proceso",
+                Options = termOptions,
+                Value = Model.SelectedTermId.ToString(),
+                Searchable = true
+            })' />
+        </div>
+
+        <!-- Modalidad -->
+        <div>
+            <partial name="_CustomSelect" model='@(new {
+                Id = "filterModalityId",
+                Name = "modalityId",
+                Label = "Modalidad",
+                Placeholder = "Todas",
+                Options = Model.FilterOptions.Modalities.Select(m => new { id = m.Id.ToString(), name = m.Name }).ToList(),
+                Value = Model.SelectedModalityId?.ToString() ?? "",
+                Searchable = true
+            })' />
+        </div>
+
+        <!-- Tipo de Modalidad -->
+        <div>
+            <partial name="_CustomSelect" model='@(new {
+                Id = "filterTypeModalityId",
+                Name = "typeModalityId",
+                Label = "Tipo de modalidad",
+                Placeholder = "Todos",
+                Options = Model.FilterOptions.TypeModalities.Select(t => new { id = t.Id.ToString(), name = t.Name, parentId = t.ParentId.ToString() }).ToList(),
+                Value = Model.SelectedTypeModalityId?.ToString() ?? "",
+                Searchable = true
+            })' />
+        </div>
+
+        <!-- Carrera -->
+        <div>
+            <partial name="_CustomSelect" model='@(new {
+                Id = "filterCareerId",
+                Name = "careerId",
+                Label = "Carrera",
+                Placeholder = "Todas",
+                Options = Model.FilterOptions.Careers.Select(c => new { id = c.Id.ToString(), name = c.Name }).ToList(),
+                Value = Model.SelectedCareerId?.ToString() ?? "",
+                Searchable = true
+            })' />
+        </div>
+
+        <!-- ÁREA TEMÁTICA -->
+        <div>
+            <partial name="_CustomSelect" model='@(new {
+                Id = "filterTematicAreaId",
+                Name = "tematicAreaId",
+                Label = "Área temática",
+                Placeholder = "Todas",
+                Options = Model.FilterOptions.TematicAreas.Select(a => new { id = a.Id.ToString(), name = a.Name }).ToList(),
+                Value = Model.SelectedTematicAreaId?.ToString() ?? "",
+                Searchable = false
+            })' />
+        </div>
+    </div>
+
+    <!-- Chips de filtros activos (se repintan client-side al cambiar filtros) -->
+    <div id="filterChips" class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-ink-100 @(hasAnyFilter ? "" : "hidden")">
+        <span class="eyebrow text-[10px]">Activos:</span>
+        @if (Model.SelectedModalityId.HasValue)
+        {
+            var name = Model.FilterOptions.Modalities.FirstOrDefault(m => m.Id == Model.SelectedModalityId.Value)?.Name ?? "";
+            <span class="badge b-primary">Modalidad: @name</span>
+        }
+        @if (Model.SelectedTypeModalityId.HasValue)
+        {
+            var name = Model.FilterOptions.TypeModalities.FirstOrDefault(t => t.Id == Model.SelectedTypeModalityId.Value)?.Name ?? "";
+            <span class="badge b-secondary">Tipo: @name</span>
+        }
+        @if (Model.SelectedCareerId.HasValue)
+        {
+            var name = Model.FilterOptions.Careers.FirstOrDefault(c => c.Id == Model.SelectedCareerId.Value)?.Name ?? "";
+            <span class="badge b-blue">Carrera: @name</span>
+        }
+        @if (Model.SelectedTematicAreaId.HasValue)
+        {
+            var name = Model.FilterOptions.TematicAreas.FirstOrDefault(a => a.Id == Model.SelectedTematicAreaId.Value)?.Name ?? "";
+            <span class="badge b-violet">@name</span>
+        }
+    </div>
+</section>
+
+<!-- KPIs -->
+<section class="fade-up grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    @{
+        var kpis = new[] {
+            new { Key = "totalPostulants",  Value = (double)Model.TotalPostulants, Label = "Total postulantes",      Icon = "ti-users",          IconBg = "bg-primary-50 dark:bg-primary-500/10",   IconColor = "text-primary-600" },
+            new { Key = "activeCareers",    Value = (double)Model.ActiveCareers,   Label = "Carreras con postulantes",Icon = "ti-school", IconBg = "bg-secondary-100 dark:bg-secondary-500/10", IconColor = "text-secondary-600" },
+            new { Key = "activeModalities", Value = (double)Model.ActiveModalities,Label = "Modalidades",             Icon = "ti-file-text",       IconBg = "bg-primary-50 dark:bg-primary-500/10",   IconColor = "text-primary-700" },
+            new { Key = "avgAge",           Value = (double)Math.Round(Model.AvgAge), Label = "Edad promedio",        Icon = "ti-calendar",   IconBg = "bg-secondary-100 dark:bg-secondary-500/10", IconColor = "text-secondary-600" },
+        };
+    }
+    @foreach (var k in kpis)
+    {
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">
+                        <span class="counter" data-kpi="@k.Key" data-target="@k.Value">@k.Value</span>
+                    </div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">@k.Label</div>
+                </div>
+                <div class="w-11 h-11 rounded-md @k.IconBg @k.IconColor inline-flex items-center justify-center text-lg">
+                    <i class="ti @k.Icon"></i>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<!-- Áreas Temáticas + Modalidades -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-5 flex items-center justify-between">
+            <span class="flex items-center gap-2"><i class="ti ti-shape text-secondary-500 text-sm"></i> Distribución por área temática</span>
+            <span class="badge b-secondary">Total: <span data-bind="topicsTotal">@Model.Topics.Total</span></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <div class="relative h-[240px]">
+                <canvas id="chartTopics"></canvas>
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div class="text-2xl font-bold text-ink-900 dark:text-ink-100 tabular-nums leading-none" data-bind="topicsTotalCenter">@Model.Topics.Total</div>
+                    <div class="text-[9px] font-bold text-ink-400 uppercase tracking-[0.16em] mt-1">Postulantes</div>
+                </div>
+            </div>
+
+            <div class="space-y-3" id="topicsList">
+                @{
+                    var topicIdx = 0;
+                }
+                @foreach (var item in Model.Topics.Items.OrderByDescending(x => x.Count))
+                {
+                    <div class="bg-ink-50 dark:bg-ink-800/40 rounded-md p-3 ring-1 ring-ink-200/60 dark:ring-ink-800 flex items-center gap-3 hover:ring-secondary-300 transition-all">
+                        <div class="w-9 h-9 rounded-md bg-white dark:bg-ink-900 ring-1 ring-ink-200/60 dark:ring-ink-800 flex items-center justify-center">
+                            <span class="text-[10.5px] font-bold" data-palette="@topicIdx" data-palette-target="text">@item.Code</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-[10px] font-bold text-ink-600 dark:text-ink-300 uppercase tracking-[0.14em]">Área @item.Code</span>
+                                <span class="text-xs font-mono font-bold text-ink-900 dark:text-ink-100 tabular-nums">@item.Count</span>
+                            </div>
+                            <div class="pbar">
+                                <div class="" data-palette="@topicIdx" data-palette-target="bg" style="width: @item.Percentage.ToString("F1")%"></div>
+                            </div>
+                            <div class="mt-1 text-right">
+                                <span class="text-[9px] font-bold text-ink-400">@item.Percentage.ToString("F1")%</span>
+                            </div>
+                        </div>
+                    </div>
+                    topicIdx++;
+                }
+
+                @if (!Model.Topics.Items.Any())
+                {
+                    <div class="text-center py-8 text-ink-400 text-sm">
+                        No se han configurado áreas temáticas.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-list-check text-primary-500 text-sm"></i> Postulantes por modalidad de acceso
+        </div>
+        <div class="relative h-[280px]"><canvas id="chartModalidades"></canvas></div>
+    </div>
+</section>
+
+<!-- Carreras + Género + Colegio -->
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 xl:col-span-2">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-building-bank text-secondary-500 text-sm"></i> Postulantes por carrera profesional
+        </div>
+        <div class="relative h-[320px]"><canvas id="chartCarreras"></canvas></div>
+    </div>
+
+    <div class="flex flex-col gap-4">
+        <!-- Género -->
+        <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 flex-1">
+            <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+                <i class="ti ti-gender-bigender text-primary-500 text-sm"></i> Postulantes por género
+            </div>
+            <div class="flex items-center justify-around gap-4">
+                <div class="relative w-32 h-32">
+                    <canvas id="chartGenero"></canvas>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <div class="font-mono font-bold text-xl text-ink-900 dark:text-ink-100 tabular-nums" data-bind="genderTotal">@Model.Gender.Total</div>
+                        <div class="text-[9px] uppercase font-bold text-ink-400">Total</div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="w-2.5 h-2.5 rounded-full" data-palette="0" data-palette-target="bg"></span>
+                            <span class="text-[10px] font-bold uppercase text-ink-500 tracking-[0.14em]">Masculino</span>
+                        </div>
+                        <div class="font-mono font-bold text-xl text-ink-900 dark:text-ink-100 tabular-nums" data-bind="genderMale">@Model.Gender.Male</div>
+                        <div class="text-[10px] font-semibold" data-palette="0" data-palette-target="text" data-bind="genderMalePct">@Model.Gender.MalePercentage.ToString("F1")%</div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="w-2.5 h-2.5 rounded-full" data-palette="1" data-palette-target="bg"></span>
+                            <span class="text-[10px] font-bold uppercase text-ink-500 tracking-[0.14em]">Femenino</span>
+                        </div>
+                        <div class="font-mono font-bold text-xl text-ink-900 dark:text-ink-100 tabular-nums" data-bind="genderFemale">@Model.Gender.Female</div>
+                        <div class="text-[10px] font-semibold" data-palette="1" data-palette-target="text" data-bind="genderFemalePct">@Model.Gender.FemalePercentage.ToString("F1")%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tipo de Colegio -->
+        <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 flex-1">
+            <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+                <i class="ti ti-school text-secondary-400 text-sm"></i> Tipo de colegio de procedencia
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between text-[10px] font-bold uppercase text-ink-500 tracking-[0.14em] mb-1.5">
+                        <span><i class="ti ti-building mr-1 opacity-60"></i> Público / Nacional</span>
+                        <span class="font-mono text-ink-900 dark:text-ink-100 tabular-nums" data-bind="schoolsPublic">@Model.Schools.Public</span>
+                    </div>
+                    <div class="pbar">
+                        <div data-palette="0" data-palette-target="bg" data-bind-style="schoolsPublicPct" style="width: @Model.Schools.PublicPercentage%"></div>
+                    </div>
+                    <div class="text-right text-[10px] font-bold mt-1" data-palette="0" data-palette-target="text" data-bind="schoolsPublicPctText">@Model.Schools.PublicPercentage.ToString("F1")%</div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-[10px] font-bold uppercase text-ink-500 tracking-[0.14em] mb-1.5">
+                        <span><i class="ti ti-star mr-1 text-primary-400"></i> Privado / Particular</span>
+                        <span class="font-mono text-ink-900 dark:text-ink-100 tabular-nums" data-bind="schoolsPrivate">@Model.Schools.Private</span>
+                    </div>
+                    <div class="pbar">
+                        <div data-palette="1" data-palette-target="bg" data-bind-style="schoolsPrivatePct" style="width: @Model.Schools.PrivatePercentage%"></div>
+                    </div>
+                    <div class="text-right text-[10px] font-bold mt-1" data-palette="1" data-palette-target="text" data-bind="schoolsPrivatePctText">@Model.Schools.PrivatePercentage.ToString("F1")%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+    var totalPostulants = Math.Max(1, Model.TotalPostulants);
+    var discPct = (double)Model.Disability.TotalUnique / totalPostulants * 100;
+
+
+<!-- Discapacidad + Edades -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <!-- Discapacidad -->
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-wheelchair text-secondary-500 text-sm"></i> Personas con discapacidad
+        </div>
+
+        <div class="flex items-center gap-4 mb-5 p-4 rounded-md bg-secondary-50 dark:bg-secondary-500/10 ring-1 ring-secondary-100 dark:ring-secondary-500/20">
+            <div class="w-12 h-12 rounded-md bg-secondary-100 dark:bg-secondary-500/20 text-secondary-600 dark:text-secondary-300 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="ti ti-accessible"></i>
+            </div>
+            <div>
+                <div class="font-mono font-bold text-2xl text-ink-900 dark:text-ink-100 tabular-nums" data-bind="disabilityTotalUnique">@Model.Disability.TotalUnique</div>
+                <div class="text-xs font-semibold text-secondary-700 dark:text-secondary-300">postulantes con discapacidad registrada</div>
+                <div class="text-[10.5px] text-secondary-500" data-bind="disabilityPct">@discPct.ToString("F1")% del total de postulantes</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            @{
+                var discCells = new[] {
+                    new { Key = "visual",       Label = "Visual",       Icon = "ti-eye-off",        Value = Model.Disability.Visual,       Pct = Model.Disability.VisualPct,       Palette = 0 },
+                    new { Key = "auditory",     Label = "Auditiva",     Icon = "ti-ear-off",        Value = Model.Disability.Auditory,     Pct = Model.Disability.AuditoryPct,     Palette = 1 },
+                    new { Key = "motor",        Label = "Motora",       Icon = "ti-wheelchair",     Value = Model.Disability.Motor,        Pct = Model.Disability.MotorPct,        Palette = 2 },
+                    new { Key = "intellectual", Label = "Intelectual",  Icon = "ti-brain",          Value = Model.Disability.Intellectual, Pct = Model.Disability.IntellectualPct, Palette = 3 },
+                };
+            }
+            @foreach (var d in discCells)
+            {
+                <div class="rounded-md p-3 ring-1 ring-ink-200/60 dark:ring-ink-800 bg-ink-50/60 dark:bg-ink-800/40">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-600 dark:text-ink-300">
+                            <i class="ti @d.Icon mr-1 opacity-70"></i> @d.Label
+                        </span>
+                        <span class="font-mono font-bold text-sm text-ink-900 dark:text-ink-100 tabular-nums" data-bind="disability-@d.Key-value">@d.Value</span>
+                    </div>
+                    <div class="pbar">
+                        <div data-palette="@d.Palette" data-palette-target="bg" data-bind-style="disability-@d.Key-pct" style="width: @d.Pct.ToString("F1")%"></div>
+                    </div>
+                </div>
+            }
+            <div class="rounded-md p-3 ring-1 ring-ink-200/60 dark:ring-ink-800 bg-ink-50/60 dark:bg-ink-800/40 col-span-2">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-600 dark:text-ink-300">
+                        <i class="ti ti-help-circle mr-1 text-ink-400"></i> Otros / Sin clasificar
+                    </span>
+                    <span class="font-mono font-bold text-sm text-ink-700 dark:text-ink-200 tabular-nums" data-bind="disability-other-value">@Model.Disability.Other</span>
+                </div>
+                <div class="pbar">
+                    <div data-palette="4" data-palette-target="bg" data-bind-style="disability-other-pct" style="width: @Model.Disability.OtherPct.ToString("F1")%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative h-[180px] mt-2"><canvas id="chartDiscapacidad"></canvas></div>
+    </div>
+
+    <!-- Edades -->
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-users-group text-primary-500 text-sm"></i> Distribución por grupo etario
+        </div>
+
+        <div class="grid grid-cols-4 gap-3 mb-5">
+            @{
+                var ageCells = new[] {
+                    new { Key = "children", Icon = "ti-mood-kid",    Value = Model.AgeGroups.Children, Label = "Niños",      Range = "5-15 años",  Pct = Model.AgeGroups.ChildrenPercentage, Palette = 3 },
+                    new { Key = "young",    Icon = "ti-mood-kid",    Value = Model.AgeGroups.Young,    Label = "Jóvenes",     Range = "16-25 años", Pct = Model.AgeGroups.YoungPercentage,    Palette = 0 },
+                    new { Key = "adult",    Icon = "ti-user",        Value = Model.AgeGroups.Adult,    Label = "Adultos",     Range = "26-45 años", Pct = Model.AgeGroups.AdultPercentage,    Palette = 1 },
+                    new { Key = "senior",   Icon = "ti-accessible",  Value = Model.AgeGroups.Senior,   Label = "Ad. Mayores", Range = "46+ años",   Pct = Model.AgeGroups.SeniorPercentage,   Palette = 2 },
+                };
+            }
+            @foreach (var a in ageCells)
+            {
+                <div class="rounded-md p-4 text-center ring-1 ring-ink-200/60 dark:ring-ink-800 bg-ink-50/60 dark:bg-ink-800/40">
+                    <i class="ti @a.Icon text-lg mb-1" data-palette="@a.Palette" data-palette-target="text"></i>
+                    <div class="font-mono font-bold text-xl text-ink-900 dark:text-ink-100 tabular-nums" data-bind="age-@a.Key-value">@a.Value</div>
+                    <div class="text-[10px] font-bold uppercase tracking-[0.14em]" data-palette="@a.Palette" data-palette-target="text">@a.Label</div>
+                    <div class="text-[10px]" data-palette="@a.Palette" data-palette-target="text">@a.Range</div>
+                    <div class="pbar mt-2">
+                        <div data-palette="@a.Palette" data-palette-target="bg" data-bind-style="age-@a.Key-pct" style="width: @a.Pct.ToString("F1")%"></div>
+                    </div>
+                    <div class="text-right text-[10px] font-bold mt-1" data-palette="@a.Palette" data-palette-target="text" data-bind="age-@a.Key-pctText">@a.Pct.ToString("F1")%</div>
+                </div>
+            }
+        </div>
+
+        <div class="relative h-[200px] mt-2"><canvas id="chartEdades"></canvas></div>
+    </div>
+</section>
+
+<!-- Traslados + Regiones -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-refresh text-secondary-500 text-sm"></i> Universidades de procedencia (traslados)
+        </div>
+        <div class="overflow-x-auto">
+            <table class="atlas w-full">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Universidad</th>
+                        <th class="text-center">T. Ext.</th>
+                        <th class="text-center">T. Int.</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="trasladosTbody">
+                    @if (Model.Traslados.Any())
+                    {
+                        var tRank = 1;
+                        foreach (var item in Model.Traslados)
+                        {
+                            <tr>
+                                <td class="font-mono font-bold text-secondary-500 tabular-nums">@tRank.ToString("D2")</td>
+                                <td class="font-semibold text-ink-900 dark:text-ink-100">@item.University</td>
+                                <td class="text-center"><span class="badge b-secondary">@item.External</span></td>
+                                <td class="text-center"><span class="badge b-primary">@item.Internal</span></td>
+                                <td class="text-right font-bold text-ink-900 dark:text-ink-100 tabular-nums">@item.Total</td>
+                            </tr>
+                            tRank++;
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="px-4 py-6 text-center text-ink-400 italic">Sin datos de traslados.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+            <i class="ti ti-map-pin text-primary-500 text-sm"></i> Regiones de procedencia
+        </div>
+        <div class="relative h-[260px]"><canvas id="chartRegiones"></canvas></div>
+        <div class="flex flex-wrap gap-2 mt-5" id="pillRegiones">
+            @for (int i = 0; i < Model.RegionsChart.Labels.Count; i++)
+            {
+                <span class="badge b-secondary">@Model.RegionsChart.Labels[i]: @Model.RegionsChart.Values[i]</span>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Grade distribution -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6 mb-6 @(Model.GradeDistribution.Labels.Any() ? "" : "hidden")" id="gradeCard">
+    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center gap-2">
+        <i class="ti ti-stairs text-secondary-500 text-sm"></i> Postulantes por grado de procedencia
+    </div>
+    <div class="relative h-[280px]"><canvas id="chartGrades"></canvas></div>
+</section>
+
+<!-- Mapas: Perú + Mundo -->
+<section class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+                <i class="ti ti-map text-secondary-500 text-sm"></i>
+                Mapa del Perú, Postulantes por departamento (<span data-bind="termNamePeru">@Model.SelectedTermName</span>)
+            </span>
+            <span class="badge b-secondary">Total: <span data-bind="peruTotal">@Model.PeruMap.Sum(x => x.Count)</span></span>
+        </div>
+        <div id="peruMap" class="w-full rounded-md overflow-hidden ring-1 ring-ink-200/60 dark:ring-ink-800"
+             style="height: 420px; background: #f7f8fa;"></div>
+        <p id="peruMapEmpty" class="text-center text-xs text-ink-400 mt-3 @(Model.PeruMap.Any() ? "hidden" : "")">
+            Sin inscripciones registradas en departamentos del Perú para este periodo.
+        </p>
+    </div>
+
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-6">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-4 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+                <i class="ti ti-world text-primary-500 text-sm"></i>
+                Mapa mundial, Postulantes extranjeros (<span data-bind="termNameWorld">@Model.SelectedTermName</span>)
+            </span>
+            <span class="badge b-primary">Total: <span data-bind="worldTotal">@Model.WorldMap.Sum(x => x.Count)</span></span>
+        </div>
+        <div id="worldMap" class="w-full rounded-md overflow-hidden ring-1 ring-ink-200/60 dark:ring-ink-800"
+             style="height: 420px; background: #f7f8fa;"></div>
+        <div id="worldPills" class="flex flex-wrap gap-2 mt-4 @(Model.WorldMap.Any() ? "" : "hidden")">
+            @foreach (var c in Model.WorldMap.Take(12))
+            {
+                <span class="badge b-primary">@c.Name: @c.Count</span>
+            }
+        </div>
+        <p id="worldMapEmpty" class="text-center text-xs text-ink-400 mt-3 @(Model.WorldMap.Any() ? "hidden" : "")">
+            No hay postulantes desde otros países para este periodo.
+        </p>
+    </div>
+</section>
+
+<!-- Depósitos / Transferencias -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-2">
+    <div class="px-6 py-4 border-b border-ink-200/60 dark:border-ink-800/60 bg-ink-50/60 dark:bg-ink-800/40 flex items-center justify-between rounded-t-md">
+        <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 flex items-center gap-2">
+            <i class="ti ti-transfer text-secondary-500 text-sm"></i> Notificaciones de depósitos (transferencias)
+        </div>
+        <a href="#" class="text-[11px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-[0.14em] inline-flex items-center gap-1">
+            Ver todos <i class="ti ti-chevron-right text-[9px]"></i>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="atlas w-full">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Postulante</th>
+                    <th>DNI</th>
+                    <th>Operación / Banco</th>
+                    <th class="text-right">Monto</th>
+                    <th>Fecha Ins.</th>
+                    <th class="text-center">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="transfersTbody">
+                @if (Model.Transfers.Any())
+                {
+                    var rank = 1;
+                    foreach (var item in Model.Transfers)
+                    {
+                        <tr>
+                            <td><span class="font-mono font-bold text-secondary-500 tabular-nums">@rank.ToString("D2")</span></td>
+                            <td>
+                                <div class="font-bold text-ink-900 dark:text-ink-100">@item.FullName</div>
+                                <div class="text-[11px] text-ink-400">@item.Email</div>
+                            </td>
+                            <td class="font-mono text-xs text-ink-600 dark:text-ink-300 tabular-nums">@item.Dni</td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-secondary-400"></span>
+                                    <span class="text-xs font-semibold text-secondary-700 dark:text-secondary-300">@item.OperationCode</span>
+                                </div>
+                                <div class="text-[11px] text-ink-500">@item.BankName</div>
+                            </td>
+                            <td class="text-right">
+                                <span class="font-mono font-bold text-ink-900 dark:text-ink-100 text-sm tabular-nums">S/ @item.Amount.ToString("F2")</span>
+                            </td>
+                            <td class="text-xs text-ink-500 tabular-nums">@item.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-center"><span class="badge b-amber">Pendiente</span></td>
+                        </tr>
+                        rank++;
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="px-6 py-8 text-center text-ink-400 italic">No hay transferencias registradas para este periodo.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+@section Scripts {
+@{
+    var initialJson = System.Text.Json.JsonSerializer.Serialize(Model, new System.Text.Json.JsonSerializerOptions {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    });
+}
+<script>
+    window.AdminDashboardData = @Html.Raw(initialJson);
+</script>
+<script src="~/js/admin/index.js" asp-append-version="true"></script>
+}
+}
+else
+{
+    <div class="flex items-center justify-center min-h-[60vh] text-ink-400">
+        <div class="text-center">
+            <i class="ti ti-shield-lock text-5xl block mb-4 text-ink-300"></i>
+            <p class="text-sm font-semibold">No hay data para mostrar.</p>
+        </div>
+    </div>
+}

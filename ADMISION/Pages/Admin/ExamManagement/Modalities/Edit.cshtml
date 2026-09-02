@@ -1,0 +1,289 @@
+@model ADMISION.ENTITIES.Models.Modality.Modality
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Editar Modalidad";
+    var termOptions = ((IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.TermId)
+        .Select(i => new { id = i.Value, name = i.Text });
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/exam-management/modalities/" class="hover:text-primary-600 transition-colors">Modalidades</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Editar</span>
+    </div>
+    <div class="eyebrow">Configuración de examen</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Editar <span class="font-serif font-normal text-primary-600">@Model.Name</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Modifica los datos, presentación y cronograma de la modalidad.</p>
+</section>
+
+<form asp-action="Edit"
+      method="post"
+      class="grid grid-cols-1 xl:grid-cols-2 gap-5 max-w-7xl">
+
+    <input type="hidden" asp-for="Id" />
+
+    <!-- Card: Datos principales -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-edit text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos de la modalidad</h2>
+                <p class="text-[11.5px] text-ink-500">Identificación y estado</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <div>
+                <partial name="_CustomSelect" model='new { Id = "TermId", Name = "TermId", Label = "Periodo", Required = true, Options = termOptions, SelectedValue = Model.TermId.ToString() }' />
+                <span asp-validation-for="TermId" class="text-xs text-rose-500 mt-1"></span>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:gap-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Name", Name = "Name",
+                    Label = "Nombre", Required = true,
+                    Value = Model.Name,
+                    IconLeft = "ti-tag",
+                    Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <div class="flex flex-col gap-2 pb-1">
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "IsActive", Name = "IsActive",
+                        Label = "Modalidad activa",
+                        Hint = "Visible para los postulantes",
+                        Checked = Model.IsActive,
+                        Variant = "default"
+                    })' />
+                    <partial name="_FormInput" model='@(new {
+                        Id = "Orden", Name = "Orden",
+                        Label = "Orden de asignación de código",
+                        InputMode = "numeric",
+                        Value = Model.Orden,
+                        IconLeft = "ti-sort-numeric-asc",
+                        Helper = "Define el orden para la lógica de asignación de código de estudiante."
+                    })' />
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "IsCepreExam", Name = "IsCepreExam",
+                        Label = "Es examen CEPRE",
+                        Hint = "Indica si esta modalidad corresponde a un examen CEPRE",
+                        Checked = Model.IsCepreExam,
+                        Variant = "default"
+                    })' />
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "RequiresProfilePhoto", Name = "RequiresProfilePhoto",
+                        Label = "Requiere foto de perfil",
+                        Hint = "Se pedirá al postulante subir una foto en el formulario",
+                        Checked = Model.RequiresProfilePhoto,
+                        Variant = "default"
+                    })' />
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "IsMockExam", Name = "IsMockExam",
+                        Label = "Es simulacro",
+                        Hint = "No se listará en la tabla de vacantes",
+                        Checked = Model.IsMockExam,
+                        Variant = "default"
+                    })' />
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "RequiresEducationalLevel", Name = "RequiresEducationalLevel",
+                        Label = "Nivel educativo",
+                        Hint = "Preguntar nivel (primaria/secundaria)",
+                        Checked = Model.RequiresEducationalLevel,
+                        Variant = "default"
+                    })' />
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "RequiresGrade", Name = "RequiresGrade",
+                        Label = "Grado escolar",
+                        Hint = "Preguntar grado (1° a 6° según nivel)",
+                        Checked = Model.RequiresGrade,
+                        Variant = "default"
+                    })' />
+                </div>
+            </div>
+
+            <partial name="_FormTextarea" model='@(new {
+                Id = "Description", Name = "Description",
+                Label = "Descripción interna",
+                Rows = 3,
+                Value = Model.Description,
+                Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <partial name="_FormTextarea" model='@(new {
+                Id = "PublicSummary", Name = "PublicSummary",
+                Label = "Resumen público",
+                Rows = 3,
+                Value = Model.PublicSummary
+            })' />
+        </div>
+    </section>
+
+
+    <!-- Card: Cronograma y correlativo -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-calendar-event text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Cronograma y correlativo</h2>
+                <p class="text-[11.5px] text-ink-500">Fechas del proceso y numeración de postulantes</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <!-- Inner: Cronograma -->
+            <div class="rounded-md ring-1 ring-ink-200/60 dark:ring-ink-800">
+                <div class="px-4 sm:px-5 py-3 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-2">
+                    <i class="ti ti-calendar-time text-xs text-ink-400"></i>
+                    <h3 class="font-semibold text-ink-900 dark:text-ink-100 text-sm">Cronograma</h3>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                        <partial name="_FormDate" model='@(new {
+                            Id = "StartDate", Name = "StartDate",
+                            Label = "Fecha de inicio de inscripción",
+                            Value = Model.StartDate,
+                            Error = ViewData.ModelState["StartDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+
+                        <partial name="_FormDate" model='@(new {
+                            Id = "StartTime", Name = "StartTime",
+                            Label = "Hora de inicio de inscripción",
+                            Type = "time",
+                            Icon = "ti-clock",
+                            Value = Model.StartTime,
+                            Error = ViewData.ModelState["StartTime"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+
+                        <partial name="_FormDate" model='@(new {
+                            Id = "EndDate", Name = "EndDate",
+                            Label = "Fecha de fin de inscripción",
+                            Value = Model.EndDate,
+                            LinkedMinId = "StartDate",
+                            Error = ViewData.ModelState["EndDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+
+                        <partial name="_FormDate" model='@(new {
+                            Id = "EndTime", Name = "EndTime",
+                            Label = "Hora de cierre de inscripción",
+                            Type = "time",
+                            Icon = "ti-clock",
+                            Value = Model.EndTime,
+                            Helper = "El proceso de inscripción y la cuenta regresiva se cierran en esta hora.",
+                            Error = ViewData.ModelState["EndTime"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+
+                        <partial name="_FormDate" model='@(new {
+                            Id = "ExamDate", Name = "ExamDate",
+                            Label = "Fecha del examen",
+                            Value = Model.ExamDate,
+                            Error = ViewData.ModelState["ExamDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+
+                        <partial name="_FormDate" model='@(new {
+                            Id = "ResultsPublicationDate", Name = "ResultsPublicationDate",
+                            Label = "Fecha de publicación de resultados",
+                            Value = Model.ResultsPublicationDate,
+                            Error = ViewData.ModelState["ResultsPublicationDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inner: Correlativo -->
+            <div class="rounded-md ring-1 ring-ink-200/60 dark:ring-ink-800">
+                <div class="px-4 sm:px-5 py-3 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-2">
+                    <i class="ti ti-hash text-xs text-ink-400"></i>
+                    <h3 class="font-semibold text-ink-900 dark:text-ink-100 text-sm">Correlativo de postulante</h3>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <div class="grid grid-cols-1 gap-4 sm:gap-4">
+                        <partial name="_FormInput" model='@(new {
+                            Id = "StartingCode", Name = "StartingCode",
+                            Label = "Número inicial de correlativo",
+                            Placeholder = "Ej. 0800000",
+                            InputMode = "numeric",
+                            Pattern = "[0-9]+",
+                            Value = Model.StartingCode,
+                            IconLeft = "ti-hash",
+                            Helper = "El primer postulante recibirá este código. Los siguientes se asignan +1. Se permiten ceros a la izquierda (el largo define el padding). Debe ser único entre modalidades activas del mismo periodo.",
+                            Error = ViewData.ModelState["StartingCode"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Card: Carreras asociadas -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft xl:col-span-2">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-building-arch text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Carreras disponibles</h2>
+                <p class="text-[11.5px] text-ink-500">Selecciona las carreras que se listarán para esta modalidad en el formulario de inscripción</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            @if (ViewBag.AllCareers != null && ((IEnumerable<ADMISION.ENTITIES.Models.Modality.Career>)ViewBag.AllCareers).Any())
+            {
+                var associatedIds = ViewBag.AssociatedCareerIds as IEnumerable<Guid> ?? new List<Guid>();
+                <div class="flex flex-col gap-2">
+                    @foreach (var career in (IEnumerable<ADMISION.ENTITIES.Models.Modality.Career>)ViewBag.AllCareers)
+                    {
+                        var isChecked = associatedIds.Contains(career.Id);
+                        <label class="flex items-center gap-3 p-3 rounded-md ring-1 ring-ink-200/60 dark:ring-ink-800 cursor-pointer hover:bg-primary-50/50 dark:hover:bg-primary-500/5 transition-colors">
+                            <input type="checkbox" name="CareerIds" value="@career.Id"
+                                   class="w-4 h-4 rounded border-ink-300 text-primary-600 focus:ring-primary-500"
+                                   @(isChecked ? "checked" : "") />
+                            <div class="min-w-0">
+                                <span class="text-sm font-medium text-ink-800 dark:text-ink-200 block">@career.Name</span>
+                                @if (career.Faculty != null)
+                                {
+                                    <span class="text-[10px] text-ink-400 block">@career.Faculty.Name</span>
+                                }
+                            </div>
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-sm text-ink-500 italic">No hay carreras registradas en el sistema.</p>
+            }
+        </div>
+    </section>
+
+
+    <!-- Acciones -->
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 xl:col-span-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar cambios
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

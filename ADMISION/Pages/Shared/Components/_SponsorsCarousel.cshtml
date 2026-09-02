@@ -1,0 +1,81 @@
+@*
+    Sponsors Carousel – marquee infinito estilo _CareersCarousel.
+    Usage: <partial name="Components/_SponsorsCarousel" />
+*@
+
+@{
+    var sponsors = ViewData["Sponsors"] as IEnumerable<ADMISION.ENTITIES.Models.Info.Sponsor>
+                   ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Info.Sponsor>();
+}
+
+@if (sponsors.Any())
+{
+    var duplicated = sponsors.Concat(sponsors).ToList();
+
+    <section class="relative py-20 sm:py-24 md:py-28 overflow-hidden">
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+
+            <!-- Section header -->
+            <div class="max-w-2xl mx-auto text-center mb-12 sm:mb-14 fade-up">
+                <div class="inline-flex items-center gap-2 glass ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                    <i class="ti ti-heart text-[10px]"></i>
+                    Nuestros Aliados
+                </div>
+                <h2 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+                    Sponsors <span class="font-serif font-normal text-primary-600">del portal</span>
+                </h2>
+                <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+                    Organizaciones que apoyan nuestro proceso de admisión.
+                </p>
+            </div>
+        </div>
+
+        <!-- Full-width marquee -->
+        <div class="relative overflow-hidden" style="mask-image:linear-gradient(to right,transparent,black 5%,black 95%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 5%,black 95%,transparent)">
+            <div class="flex marquee-track" style="width:fit-content;animation:marquee-sponsors @(sponsors.Count() * 8)s linear infinite">
+                @foreach (var sponsor in duplicated)
+                {
+                    <div class="group flex-shrink-0 w-[280px] sm:w-[380px] mr-6 sm:mr-8 flex items-center justify-center h-32 sm:h-40 px-6 py-5 hover:-translate-y-1 transition-all duration-300">
+                        @if (!string.IsNullOrEmpty(sponsor.LogoUrl))
+                        {
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="h-24 flex items-center justify-center">
+                                    <img src="/@sponsor.LogoUrl"
+                                         alt="@sponsor.Name"
+                                         class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                         loading="lazy" />
+                                </div>
+
+                                <span class="text-base font-semibold text-center text-ink-400 leading-tight group-hover:text-primary-600 transition-colors">
+                                    @sponsor.Name
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-base font-semibold text-ink-400 text-center leading-tight group-hover:text-primary-600 transition-colors">@sponsor.Name</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <style>
+            .marquee-track:hover {
+                animation-play-state: paused !important;
+            }
+        </style>
+    </section>
+}
+
+<style>
+    @@keyframes marquee-sponsors {
+        0% {
+            transform: translateX(100vw);
+        }
+        100% {
+            transform: translateX(-50%);
+        }
+    }
+</style>

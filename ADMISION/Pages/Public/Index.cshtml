@@ -1,0 +1,89 @@
+@model ADMISION.Models.ViewModels.Public.HomeViewModel
+@{
+    ViewData["Title"] = "Inicio";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+
+    // Pasar data al componente Banner
+    ViewData["BannerTitle"]       = Model.BannerTitle;
+    ViewData["BannerSubtitle"]    = Model.BannerSubtitle;
+    ViewData["BannerDescription"] = Model.BannerDescription;
+    ViewData["BannerCtaText"]     = Model.BannerCtaText;
+    ViewData["BannerCtaUrl"]      = Model.BannerCtaUrl;
+    ViewData["BannerImage"]       = Model.BannerImage;
+    ViewData["Exams"]             = Model.ActiveExams;
+    ViewData["DBBanners"]         = Model.Banners;
+    ViewData["Careers"]           = Model.Careers;
+    ViewData["Sponsors"]          = Model.Sponsors;
+    ViewData["Announcements"]     = Model.Announcements;
+}
+
+<!-- Banner / Hero -->
+<partial name="Components/_Banner" />
+
+<!-- Documents Section -->
+<section class="relative py-20 sm:py-24 md:py-28 overflow-hidden">
+
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+
+        <div class="text-center mb-12 sm:mb-14 fade-up max-w-2xl mx-auto">
+            <div class="inline-flex items-center gap-2 bg-white ring-soft rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700 mb-5">
+                <i class="ti ti-folder-open text-[10px]"></i>
+                Recursos
+            </div>
+            <h2 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+                Documentos y <span class="font-serif font-normal text-primary-600">archivos</span>
+            </h2>
+            <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+                Descarga los documentos necesarios para tu proceso de admisión.
+            </p>
+        </div>
+
+        <!-- Teaser 3 categorías -->
+        <partial name="Components/_DocumentCategoriesTeaser" />
+
+        <!-- CTA "Otros Documentos" (sin gradiente, fondo sólido secondary-1000) -->
+        <div class="max-w-5xl mx-auto mt-10 sm:mt-12 fade-up">
+            <div class="relative overflow-hidden rounded-md bg-secondary-1000 ring-soft">
+
+
+                <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-4 p-5 sm:p-6 md:p-10">
+                    <div class="flex items-start sm:items-center gap-4 sm:gap-4 min-w-0">
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md bg-white/10 flex items-center justify-center ring-1 ring-white/25 shrink-0">
+                            <i class="ti ti-folder-open text-white text-2xl sm:text-3xl md:text-4xl"></i>
+                        </div>
+                        <div class="text-white min-w-0">
+                            <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] text-primary-300 mb-1.5 inline-flex items-center gap-1.5">
+                                <i class="ti ti-file-download"></i>
+                                Otros Documentos
+                            </p>
+                            <h3 class="text-lg sm:text-xl md:text-2xl lg:text-[26px] font-semibold tracking-tight leading-tight">
+                                Requisitos y Formatos por Modalidad de Ingreso
+                            </h3>
+                            <p class="text-xs sm:text-sm text-ink-300 mt-2 max-w-xl leading-relaxed">
+                                Consulta los requisitos y descarga los formatos según tu modalidad de postulación.
+                            </p>
+                        </div>
+                    </div>
+                    <a href="/documentos/otros"
+                       class="inline-flex items-center justify-center gap-2 bg-white text-ink-900 hover:bg-ink-50 font-semibold px-4 sm:px-5 py-3 rounded-md shadow-sm hover:-translate-y-0.5 transition-all text-sm whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 w-full md:w-auto">
+                        <span>Ver todos</span>
+                        <i class="ti ti-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Careers carousel -->
+<partial name="Components/_CareersCarousel" />
+
+<!-- Contact & Location -->
+<partial name="Components/_ContactLocation" />
+
+<!-- Sponsors Carousel -->
+<partial name="Components/_SponsorsCarousel" />
+
+<!-- Announcement Modal -->
+<partial name="Components/_AnnouncementModal" />

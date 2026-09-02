@@ -1,0 +1,134 @@
+@model ADMISION.ENTITIES.Models.Modality.ScheduleEvent
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuevo Evento de Cronograma";
+    var phases = (List<ADMISION.ENTITIES.Constants.SelectOption>)ViewBag.PhaseOptions;
+    var termOptions = ((IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.TermId)
+        .Select(i => new { id = i.Value, name = i.Text });
+    var phaseOptions = phases.Select(p => new { id = p.Value, name = p.Label });
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info/cronograma" class="hover:text-primary-600 transition-colors">Cronograma</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Nuevo evento</span>
+    </div>
+    <div class="eyebrow">Calendario académico</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Crear evento de <span class="font-serif font-normal text-primary-600">cronograma</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Define una fase del proceso con fechas, horario y lugar.</p>
+</section>
+
+<form asp-action="Create" method="post" class="space-y-5 max-w-3xl">
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-calendar-plus text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del evento</h2>
+                <p class="text-[11.5px] text-ink-500">Identificación, fecha y ubicación</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <div>
+                    <partial name="_CustomSelect" model='new { Id = "TermId", Name = "TermId", Label = "Período académico", Required = true, Options = termOptions }' />
+                    <span asp-validation-for="TermId" class="form-error"></span>
+                </div>
+                <div>
+                    <partial name="_CustomSelect" model='new { Id = "Phase", Name = "Phase", Label = "Fase", Required = true, Options = phaseOptions }' />
+                    <span asp-validation-for="Phase" class="form-error"></span>
+                </div>
+            </div>
+
+            <partial name="_FormInput" model='@(new {
+                Id = "Description", Name = "Description",
+                Label = "Descripción", Required = true,
+                Placeholder = "Ej: Examen Ordinario",
+                Value = Model?.Description,
+                IconLeft = "ti-align-left",
+                Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4">
+                <partial name="_FormDate" model='@(new {
+                    Id = "StartDate", Name = "StartDate",
+                    Label = "Fecha de inicio", Required = true,
+                    Value = Model?.StartDate,
+                    Error = ViewData.ModelState["StartDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormDate" model='@(new {
+                    Id = "EndDate", Name = "EndDate",
+                    Label = "Fecha de fin (opcional)",
+                    Value = Model?.EndDate,
+                    LinkedMinId = "StartDate",
+                    Error = ViewData.ModelState["EndDate"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "DisplayOrder", Name = "DisplayOrder",
+                    Label = "Orden", Type = "number", Min = "0",
+                    Value = Model?.DisplayOrder.ToString(),
+                    IconLeft = "ti-sort-descending-numbers",
+                    Error = ViewData.ModelState["DisplayOrder"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Schedule", Name = "Schedule",
+                    Label = "Horario",
+                    Placeholder = "Ej: 07:30 - 1:00 pm / 2:00 - 4:00 pm",
+                    Value = Model?.Schedule,
+                    IconLeft = "ti-clock",
+                    Error = ViewData.ModelState["Schedule"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "Location", Name = "Location",
+                    Label = "Lugar",
+                    Placeholder = "Ej: Ciudad Universitaria – UNAMAD",
+                    Value = Model?.Location,
+                    IconLeft = "ti-map-pin",
+                    Error = ViewData.ModelState["Location"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+
+            <div class="pt-1">
+                <partial name="_FormCheckbox" model='@(new {
+                    Id = "IsActive", Name = "IsActive",
+                    Label = "Evento activo",
+                    Hint  = "Visible para el público en /cronograma",
+                    Checked = Model?.IsActive ?? true,
+                    Variant = "default"
+                })' />
+            </div>
+        </div>
+    </section>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar evento
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

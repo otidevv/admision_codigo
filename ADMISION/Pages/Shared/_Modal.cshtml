@@ -1,0 +1,110 @@
+@*
+================================================================================
+  _Modal.cshtml  —  Modal reutilizable (atlas style, sin gradientes).
+
+  Uso:
+    <partial name="_Modal" model='new {
+        Id        = "deleteModal",
+        Eyebrow   = "Confirmación",
+        Title     = "¿Eliminar registro?",
+        Subtitle  = "Esta acción no se puede deshacer",
+        Size      = "md",                  // sm | md | lg | xl | full
+        Body      = "<p class=\"text-sm text-ink-600\">...</p>",
+        Footer    = "<button class=\"btn-soft px-4 py-2 rounded-md\" data-modal-close>Cancelar</button>" +
+                    "<button class=\"btn-grad px-4 py-2 rounded-md\">Eliminar</button>",
+        CloseOnBackdrop = true,
+        ShowClose       = true
+    }' />
+
+  Abrir / cerrar:
+    - Cualquier botón con `data-modal-open="deleteModal"` lo abre.
+    - Cualquier elemento con `data-modal-close` dentro del modal lo cierra.
+    - Tecla `Escape` cierra el modal activo.
+    - API JS: window.ADM.Modal.open('id') / .close('id') / .toggle('id')
+================================================================================
+*@
+
+@using System.Reflection
+@{
+    object? __m = Model;
+    var type = __m?.GetType();
+    string GetVal(string propName, string defaultVal = "") {
+        var prop = type?.GetProperty(propName);
+        object? val = prop?.GetValue(__m);
+        return val?.ToString() ?? defaultVal;
+    }
+    bool GetBool(string propName, bool defaultVal = false) {
+        var prop = type?.GetProperty(propName);
+        object? val = prop?.GetValue(__m);
+        return val is bool b ? b : defaultVal;
+    }
+
+    var id         = GetVal("Id", "modal-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var eyebrow    = GetVal("Eyebrow");
+    var title      = GetVal("Title");
+    var subtitle   = GetVal("Subtitle");
+    var size       = GetVal("Size", "md");
+    var body       = GetVal("Body");
+    var footer     = GetVal("Footer");
+    var closeOnBackdrop = GetBool("CloseOnBackdrop", true);
+    var showClose       = GetBool("ShowClose", true);
+
+    var sizeClass = size switch {
+        "sm"   => "adm-modal__card--sm",
+        "lg"   => "adm-modal__card--lg",
+        "xl"   => "adm-modal__card--xl",
+        "full" => "adm-modal__card--full",
+        _      => "adm-modal__card--md"
+    };
+}
+
+<div id="@id" class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="@(id)-title" aria-hidden="true">
+    <div class="adm-modal__overlay" @(closeOnBackdrop ? "data-modal-close" : "")></div>
+
+    <div class="adm-modal__card @sizeClass">
+        @if (!string.IsNullOrEmpty(eyebrow) || !string.IsNullOrEmpty(title) || showClose)
+        {
+            <header class="adm-modal__header">
+                <div class="min-w-0">
+                    @if (!string.IsNullOrEmpty(eyebrow))
+                    {
+                        <div class="eyebrow">@eyebrow</div>
+                    }
+                    @if (!string.IsNullOrEmpty(title))
+                    {
+                        <h3 id="@(id)-title" class="adm-modal__title @(string.IsNullOrEmpty(eyebrow) ? "" : "mt-1")">@title</h3>
+                    }
+                    @if (!string.IsNullOrEmpty(subtitle))
+                    {
+                        <p class="adm-modal__subtitle">@subtitle</p>
+                    }
+                </div>
+                @if (showClose)
+                {
+                    <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                        <i class="ti ti-x"></i>
+                    </button>
+                }
+            </header>
+        }
+
+        <div class="adm-modal__body" id="@(id)-body">
+            @if (!string.IsNullOrEmpty(body))
+            {
+                @Html.Raw(body)
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(footer))
+        {
+            <footer class="adm-modal__footer">
+                @Html.Raw(footer)
+            </footer>
+        }
+    </div>
+</div>
+
+@* La API ADM.Modal (open/close/toggle/closeAll) se carga globalmente desde
+   /js/admin/modal-api.js en _AdminLayout.cshtml — no se inyecta aquí.
+   Esto permite que las páginas escriban modales inline (con partials Razor)
+   sin perder los handlers. *@

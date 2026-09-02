@@ -1,0 +1,655 @@
+<!--
+  ConstanciaInscripcion.html
+  ──────────────────────────
+  Plantilla "Constancia de Inscripción" — rediseño fiel al PDF de UNAMAD.
+
+  Variables esperadas en `data.*`:
+    full_name              Apellidos y Nombres (en mayúsculas: "MENDOZA VARGAS, Sergio André")
+    document_type          "DNI" | "CE" | ...
+    document_number        Número de documento
+    postulant_code         Código de postulante (ej: "2610485")
+    tematic_area_code      Tema/código de área (ej: "Q")
+    career_name            Carrera profesional
+    exam_date              Fecha del examen (ej: "DOMINGO, 16 DE AGOSTO DE 2026")
+    exam_venue             Lugar de evaluación (ej: "Ciudad Universitaria UNAMAD, Puerta principal")
+    door_open              Apertura de puertas (ej: "07:00 a.m. a 08:50 a.m.")
+    inscription_date       Fecha y hora de inscripción (ej: "11 de mayo 2026 - 10:45 hrs.")
+    city                   Ciudad (ej: "Puerto Maldonado")
+    term_name              Proceso de admisión (ej: "2026 – I")
+    exam_type              Tipo de examen (ej: "Examen Diferenciado de Medicina Humana")
+    photo_url              Foto del postulante → imagen1.jpg
+    fingerprint_url        Imagen de huella dactilar → imagen2.jpg
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Constancia de Inscripción — {{ data.full_name }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Times New Roman", Georgia, serif;
+            color: #000;
+            font-size: 10.5pt;
+            background: #fff;
+            width: 210mm;
+            min-height: 297mm;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ── Marca de agua diagonal ──────────────────────────── */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 72pt;
+            font-weight: 900;
+            color: rgba(180, 0, 50, 0.06);
+            letter-spacing: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+        }
+
+        /* ── Barra lateral izquierda roja ────────────────────── */
+        .left-stripe {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 7mm;
+            height: 100%;
+            background: linear-gradient(to bottom, #c8102e 60%, #8b0000 100%);
+            z-index: 1;
+        }
+
+        /* ── Contenedor principal ────────────────────────────── */
+        .page {
+            margin-left: 10mm;
+            margin-right: 14mm;
+            margin-top: 8mm;
+            margin-bottom: 8mm;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ── Header institucional ────────────────────────────── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 6px;
+            border-bottom: 2.5px solid #c8102e;
+            margin-bottom: 4px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-logo {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+        }
+
+        .header-inst {
+            line-height: 1.3;
+        }
+
+            .header-inst .univ-name {
+                font-size: 10pt;
+                font-weight: 700;
+                color: #1a1a1a;
+                line-height: 1.2;
+            }
+
+            .header-inst .direc-name {
+                font-size: 9pt;
+                font-weight: 700;
+                color: #c8102e;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sunedu-badge {
+            width: 52px;
+            height: 52px;
+            background: #1a3a6e;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #fff;
+            font-size: 9pt;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: 1px;
+            font-family: Arial, sans-serif;
+        }
+
+            .sunedu-badge .su {
+                font-size: 11pt;
+                color: #ffd700;
+            }
+
+        .sunedu-name {
+            font-size: 7.5pt;
+            color: #1a3a6e;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1.3;
+            text-align: right;
+            max-width: 110px;
+        }
+
+        /* ── Título principal ────────────────────────────────── */
+        .doc-title-wrap {
+            text-align: center;
+            margin: 8px 0 2px 0;
+        }
+
+        .doc-title {
+            font-size: 22pt;
+            font-weight: 900;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .doc-subtitle {
+            font-size: 10.5pt;
+            font-style: italic;
+            color: #333;
+            margin-top: 1px;
+        }
+
+        /* ── Bloque código postulante + TEMA ─────────────────── */
+        .code-block-wrap {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin: 6px 0 4px 0;
+        }
+
+        .code-left {
+            flex: 1;
+        }
+
+        .code-label-main {
+            font-size: 13pt;
+            font-weight: 700;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        .code-number {
+            font-size: 38pt;
+            font-weight: 900;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1;
+            letter-spacing: 2px;
+            display: block;
+        }
+
+        .tema-label {
+            font-size: 30pt;
+            font-weight: 900;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1;
+            margin-top: 2px;
+            display: block;
+        }
+
+        .photo-wrap {
+            width: 100px;
+            flex-shrink: 0;
+        }
+
+        .photo-frame {
+            width: 100px;
+            height: 120px;
+            border: 1.5px solid #999;
+            overflow: hidden;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .photo-frame img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+        /* ── Separador rojo ──────────────────────────────────── */
+        hr.red {
+            border: none;
+            border-top: 2px solid #c8102e;
+            margin: 6px 0;
+        }
+
+        hr.thin {
+            border: none;
+            border-top: 0.8px solid #bbb;
+            margin: 4px 0;
+        }
+
+        /* ── Secciones numeradas ─────────────────────────────── */
+        .section-title {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #000;
+            margin: 8px 0 5px 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        /* ── Tabla de datos del postulante ───────────────────── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+
+            .data-table tr td {
+                padding: 2.5px 4px;
+                vertical-align: top;
+                line-height: 1.4;
+            }
+
+                .data-table tr td.lbl {
+                    width: 38%;
+                    font-weight: 400;
+                    color: #222;
+                }
+
+                .data-table tr td.val {
+                    font-weight: 700;
+                    color: #c8102e;
+                }
+
+                    .data-table tr td.val.black {
+                        color: #000;
+                    }
+
+        /* Bloque QR al lado derecho de datos */
+        .data-qr-wrap {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .data-section {
+            flex: 1;
+        }
+
+        .qr-section {
+            width: 85px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+        .qr-box {
+            width: 85px;
+            height: 85px;
+            border: 1px solid #bbb;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+            .qr-box img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+
+        .nota-aula {
+            font-size: 8.5pt;
+            font-style: italic;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        /* ── Protocolo de seguridad ──────────────────────────── */
+        .protocol-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 10pt;
+        }
+
+            .protocol-list li {
+                padding: 2px 0 2px 0;
+                line-height: 1.45;
+                display: flex;
+                gap: 4px;
+            }
+
+                .protocol-list li::before {
+                    content: "•";
+                    color: #c8102e;
+                    font-weight: 900;
+                    flex-shrink: 0;
+                }
+
+                .protocol-list li strong {
+                    color: #000;
+                }
+
+        /* ── Declaración jurada ──────────────────────────────── */
+        .decl-intro {
+            font-size: 10pt;
+            margin-bottom: 4px;
+        }
+
+        .decl-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 10pt;
+            counter-reset: decl-counter;
+        }
+
+            .decl-list li {
+                counter-increment: decl-counter;
+                padding: 1.5px 0 1.5px 22px;
+                position: relative;
+                line-height: 1.4;
+            }
+
+                .decl-list li::before {
+                    content: counter(decl-counter) ".";
+                    position: absolute;
+                    left: 0;
+                    font-weight: 700;
+                    color: #000;
+                }
+
+                .decl-list li strong {
+                    color: #000;
+                }
+
+        /* ── Ciudad y fecha ──────────────────────────────────── */
+        .city-date {
+            text-align: right;
+            font-size: 10pt;
+            margin-top: 8px;
+            color: #555;
+        }
+
+            .city-date strong {
+                color: #000;
+            }
+
+        /* ── Bloque firmas ───────────────────────────────────── */
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 18px;
+            gap: 20px;
+        }
+
+        .sig-slot {
+            text-align: center;
+            flex: 1;
+        }
+
+        .sig-line {
+            border-top: 1.2px solid #000;
+            margin-bottom: 4px;
+        }
+
+        .sig-label {
+            font-size: 9.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #000;
+        }
+
+        .sig-sublabel {
+            font-size: 8.5pt;
+            font-style: italic;
+            color: #444;
+            margin-top: 1px;
+        }
+
+        .fingerprint-wrap {
+            width: 70px;
+            height: 70px;
+            border: 1px solid #bbb;
+            overflow: hidden;
+            margin: 0 auto 4px auto;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .fingerprint-wrap img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+
+        /* ── Nota final ──────────────────────────────────────── */
+        .final-note {
+            font-size: 9pt;
+            font-style: italic;
+            color: #333;
+            margin-top: 10px;
+            line-height: 1.45;
+            border-top: 1px solid #ddd;
+            padding-top: 6px;
+        }
+
+            .final-note strong {
+                color: #000;
+                font-style: normal;
+            }
+
+        /* ── Logo UNAMAD Acreditando Calidad ─────────────────── */
+        .footer-logo {
+            position: fixed;
+            bottom: 8mm;
+            right: 14mm;
+            width: 70px;
+            opacity: 0.9;
+            z-index: 2;
+        }
+
+            .footer-logo img {
+                width: 100%;
+                object-fit: contain;
+            }
+    </style>
+</head>
+<body>
+
+    <!-- Marca de agua diagonal -->
+    <div class="watermark">AMAZONA</div>
+
+    <!-- Barra lateral roja izquierda -->
+    <div class="left-stripe"></div>
+
+    <div class="page">
+
+        <!-- HEADER INSTITUCIONAL -->
+        <div class="header">
+            <div class="header-left">
+                <!-- Logo UNAMAD → imagen1.jpg -->
+                <img src="imagen1.jpg" alt="Logo UNAMAD" class="header-logo" />
+                <div class="header-inst">
+                    <div class="univ-name">Universidad Nacional<br />Amazónica de Madre de Dios</div>
+                    <div class="direc-name">Dirección de Admisión</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="sunedu-name">SUPERINTENDENCIA<br />NACIONAL DE EDUCACIÓN<br />SUPERIOR UNIVERSITARIA</div>
+                <div class="sunedu-badge">
+                    <span class="su">SU</span>
+                    <span>NE</span>
+                    <span>DU</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TÍTULO -->
+        <div class="doc-title-wrap">
+            <div class="doc-title">Constancia de Inscripción</div>
+            <div class="doc-subtitle">({{ data.exam_type }}, proceso de admisión {{ data.term_name }})</div>
+        </div>
+
+        <hr class="red" />
+
+        <!-- CÓDIGO DE POSTULANTE + TEMA + FOTO -->
+        <div class="code-block-wrap">
+            <div class="code-left">
+                <span class="code-label-main">Código de Postulante:</span>
+                <span class="code-number">{{ data.postulant_code }}</span>
+                <span class="tema-label">TEMA: {{ data.tematic_area_code }}</span>
+            </div>
+            <div class="photo-wrap">
+                <!-- Foto del postulante -->
+                <div class="photo-frame">
+                    <img src="imagen2.jpg" alt="Foto del postulante" />
+                </div>
+            </div>
+        </div>
+
+        <hr class="red" />
+
+        <!-- I. DATOS DEL POSTULANTE Y EVALUACIÓN -->
+        <div class="section-title">I. Datos del postulante y evaluación</div>
+
+        <div class="data-qr-wrap">
+            <div class="data-section">
+                <table class="data-table">
+                    <tr>
+                        <td class="lbl">Apellidos y Nombres:</td>
+                        <td class="val">{{ data.full_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">{{ data.document_type }} / C.E.:</td>
+                        <td class="val">{{ data.document_number }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Carrera Profesional:</td>
+                        <td class="val">{{ data.career_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Fecha de Examen:</td>
+                        <td class="val">{{ data.exam_date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Lugar de Evaluación:</td>
+                        <td class="val black">{{ data.exam_venue }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Apertura y Cierre de Puertas:</td>
+                        <td class="val black">{{ data.door_open }}</td>
+                    </tr>
+                </table>
+                <p class="nota-aula"><strong>NOTA:</strong> La asignación de pabellón y aula se realizará mediante sorteo interno.</p>
+            </div>
+            <div class="qr-section">
+                <div class="qr-box">
+                    {{ if data.qr_image_url }}
+                    <img src="{{ data.qr_image_url }}" alt="QR de verificación" />
+                    {{ else }}
+                    <span style="font-size:7pt;color:#aaa;text-align:center;">QR</span>
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+
+        <hr class="thin" />
+
+        <!-- II. PROTOCOLO DE SEGURIDAD -->
+        <div class="section-title">II. Protocolo de seguridad</div>
+        <ul class="protocol-list">
+            <li><strong>IDENTIFICACIÓN:</strong> Presentar esta Constancia impresa y DNI original vigente.</li>
+            <li><strong>ELEMENTOS PERMITIDOS:</strong> Lápiz 2B, borrador y tajador únicamente (Solo Simulacro).</li>
+            <li><strong>PROHIBICIONES:</strong> Teléfono móvil, reloj de cualquier tipo, audífono, mochila, cartera. <strong>La sola tenencia, anula el examen.</strong></li>
+            <li><strong>VESTIMENTA:</strong> Polo básico (cuello redondo, manga corta), cabello recogido.</li>
+        </ul>
+
+        <hr class="thin" />
+
+        <!-- III. DECLARACIÓN JURADA -->
+        <div class="section-title">III. Declaración jurada</div>
+        <p class="decl-intro">
+            Mediante mi firma y huella dactilar, <strong>DECLARO BAJO JURAMENTO</strong> que:
+        </p>
+        <ol class="decl-list">
+            <li><strong>Conozco y me someto</strong> irrestrictamente a las normas, protocolos y sanciones del Reglamento General de Admisión de la UNAMAD.</li>
+            <li><strong>Autorizo el uso institucional de mis datos biométricos</strong> (huella/foto) para identificación institucional (conforme a la Ley N° 29733 de Protección de Datos Personales).</li>
+            <li><strong>Acepto la anulación inmediata</strong> de mi examen y la Nulidad de Oficio de mi ingreso si soy sorprendido portando aparatos electrónicos, cometiendo fraude o suplantación y asumo las <strong>denuncias penales</strong> ante el Ministerio Público.</li>
+            <li><strong>Reconozco que no procede devolución de dinero</strong> ni reserva de pago por concepto de inscripción bajo ninguna circunstancia.</li>
+        </ol>
+
+        <!-- Ciudad y fecha -->
+        <div class="city-date">
+            <strong>{{ data.city }}</strong> {{ data.inscription_date }}
+        </div>
+
+        <!-- FIRMAS -->
+        <div class="signatures">
+            <div class="sig-slot" style="max-width: 200px;">
+                <div style="height: 40px;"></div>
+                <div class="sig-line"></div>
+                <div class="sig-label">Firma del Postulante</div>
+                <div class="sig-sublabel">(Igual que en el DNI)</div>
+            </div>
+            <div class="sig-slot" style="max-width: 100px;">
+                <div class="fingerprint-wrap">
+                    <!-- Huella dactilar → imagen2.jpg reemplazar por la huella si es distinta -->
+                    <img src="imagen2.jpg" alt="Huella digital" />
+                </div>
+                <div class="sig-sublabel">(Huella digital)</div>
+            </div>
+        </div>
+
+        <!-- NOTA FINAL -->
+        <div class="final-note">
+            <strong>NOTA:</strong> Este documento es personal e intransferible. Debe conservarse en buen estado y
+            presentarse obligatoriamente el día del examen junto con su DNI original.
+        </div>
+
+    </div><!-- /page -->
+
+</body>
+</html>

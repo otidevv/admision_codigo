@@ -1,0 +1,107 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Info.Prospect>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Prospectos";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Documento",   Field = "name",       Type = "combined", SubField = "fileName", Sortable = true },
+        new() { Label = "Periodo",     Field = "termName",   Type = "badge",    BadgeMap = new Dictionary<string, string> { { "default", "blue" } } },
+        new() { Label = "Estado",      Field = "statusText", Type = "badge",    BadgeMap = new Dictionary<string, string> { { "Activo", "green" }, { "Inactivo", "gray" } } },
+        new() { Label = "Archivo",     Field = "fileInfo",   Type = "text" },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["TableId"] = "prospectsTable";
+    ViewData["ClientSide"] = true;
+    ViewData["Actions"] = new List<DataTableAction>
+    {
+        new() { Key="view",   Label="Ver PDF",  Icon="ti-file-type-pdf", Href="/{fileUrl}", Target="_blank" },
+        new() { Key="edit",   Label="Editar",   Icon="ti-edit",     Href="/admin/info-management/prospects/editar/{id}" },
+        new() { Key="delete", Label="Eliminar", Icon="ti-trash", Danger=true }
+    };
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Prospectos</span>
+        </div>
+        <div class="eyebrow">Documentos oficiales</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Prospectos de <span class="font-serif font-normal text-primary-600">admisión</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Administra los prospectos oficiales por cada periodo académico.</p>
+    </div>
+    <a href="/admin/info-management/prospects/crear" class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i>
+        Nuevo prospecto
+    </a>
+</section>
+
+<!-- Filter Bar -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros de búsqueda</h2>
+            <p class="text-[11.5px] text-ink-500">Filtra por nombre o periodo académico</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+            <partial name="_FormInput" model='@(new {
+                Id = "filterName",
+                Name = "filterName",
+                Label = "Búsqueda rápida",
+                Placeholder = "Escriba el nombre del prospecto...",
+                IconLeft = "ti-search"
+            })' />
+
+            <div>
+                @{
+                    ViewData["Id"] = "filterTerm";
+                    ViewData["Name"] = "filterTermId";
+                    ViewData["Label"] = "Filtrar por periodo";
+                    ViewData["Placeholder"] = "Todos los periodos";
+                }
+                <partial name="_CustomSelect" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div id="tableContainer">
+        @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+    </div>
+
+</section>
+
+@* Token antiforgery para operaciones POST desde JS *@
+<form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script>
+        window.ProspectsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(p => new {
+            p.Id,
+            p.Name,
+            p.FileName,
+            p.FileUrl,
+            TermId = p.TermId.ToString(),
+            TermName = p.Term?.Name ?? "N/A",
+            StatusText = p.IsActive ? "Activo" : "Inactivo",
+            FileInfo = $"{p.FileType} ({p.FileSize})"
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/info-management/prospect/index.js" asp-append-version="true"></script>
+}

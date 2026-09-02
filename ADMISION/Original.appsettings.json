@@ -1,0 +1,61 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=[HOST];Port=[PORT];Database=[DB];Username=[USER];Password=[PASSWORD]"
+  },
+  "Admin": {
+    "InitialPassword": ""
+  },
+  "Jobs": {
+    "TimeZoneId": "SA Pacific Standard Time"
+  },
+  "FileUpload": {
+    "MaxFileSizeInMB": 20,
+    "AllowedExtensions": [ ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".ico", ".heic", ".heif" ],
+    "AllowedMimeTypes": [
+      "application/pdf",
+      "application/x-pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/pjpeg",
+      "image/png",
+      "image/x-png",
+      "image/gif",
+      "image/webp",
+      "image/x-webp",
+      "image/bmp",
+      "image/x-icon",
+      "image/vnd.microsoft.icon",
+      "image/heic",
+      "image/heif",
+      "image/heic-sequence",
+      "image/heif-sequence",
+      "application/octet-stream"
+    ],
+    "BaseStoragePath": "C:\\inetpub\\Files\\admision"
+  },
+  "BiometricBridge": {
+    "BaseUrl": "http://localhost:5000"
+  },
+  "Captcha": {
+    "// Provider": "Turnstile (default) | ReCaptcha",
+    "// Enabled": "Si es false, el servicio acepta cualquier token (modo desarrollo).",
+    "// SiteKey/SecretKey": "Claves emitidas por Cloudflare Turnstile o Google reCAPTCHA. Las de abajo son las claves de TEST de Cloudflare (always-pass) y NO deben usarse en producción.",
+    "Provider": "Turnstile",
+    "Enabled": false,
+    "SiteKey": "1x00000000000000000000AA",
+    "SecretKey": "1x0000000000000000000000000000000AA"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "localhost;*.unamad.edu.pe",
+  "Jwt": {
+    "SecretKey": "kX7p2sV9mN4bR8wY3fH6tJ1cL5aD0gE2",
+    "Issuer": "sistema-admision",
+    "Audience": "api-consumers",
+    "ExpireMinutes": 60
+  }
+}

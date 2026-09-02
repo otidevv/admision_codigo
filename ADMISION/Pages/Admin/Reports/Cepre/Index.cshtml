@@ -1,0 +1,332 @@
+@model ADMISION.Models.ViewModels.Reports.CepreReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reporte CEPRE";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+    var versions = (IEnumerable<ADMISION.ENTITIES.Models.Exam.CepreImportVersion>)(ViewBag.Versions ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Exam.CepreImportVersion>());
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">CEPRE</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Centro Preuniversitario</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Reporte <span class="font-serif font-normal text-primary-600">CEPRE</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Datos importados desde el reporte CEPRE, filtrables por período y versión.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros del reporte</h2>
+                <p class="text-[11.5px] text-ink-500">Por defecto se muestra la última versión activa del período</p>
+            </div>
+        </div>
+        <span class="badge b-primary">CEPRE</span>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <form method="get" id="filterForm" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo Académico</label>
+                <select name="termId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.TermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Versión de importación</label>
+                <select name="versionId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Última activa --</option>
+                    @foreach (var v in versions)
+                    {
+                        <option value="@v.Id" selected="@(Model.VersionId == v.Id)">v@(v.VersionNumber) (@v.RecordCount reg.) @(v.IsLatest ? "· Activa" : "")</option>
+                    }
+                </select>
+            </div>
+
+            <div class="flex flex-wrap items-end justify-end gap-2">
+                <button type="submit" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-filter text-xs"></i> Aplicar filtros
+                </button>
+                <a href="/admin/reportes/cepre" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-ink-700 hover:bg-ink-100 text-sm font-semibold transition-all">
+                    <i class="ti ti-rotate text-xs"></i> Limpiar
+                </a>
+                <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition-all">
+                    <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- KPIs -->
+@if (Model.TermId.HasValue)
+{
+    <section class="fade-up grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 mb-6">
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalRecords.ToString("N0")</div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Registros importados</div>
+                </div>
+                <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                    <i class="ti ti-database"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="font-mono text-xl font-bold leading-tight text-ink-900 dark:text-ink-100">@(Model.VersionLabel ?? "—")</div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Versión mostrada</div>
+                </div>
+                <div class="w-11 h-11 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center text-lg">
+                    <i class="ti ti-git-branch"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Tabla de resultados -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-table text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos importados</h2>
+                <p class="text-[11.5px] text-ink-500">Mostrando @Model.Items.Count de @Model.TotalRecords registro(s)</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.TermId.HasValue)
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-filter text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">Seleccione un periodo para generar el reporte.</p>
+        </div>
+    }
+    else if (!Model.Items.Any())
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-chart-bar text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">No hay datos importados para el período seleccionado.</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="whitespace-nowrap text-center">NRO</th>
+                        <th class="whitespace-nowrap">CICLO</th>
+                        <th class="whitespace-nowrap">CÓDIGO</th>
+                        <th class="whitespace-nowrap">DNI</th>
+                        <th class="whitespace-nowrap">TIPO DOCUMENTO</th>
+                        <th class="whitespace-nowrap">APELLIDO PATERNO</th>
+                        <th class="whitespace-nowrap">APELLIDO MATERNO</th>
+                        <th class="whitespace-nowrap">NOMBRES</th>
+                        <th class="whitespace-nowrap">APELLIDOS Y NOMBRES</th>
+                        <th class="whitespace-nowrap text-center">SEXO</th>
+                        <th class="whitespace-nowrap">FECHA NACIMIENTO</th>
+                        <th class="whitespace-nowrap">DIRECCIÓN</th>
+                        <th class="whitespace-nowrap">ESTADO CIVIL</th>
+                        <th class="whitespace-nowrap">AÑO EGRESO</th>
+                        <th class="whitespace-nowrap">CORREO</th>
+                        <th class="whitespace-nowrap">CELULAR</th>
+                        <th class="whitespace-nowrap">COLEGIO</th>
+                        <th class="whitespace-nowrap">NOMBRE COLEGIO</th>
+                        <th class="whitespace-nowrap">UBIGEO COLEGIO</th>
+                        <th class="whitespace-nowrap">DIRECCIÓN COLEGIO</th>
+                        <th class="whitespace-nowrap">UBIGEO</th>
+                        <th class="whitespace-nowrap">DEPARTAMENTO</th>
+                        <th class="whitespace-nowrap">PROVINCIA</th>
+                        <th class="whitespace-nowrap">DISTRITO</th>
+                        <th class="whitespace-nowrap">LUGAR NACIMIENTO</th>
+                        <th class="whitespace-nowrap">MODALIDAD</th>
+                        <th class="whitespace-nowrap">CÓDIGO CARRERA</th>
+                        <th class="whitespace-nowrap">CARRERA PROFESIONAL</th>
+                        <th class="whitespace-nowrap">GRUPO</th>
+                        <th class="whitespace-nowrap">MODALIDAD PAGO</th>
+                        <th class="whitespace-nowrap text-right">MONTO</th>
+                        <th class="whitespace-nowrap text-right">PUNTAJE 01</th>
+                        <th class="whitespace-nowrap text-right">NOTA 01</th>
+                        <th class="whitespace-nowrap text-right">PUNTAJE 02</th>
+                        <th class="whitespace-nowrap text-right">NOTA 02</th>
+                        <th class="whitespace-nowrap text-right">PUNTAJE 03</th>
+                        <th class="whitespace-nowrap text-right">NOTA 03</th>
+                        <th class="whitespace-nowrap text-right">NOTA FINAL</th>
+                        <th class="whitespace-nowrap text-right">PUNTAJE</th>
+                        <th class="whitespace-nowrap">ESTADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="whitespace-nowrap text-center font-mono">@item.Nro</td>
+                            <td class="whitespace-nowrap">@item.Ciclo</td>
+                            <td class="whitespace-nowrap font-mono">@item.Codigo</td>
+                            <td class="whitespace-nowrap font-mono">@item.Dni</td>
+                            <td class="whitespace-nowrap">@item.TDocumento</td>
+                            <td class="whitespace-nowrap">@item.Apaterno</td>
+                            <td class="whitespace-nowrap">@item.Amaterno</td>
+                            <td class="whitespace-nowrap font-semibold text-ink-900 dark:text-ink-100">@item.Nombres</td>
+                            <td class="whitespace-nowrap">@item.ApellidosNombres</td>
+                            <td class="whitespace-nowrap text-center">@item.Sexo</td>
+                            <td class="whitespace-nowrap">@item.FechaNacimiento</td>
+                            <td class="max-w-[180px] truncate" title="@item.Direccion">@item.Direccion</td>
+                            <td class="whitespace-nowrap">@item.EstadoCivil</td>
+                            <td class="whitespace-nowrap">@item.AnioEgreso</td>
+                            <td class="max-w-[180px] truncate" title="@item.Correo">@item.Correo</td>
+                            <td class="whitespace-nowrap font-mono">@item.Celular</td>
+                            <td class="whitespace-nowrap">@item.Colegio</td>
+                            <td class="max-w-[180px] truncate" title="@item.NombreColegio">@item.NombreColegio</td>
+                            <td class="whitespace-nowrap font-mono">@item.UbigeoColegio</td>
+                            <td class="max-w-[180px] truncate" title="@item.DireccionColegio">@item.DireccionColegio</td>
+                            <td class="whitespace-nowrap font-mono">@item.Ubigeo</td>
+                            <td class="whitespace-nowrap">@item.Departamento</td>
+                            <td class="whitespace-nowrap">@item.Provincia</td>
+                            <td class="whitespace-nowrap">@item.Distrito</td>
+                            <td class="whitespace-nowrap">@item.LugarNacimiento</td>
+                            <td class="whitespace-nowrap">@item.Modalidad</td>
+                            <td class="whitespace-nowrap font-mono">@item.CodigoCarrera</td>
+                            <td class="max-w-[180px] truncate" title="@item.CarreraProfesional">@item.CarreraProfesional</td>
+                            <td class="whitespace-nowrap">@item.Grupo</td>
+                            <td class="whitespace-nowrap">@item.ModalidadPago</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Monto?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Puntaje01?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Nota01?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Puntaje02?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Nota02?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Puntaje03?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Nota03?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono font-bold tabular-nums">@(item.NotaFinal?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap text-right font-mono tabular-nums">@(item.Puntaje?.ToString("N2") ?? "")</td>
+                            <td class="whitespace-nowrap">
+                                @if (item.Estado?.Trim().Equals("INGRESO", StringComparison.OrdinalIgnoreCase) == true)
+                                {
+                                    <span class="badge b-green">@item.Estado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-gray">@(item.Estado == "" ? "—" : item.Estado)</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div class="px-4 sm:px-5 py-3 border-t border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between text-xs text-ink-500">
+            <span>
+                Mostrando <strong class="text-ink-900">@((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalRecords))</strong>
+                de <strong class="text-ink-900">@Model.TotalRecords.ToString("N0")</strong> registro(s)
+                <span class="mx-2">·</span>
+                Versión: <strong class="text-ink-900">@(Model.VersionLabel ?? "—")</strong>
+            </span>
+            @if (Model.TotalPages > 1)
+            {
+                <div class="flex items-center gap-1" id="pagination">
+                    @{
+                        var baseUrl = $"/admin/reportes/cepre?termId={Model.TermId}&versionId={Model.VersionId}&pageSize={Model.PageSize}";
+                    }
+
+                    @if (Model.Page > 1)
+                    {
+                        <a href="@(baseUrl)&page=@(Model.Page - 1)"
+                           class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">
+                            <i class="ti ti-chevron-left text-[10px]"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1.5 rounded-md ring-soft text-ink-300 cursor-not-allowed">
+                            <i class="ti ti-chevron-left text-[10px]"></i>
+                        </span>
+                    }
+
+                    @{
+                        int startPage = Math.Max(1, Model.Page - 2);
+                        int endPage = Math.Min(Model.TotalPages, Model.Page + 2);
+
+                        if (startPage > 1)
+                        {
+                            <a href="@(baseUrl)&page=1" class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">1</a>
+                            if (startPage > 2)
+                            {
+                                <span class="px-2 py-1.5 text-ink-400">…</span>
+                            }
+                        }
+
+                        for (int p = startPage; p <= endPage; p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="px-3 py-1.5 rounded-md bg-primary-500 text-white font-semibold">@p</span>
+                            }
+                            else
+                            {
+                                <a href="@(baseUrl)&page=@p"
+                                   class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">@p</a>
+                            }
+                        }
+
+                        if (endPage < Model.TotalPages)
+                        {
+                            if (endPage < Model.TotalPages - 1)
+                            {
+                                <span class="px-2 py-1.5 text-ink-400">…</span>
+                            }
+                            <a href="@(baseUrl)&page=@Model.TotalPages"
+                               class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">@Model.TotalPages</a>
+                        }
+                    }
+
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a href="@(baseUrl)&page=@(Model.Page + 1)"
+                           class="px-3 py-1.5 rounded-md ring-soft text-ink-700 hover:bg-ink-100 transition-colors">
+                            <i class="ti ti-chevron-right text-[10px]"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1.5 rounded-md ring-soft text-ink-300 cursor-not-allowed">
+                            <i class="ti ti-chevron-right text-[10px]"></i>
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/reports/cepre/index.js" asp-append-version="true"></script>
+}

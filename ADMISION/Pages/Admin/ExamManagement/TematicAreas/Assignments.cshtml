@@ -1,0 +1,110 @@
+@using ADMISION.Models.Shared
+@using ADMISION.ENTITIES.Models.Modality
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Matriz de Áreas Temáticas";
+
+    var tematicAreas = (IEnumerable<TematicArea>)ViewBag.TematicAreas;
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Carrera Profesional", Field = "name", Type = "text", Sortable = true }
+    };
+
+    foreach (var area in tematicAreas)
+    {
+        columns.Add(new() {
+            Label = area.Code,
+            Field = "assignments",
+            Type = "custom",
+            RenderFn = $"renderArea_{area.Id.ToString("N")}",
+            Align = "center"
+        });
+    }
+
+    ViewData["Columns"] = columns;
+    ViewData["AjaxUrl"] = "/admin/exam-management/tematic-areas/get-matrix";
+    ViewData["TableId"] = "matrixTable";
+    ViewData["ShowActions"] = false;
+    ViewData["PageSize"] = 100; // Mostrar muchas carreras para facilitar edición masiva
+
+}
+
+<link rel="stylesheet" href="~/css/admin/exam-management/tematic-areas-assignments.css" asp-append-version="true" />
+
+@Html.AntiForgeryToken()
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <a href="/admin/exam-management/tematic-areas" class="hover:text-primary-600 transition-colors">Áreas temáticas</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Matriz de asignaciones</span>
+        </div>
+        <div class="eyebrow">Estructura académica</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Gestión masiva por <span class="font-serif font-normal text-primary-600">periodo</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Asocia múltiples áreas temáticas a todas las carreras profesionales de forma simultánea.</p>
+    </div>
+    <div class="flex gap-3">
+        <button id="btnSaveMatrix" onclick="saveMatrix()"
+                class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar cambios en la matriz
+        </button>
+    </div>
+</section>
+
+<!-- Period Filter -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-calendar text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Selección de periodo</h2>
+            <p class="text-[11.5px] text-ink-500">Elige el periodo académico para cargar la matriz</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div class="max-w-md">
+            <partial name="_CustomSelect" model='new {
+                Id = "termId",
+                Label = "Periodo académico",
+                Placeholder = "Seleccionar periodo para cargar matriz",
+                Options = ((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { id = t.Id, name = t.Name })
+            }' />
+        </div>
+    </div>
+</section>
+
+<!-- Matrix Table -->
+<section id="matrixContainer" class="fade-up hidden bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+<section id="noSelectedTerm" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+    <div class="py-20 text-center">
+        <div class="w-20 h-20 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 flex items-center justify-center mx-auto mb-4">
+            <i class="ti ti-grid-pattern text-3xl"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-ink-900 dark:text-ink-100 mb-1">Matriz de asignaciones</h3>
+        <p class="text-ink-500 text-sm max-w-sm mx-auto">Por favor, seleccione un periodo académico para visualizar y gestionar la grilla de carreras.</p>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        window.TematicAreasAssignmentsConfig = {
+            defaultTermId: '@ViewBag.DefaultTermId',
+            terms: @Html.Raw(Json.Serialize(((IEnumerable<dynamic>)ViewBag.Terms).Select(t => new { t.Id, t.Name }))),
+            areas: @Html.Raw(Json.Serialize(tematicAreas.Select(a => new { id = a.Id.ToString(), idN = a.Id.ToString("N") })))
+        };
+    </script>
+    <script src="~/js/admin/exam-management/tematic-areas/assignments.js" asp-append-version="true"></script>
+}

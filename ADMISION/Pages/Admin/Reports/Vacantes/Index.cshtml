@@ -1,0 +1,259 @@
+@model ADMISION.Models.ViewModels.Reports.VacantesReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reporte de Vacantes";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+    var currentReportType = (string)(ViewBag.ReportType ?? "vacantes");
+    var totalDataCols = Model.Columns.Count;
+    var totalTableCols = totalDataCols + 2;
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Reporte de Vacantes</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Gestión de vacantes</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Reporte de <span class="font-serif font-normal text-primary-600">vacantes</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Distribución y disponibilidad de vacantes por carrera y modalidad.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros del reporte</h2>
+                <p class="text-[11.5px] text-ink-500">Selecciona el periodo y tipo de reporte</p>
+            </div>
+        </div>
+        <span class="badge b-primary">Análisis</span>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo Académico</label>
+                <select name="termId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.TermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Tipo de Reporte</label>
+                <select name="reportType" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="vacantes" selected="@(currentReportType == "vacantes")">Vacantes</option>
+                    <option value="postulantes" selected="@(currentReportType == "postulantes")">Postulantes</option>
+                    <option value="ingresantes" selected="@(currentReportType == "ingresantes")">Ingresantes</option>
+                    <option value="consolidado" selected="@(currentReportType == "consolidado")">Ingresantes (Consolidado Oficial)</option>
+                </select>
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button type="submit" class="btn-grad inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-filter text-xs"></i> Aplicar filtros
+                </button>
+                <a href="/admin/reportes/vacantes" class="inline-flex items-center gap-2 px-5 h-11 rounded-md bg-white ring-soft text-ink-700 hover:bg-ink-100 text-sm font-semibold transition-all">
+                    <i class="ti ti-rotate text-xs"></i> Limpiar
+                </a>
+            </div>
+
+            <div class="md:col-span-2 lg:col-span-3 flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-ink-200/60 dark:border-ink-800/60">
+                <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition-all">
+                    <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                </button>
+                <button type="button" id="btnExportPdf" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-all">
+                    <i class="ti ti-file-text text-xs"></i> Exportar PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- KPIs -->
+<section class="fade-up grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.GrandTotal.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total general</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-school"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.Faculties.Count</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Facultades</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-building"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.Faculties.Sum(f => f.Careers.Count)</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Carreras</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-700 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-book"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-table text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Cuadro de @(currentReportType == "consolidado" ? "ingresantes (consolidado)" : currentReportType == "ingresantes" ? "ingresantes" : currentReportType == "postulantes" ? "postulantes" : "vacantes")</h2>
+                <p class="text-[11.5px] text-ink-500">Periodo: @(Model.TermName ?? "—")</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.TermId.HasValue)
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-filter text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">Seleccione un periodo para generar el reporte.</p>
+        </div>
+    }
+    else if (!Model.Faculties.Any() || !Model.Columns.Any())
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-chart-bar text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">No hay datos disponibles para el periodo seleccionado.</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs" style="min-width:900px">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="whitespace-nowrap" style="min-width:200px">FACULTAD</th>
+                        <th rowspan="2" class="whitespace-nowrap" style="min-width:220px">CARRERA PROFESIONAL</th>
+                        @foreach (var group in Model.ModalityGroups)
+                        {
+                            if (group.HasSubHeaders)
+                            {
+                                <th colspan="@group.ColumnCount" class="whitespace-nowrap text-center">@group.ModalityName</th>
+                            }
+                            else
+                            {
+                                <th rowspan="2" class="whitespace-nowrap text-center" style="min-width:80px">@group.ModalityName</th>
+                            }
+                        }
+                        <th rowspan="2" class="whitespace-nowrap text-center" style="width:60px">TOTAL</th>
+                    </tr>
+                    <tr>
+                        @foreach (var group in Model.ModalityGroups)
+                        {
+                            if (!group.HasSubHeaders) { continue; }
+                            var subCols = Model.Columns.Where(c => c.ModalityId == group.ModalityId && c.TypeModalityId != null).ToList();
+                            @for (var i = 0; i < subCols.Count; i++)
+                            {
+                                <th class="whitespace-nowrap text-center" style="min-width:70px">@subCols[i].Header</th>
+                            }
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var faculty in Model.Faculties)
+                    {
+                        @for (int i = 0; i < faculty.Careers.Count; i++)
+                        {
+                            var career = faculty.Careers[i];
+                            <tr>
+                                @if (i == 0)
+                                {
+                                    <td rowspan="@faculty.Careers.Count" class="align-middle">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-7 h-7 rounded-md bg-primary-50 ring-1 ring-primary-200 flex items-center justify-center shrink-0">
+                                                <i class="@faculty.Icon text-primary-600 text-[11px]"></i>
+                                            </span>
+                                            <span class="text-[11px] font-bold text-primary-700 uppercase tracking-[0.12em]">@faculty.Name</span>
+                                        </div>
+                                    </td>
+                                }
+                                <td class="font-medium text-ink-800 whitespace-nowrap">@career.CareerName</td>
+                                @for (int j = 0; j < career.Values.Count; j++)
+                                {
+                                    var val = career.Values[j];
+                                    var numColor = val == 0 ? "text-ink-300" : "text-ink-700 font-semibold tabular-nums";
+                                    <td class="text-center @numColor tabular-nums">@val</td>
+                                }
+                                <td class="text-center font-bold text-primary-600 tabular-nums">@career.Total</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="bg-primary text-white font-bold">
+                        <td colspan="2" class="px-3 py-2.5 text-right uppercase tracking-[0.12em] text-[11px]">TOTALES</td>
+                        @for (int i = 0; i < Model.ColumnTotals.Count; i++)
+                        {
+                            <td class="px-2 py-2.5 text-center tabular-nums">@Model.ColumnTotals[i]</td>
+                        }
+                        <td class="px-2 py-2.5 text-center tabular-nums">@Model.GrandTotal</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('filterForm');
+            var selTerm = form.querySelector('select[name="termId"]');
+            var selReportType = form.querySelector('select[name="reportType"]');
+
+            selTerm?.addEventListener('change', function () { form.submit(); });
+            selReportType?.addEventListener('change', function () { form.submit(); });
+
+            function buildQuery() {
+                var params = new URLSearchParams();
+                ['termId', 'reportType'].forEach(function (k) {
+                    var v = form.querySelector('select[name="' + k + '"]')?.value;
+                    if (v) params.set(k, v);
+                });
+                return params.toString();
+            }
+
+            document.getElementById('btnExportExcel')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.location.href = '/admin/reportes/vacantes/export/excel?' + buildQuery();
+            });
+            document.getElementById('btnExportPdf')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.location.href = '/admin/reportes/vacantes/export/pdf?' + buildQuery();
+            });
+        })();
+    </script>
+}

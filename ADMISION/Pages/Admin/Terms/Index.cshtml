@@ -1,0 +1,443 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Periodos";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Nombre Periodo", Field = "name",       Type = "combined", SubField = "year", Sortable = true },
+        new() { Label = "Número",         Field = "number",     Type = "code",     Sortable = true, Align = "center", Width = "100px" },
+        new() { Label = "Estado",         Field = "statusText", Type = "badge",    Align = "center", Width = "120px",
+                BadgeMap = new Dictionary<string, string> { { "Activo", "green" }, { "Inactivo", "gray" } } },
+        new() { Label = "Fecha Inicio",   Field = "startDate",  Type = "date",     Sortable = true, Width = "140px" },
+        new() { Label = "Fecha Fin",      Field = "endDate",    Type = "date",     Sortable = true, Width = "140px" },
+    };
+
+    ViewData["Columns"]      = columns;
+    ViewData["TableId"]      = "termsTable";
+    ViewData["ClientSide"]   = true;
+    ViewData["EmptyIcon"]    = "ti-calendar-x";
+    ViewData["EmptyTitle"]   = "Sin periodos";
+    ViewData["EmptySubtitle"]= "Aún no hay periodos académicos. Crea el primero para arrancar el proceso.";
+    ViewData["Actions"] = new List<DataTableAction>
+    {
+        new() { Key="edit",   Label="Editar",   Icon="ti-edit",      Href="/admin/periodos/editar/{id}" },
+        new() { Key="delete", Label="Eliminar", Icon="ti-trash", Danger=true }
+    };
+
+    var totalTerms  = Model.Count();
+    var activeTerms = Model.Count(t => t.IsActive);
+
+    // Opciones del filtro de periodos: ordenadas desc por año, luego nº.
+    // Se pasan al _CustomSelect vía ViewData["Options"] (no hace falta JS para inyectar).
+    var termOptions = Model
+        .OrderByDescending(t => t.Year)
+        .ThenByDescending(t => t.Number)
+        .Select(t => new { id = t.Id.ToString(), name = $"{t.Name} ({t.Year})" })
+        .ToList();
+
+    // -- Periodo activo (para la línea de tiempo de exámenes) --
+    var activeTerm = ViewBag.ActiveTerm as ADMISION.ENTITIES.Models.Modality.Term;
+    var configChecklist = ViewBag.ConfigChecklist as ADMISION.Models.ViewModels.Admin.TermConfigChecklistDto;
+    var modalitiesByExam = activeTerm?.Modalities?
+        .Where(m => m.ExamDate.HasValue)
+        .OrderBy(m => m.ExamDate!.Value)
+        .ToList() ?? new List<ADMISION.ENTITIES.Models.Modality.Modality>();
+
+    // Hitos del timeline: Apertura, fechas de examen de cada modalidad, Cierre.
+    // Cada hito se posiciona porcentualmente entre StartDate y EndDate del periodo.
+    DateOnly? termStart = activeTerm?.StartDate;
+    DateOnly? termEnd   = activeTerm?.EndDate;
+    var today = DateOnly.FromDateTime(DateTime.Now);
+
+    double PositionPct(DateOnly date)
+    {
+        if (termStart == null || termEnd == null) return 0;
+        var totalDays = termEnd.Value.DayNumber - termStart.Value.DayNumber;
+        if (totalDays <= 0) return 0;
+        var offset = date.DayNumber - termStart.Value.DayNumber;
+        return Math.Clamp((double)offset / totalDays * 100, 0, 100);
+    }
+
+    var todayPct = (termStart != null && termEnd != null)
+        ? PositionPct(today)
+        : 0;
+    var todayInRange = termStart != null && termEnd != null
+        && today >= termStart.Value && today <= termEnd.Value;
+}
+
+<!-- Page Hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="eyebrow">Configuración académica</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-primary-400">
+            Periodos académicos
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">
+            <span class="font-semibold text-ink-800 tabular-nums">@totalTerms</span> registrados ·
+            <span class="font-semibold text-ink-800 tabular-nums">@activeTerms</span> activos.
+            Administra los ciclos de admisión y replica configuraciones entre procesos.
+        </p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="/admin/periodos/crear"
+           class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md transition-all hover:-translate-y-0.5">
+            <i class="ti ti-plus text-xs"></i>
+            Nuevo periodo
+        </a>
+    </div>
+</section>
+
+@if (activeTerm != null)
+{
+    <!-- +--------------------------------------------------------------------+
+         ¦ PERIODO ACTIVO — resumen + línea de tiempo de exámenes              ¦
+         ¦ Patrón visual del template admin.html (sección periodos académicos).¦
+         +--------------------------------------------------------------------+ -->
+    <section class="fade-up rounded-md ring-soft p-5 sm:p-6 bg-white dark:bg-ink-900 relative overflow-hidden mb-5">
+
+        <!-- Encabezado del periodo activo -->
+        <div class="relative flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0">
+                <div class="eyebrow">@(activeTerm.IsActive ? "Activo" : "Más reciente")</div>
+                <h2 class="mt-1 text-xl sm:text-2xl font-semibold tracking-[-0.02em] text-ink-900 dark:text-primary-400 leading-tight">
+                    @activeTerm.Name <span class="text-ink-400 font-normal">— @activeTerm.Year</span>
+                </h2>
+                <p class="text-ink-500 text-xs sm:text-sm mt-1">
+                    Vista general del periodo en curso y la cadena de exámenes programados.
+                </p>
+            </div>
+            <div class="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em]">
+                @if (activeTerm.IsActive)
+                {
+                    <span class="badge b-green"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></span> Publicado</span>
+                }
+                else
+                {
+                    <span class="badge b-gray">Sin periodo activo</span>
+                }
+            </div>
+        </div>
+
+        <!-- Resumen de fechas -->
+        <div class="relative mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="ring-soft rounded-md bg-ink-50/60 dark:bg-ink-800 px-4 py-3">
+                <div class="eyebrow text-[10px] tracking-[0.16em] mb-1">Apertura</div>
+                <div class="font-mono text-[13px] text-ink-900 dark:text-ink-400 tabular-nums">@activeTerm.StartDate.ToString("yyyy-MM-dd")</div>
+            </div>
+            <div class="ring-soft rounded-md bg-ink-50/60 dark:bg-ink-800 px-4 py-3">
+                <div class="eyebrow text-[10px] tracking-[0.16em] mb-1">Cierre</div>
+                <div class="font-mono text-[13px] text-ink-900 dark:text-ink-400 tabular-nums">@activeTerm.EndDate.ToString("yyyy-MM-dd")</div>
+            </div>
+            <div class="ring-soft rounded-md bg-ink-50/60 dark:bg-ink-800 px-4 py-3">
+                <div class="eyebrow text-[10px] tracking-[0.16em] mb-1">Modalidades activas</div>
+                <div class="font-mono text-[13px] text-ink-900 dark:text-ink-400 tabular-nums">@(activeTerm.Modalities?.Count(m => m.IsActive) ?? 0)</div>
+            </div>
+            <div class="ring-soft rounded-md bg-ink-50/60 dark:bg-ink-800 px-4 py-3">
+                <div class="eyebrow text-[10px] tracking-[0.16em] mb-1">Exámenes programados</div>
+                <div class="font-mono text-[13px] text-ink-900 dark:text-ink-400 tabular-nums">@modalitiesByExam.Count</div>
+            </div>
+        </div>
+
+        <!-- Línea de tiempo -->
+        <div class="relative mt-5">
+            <div class="flex items-center justify-between mb-3">
+                <div class="eyebrow text-[10px] tracking-[0.16em]">Línea de tiempo de exámenes</div>
+                @if (todayInRange)
+                {
+                    <span class="text-[10.5px] font-semibold text-primary-600">
+                        <i class="ti ti-location text-[8px] mr-1"></i>
+                        Hoy · @today.ToString("dd MMM").ToUpper()
+                    </span>
+                }
+            </div>
+
+            @if (termStart != null && termEnd != null)
+            {
+                <!-- Barra base + progreso (% recorrido hasta hoy) -->
+                <div class="relative h-2 rounded-full bg-ink-100 overflow-hidden">
+                    <div style="width:@(todayPct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                         class="h-full bg-primary-500 shine"></div>
+                </div>
+
+                <!-- Hitos posicionados absolutamente -->
+                <div class="relative -mt-1 h-3">
+                    <!-- Apertura -->
+                    <div class="absolute left-0 top-1.5">
+                        <span class="block w-2.5 h-2.5 rounded-full bg-primary-500 ring-2 ring-white"></span>
+                    </div>
+                    <!-- Hoy (si está en rango) -->
+                    @if (todayInRange)
+                    {
+                        <div class="absolute top-1 -translate-x-1/2"
+                             style="left:@(todayPct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%">
+                            <span class="block w-3.5 h-3.5 rounded-full bg-white ring-2 ring-primary-500 shadow-[0_0_0_4px_rgba(245,68,119,0.18)]"></span>
+                        </div>
+                    }
+                    <!-- Exámenes por modalidad -->
+                    @foreach (var m in modalitiesByExam)
+                    {
+                        var pct = PositionPct(m.ExamDate!.Value);
+                        var passed = m.ExamDate.Value <= today;
+                        <div class="absolute top-1.5 -translate-x-1/2 group" style="left:@(pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%">
+                            <span class="block w-2.5 h-2.5 rounded-full ring-2 ring-white @(passed ? "bg-secondary-500" : "bg-ink-300")"></span>
+                            <!-- Tooltip al hover -->
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                                <div class="bg-ink-900 text-white text-[10.5px] font-medium rounded-md px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                                    <div class="font-semibold">@m.Name</div>
+                                    <div class="text-white/70 font-mono tabular-nums">@m.ExamDate.Value.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <!-- Cierre -->
+                    <div class="absolute right-0 top-1.5">
+                        <span class="block w-2.5 h-2.5 rounded-full bg-ink-300 ring-2 ring-white"></span>
+                    </div>
+                </div>
+
+                <!-- Etiquetas en footer del timeline -->
+                <div class="grid grid-cols-3 mt-4 text-[10.5px] text-ink-500">
+                    <div class="text-left">
+                        <div class="font-mono tabular-nums">@activeTerm.StartDate.ToString("dd MMM")</div>
+                        <div class="text-ink-900 font-semibold">Apertura</div>
+                    </div>
+                    @if (todayInRange)
+                    {
+                        <div class="text-center">
+                            <div class="font-mono tabular-nums text-primary-600">@today.ToString("dd MMM")</div>
+                            <div class="text-primary-700 font-semibold">Hoy</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div></div>
+                    }
+                    <div class="text-right">
+                        <div class="font-mono tabular-nums">@activeTerm.EndDate.ToString("dd MMM")</div>
+                        <div class="text-ink-900 font-semibold">Cierre</div>
+                    </div>
+                </div>
+
+                @if (modalitiesByExam.Any())
+                {
+                    <!-- Listado detallado de exámenes -->
+                    <div class="mt-6 pt-5 border-t border-ink-100">
+                        <div class="eyebrow text-[10px] tracking-[0.16em] mb-3">Exámenes por modalidad</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                            @foreach (var m in modalitiesByExam)
+                            {
+                                var passed = m.ExamDate!.Value <= today;
+                                <div class="flex items-center gap-3 ring-soft rounded-md bg-white dark:bg-ink-900 px-3 py-2.5">
+                                    <span class="w-9 h-9 rounded-md @(passed ? "bg-secondary-100 text-secondary-600" : "bg-ink-100 text-ink-500") flex items-center justify-center shrink-0">
+                                        <i class="ti @(passed ? "ti-circle-check" : "ti-calendar-event") text-sm"></i>
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-[13px] font-semibold text-ink-900 dark:text-ink-400 truncate">@m.Name</div>
+                                        <div class="text-[11px] text-ink-500 font-mono tabular-nums">@m.ExamDate.Value.ToString("dd 'de' MMM yyyy")</div>
+                                    </div>
+                                    @if (passed)
+                                    {
+                                        <span class="badge b-secondary text-[10px]">Realizado</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-xs text-ink-400 mt-6">
+                        Aún no hay modalidades con fecha de examen configurada para este periodo.
+                    </p>
+                }
+            }
+            else
+            {
+                <p class="text-center text-xs text-ink-400 italic">
+                    El periodo activo no tiene rango de fechas (apertura/cierre) válido.
+                </p>
+            }
+        </div>
+    </section>
+}
+
+@if (configChecklist != null)
+{
+    <!-- +--------------------------------------------------------------------+
+         ¦ CHECKLIST DE CONFIGURACIÓN — qué falta para habilitar inscripción   ¦
+         +--------------------------------------------------------------------+ -->
+    var ck = configChecklist;
+    var pctText = ck.PercentComplete.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    var barClass = ck.IsFullyConfigured
+        ? "bg-emerald-500"
+        : ck.PercentComplete >= 60 ? "bg-primary-500" : "bg-amber-500";
+    var pendingDanger = ck.Items.Count(i => !i.Done && i.Severity == "danger");
+    var pendingWarn   = ck.Items.Count(i => !i.Done && i.Severity == "warn");
+
+    <section class="fade-up rounded-md ring-soft bg-white dark:bg-ink-900 mb-5 overflow-hidden">
+
+        <!-- Header con resumen -->
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center justify-between gap-3 rounded-t-md">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="w-9 h-9 rounded-md @(ck.IsFullyConfigured ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300" : "bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300") inline-flex items-center justify-center">
+                    <i class="ti @(ck.IsFullyConfigured ? "ti-circle-check" : "ti-list-check") text-sm"></i>
+                </span>
+                <div class="min-w-0">
+                    <div class="eyebrow">Progreso de configuración</div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px] truncate">
+                        @ck.TermName <span class="text-ink-400 font-normal">— @ck.TermYear</span>
+                    </h2>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                @if (ck.IsFullyConfigured)
+                {
+                    <span class="badge b-green"><i class="ti ti-circle-check text-[9px]"></i> Listo para inscripciones</span>
+                }
+                else
+                {
+                    @if (pendingDanger > 0)
+                    {
+                        <span class="badge b-red text-[10px]"><i class="ti ti-alert-circle text-[9px]"></i> @pendingDanger crítico(s)</span>
+                    }
+                    @if (pendingWarn > 0)
+                    {
+                        <span class="badge b-amber text-[10px]"><i class="ti ti-alert-triangle text-[9px]"></i> @pendingWarn opcional(es)</span>
+                    }
+                }
+                <div class="text-right">
+                    <div class="font-mono text-[18px] font-bold text-ink-900 dark:text-ink-100 tabular-nums leading-none">@ck.PercentComplete<span class="text-ink-400 text-[12px] font-normal">%</span></div>
+                    <div class="text-[10.5px] text-ink-500 uppercase tracking-[0.14em] font-semibold mt-0.5">@ck.DoneCount / @ck.Total listos</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="h-1.5 bg-ink-100 dark:bg-ink-800">
+            <div class="h-full @barClass transition-[width] duration-700 ease-out"
+                 style="width:@(pctText)%"></div>
+        </div>
+
+        <!-- Lista de items (grid 2 cols en >=md) -->
+        <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-2">
+            @foreach (var item in ck.Items)
+            {
+                var pendingTone = item.Severity == "danger" ? "danger" : "warn";
+                var stateBg = item.Done
+                    ? "bg-emerald-50 dark:bg-emerald-500/10"
+                    : pendingTone == "danger"
+                        ? "bg-rose-50 dark:bg-rose-500/10"
+                        : "bg-amber-50 dark:bg-amber-500/10";
+                var stateText = item.Done
+                    ? "text-emerald-600 dark:text-emerald-300"
+                    : pendingTone == "danger"
+                        ? "text-rose-600 dark:text-rose-300"
+                        : "text-amber-600 dark:text-amber-300";
+                var stateIcon = item.Done
+                    ? "ti-circle-check"
+                    : pendingTone == "danger" ? "ti-circle-x" : "ti-alert-circle";
+                var rowClass = item.Done
+                    ? "border-emerald-200/60 dark:border-emerald-500/20"
+                    : pendingTone == "danger"
+                        ? "border-rose-200/60 dark:border-rose-500/20"
+                        : "border-amber-200/60 dark:border-amber-500/20";
+                var rowHref = string.IsNullOrEmpty(item.Href) ? "#" : item.Href;
+
+                <a href="@rowHref"
+                   class="group flex items-start gap-3 px-3 py-2.5 rounded-md border @rowClass bg-white dark:bg-ink-900 hover:bg-ink-50 dark:hover:bg-ink-800/60 transition-colors">
+                    <!-- Estado: check/x -->
+                    <span class="w-7 h-7 rounded-md @stateBg @stateText inline-flex items-center justify-center shrink-0">
+                        <i class="ti @stateIcon text-[12px]"></i>
+                    </span>
+
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <i class="ti @item.Icon text-ink-400 text-[10px]"></i>
+                            <span class="text-[13px] font-semibold text-ink-900 dark:text-ink-100 tracking-tight truncate @(item.Done ? "" : "")">@item.Label</span>
+                            @if (item.Done)
+                            {
+                                <span class="badge b-green ml-auto text-[10px]"><span class="font-mono tabular-nums">@item.Count</span></span>
+                            }
+                            else if (pendingTone == "danger")
+                            {
+                                <span class="badge b-red ml-auto text-[10px]">Crítico</span>
+                            }
+                            else
+                            {
+                                <span class="badge b-amber ml-auto text-[10px]">Opcional</span>
+                            }
+                        </div>
+                        <p class="text-[11.5px] text-ink-500 mt-0.5 leading-snug">
+                            @if (!item.Done && !string.IsNullOrEmpty(item.PendingDetail))
+                            {
+                                <span class="text-rose-600 dark:text-rose-300 font-medium">@item.PendingDetail</span>
+                            }
+                            else
+                            {
+                                @item.Hint
+                            }
+                        </p>
+                    </div>
+
+                    <i class="ti ti-arrow-right text-[10px] text-ink-300 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all mt-1.5"></i>
+                </a>
+            }
+        </div>
+
+        @if (!ck.IsFullyConfigured)
+        {
+            <div class="px-4 sm:px-5 py-3 border-t border-ink-200/60 dark:border-ink-800/60 bg-ink-50/40 dark:bg-ink-800/30 flex items-center gap-2 text-[11.5px] text-ink-600 dark:text-ink-300">
+                <i class="ti ti-info-circle text-primary-500"></i>
+                <span>Completa los items <span class="text-rose-600 font-semibold">críticos</span> antes de habilitar inscripciones. Los <span class="text-amber-600 font-semibold">opcionales</span> mejoran la experiencia del postulante.</span>
+            </div>
+        }
+    </section>
+}
+
+<!-- Filter bar -->
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-4 sm:p-5 mb-5">
+    <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[260px] max-w-md">
+            @{
+                ViewData["Id"]          = "filterTerm";
+                ViewData["Name"]        = "filterTermId";
+                ViewData["Label"]       = "Filtrar por periodo";
+                ViewData["Placeholder"] = "Ver todos los periodos…";
+                ViewData["Options"]     = termOptions;
+                ViewData["Searchable"]  = true;
+            }
+            <partial name="_CustomSelect" />
+        </div>
+        <button type="button" id="clearFilter"
+                class="text-xs font-semibold text-ink-500 hover:text-primary-600 px-2 py-1 transition-colors">
+            <i class="ti ti-x mr-1"></i> Limpiar filtros
+        </button>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up" id="tableContainer">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+@section Scripts {
+    <form id="antiForgeryForm" class="hidden">
+        @Html.AntiForgeryToken()
+    </form>
+    <script>
+        window.TermsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(t => new {
+            t.Id,
+            t.Name,
+            t.Year,
+            t.Number,
+            t.StartDate,
+            t.EndDate,
+            StatusText = t.IsActive ? "Activo" : "Inactivo"
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/terms/index.js" asp-append-version="true"></script>
+}

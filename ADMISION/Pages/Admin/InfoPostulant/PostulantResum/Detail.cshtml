@@ -1,0 +1,137 @@
+@model ADMISION.ENTITIES.Models.Postulant.Postulant
+@using ADMISION.ENTITIES.Constants
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var user = Model.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var age = user != null ? (int)((DateTimeOffset.UtcNow - user.Birthdate).TotalDays / 365.25) : 0;
+    ViewData["Title"] = fullName;
+
+    string SectionUrl(string section) => $"/admin/info-postulant/postulant/postulant-resum/{Model.Id}/{section}";
+
+    var sections = new (string Url, string Label, string Icon, string Tone)[]
+    {
+        (SectionUrl("inscriptions"),     "Validación de Inscripción",              "ti-file-text",         "primary"),
+        (SectionUrl("payments"),         "Historial de Pagos",                    "ti-credit-card",       "emerald"),
+        (SectionUrl("observations"),     "Observaciones",            "ti-alert-circle",      "amber"),
+        (SectionUrl("resignations"),     "Renuncias",                "ti-user-x",            "rose"),
+        (SectionUrl("results"),          "Calificaciones",               "ti-trophy",            "secondary"),
+        //(SectionUrl("documents"),        "Documentos",               "ti-file-certificate",  "secondary"),
+        (SectionUrl("attendance-history"),"Historial de Asistencia",  "ti-clipboard-list",    "primary"),
+    };
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant" class="hover:text-primary-600 transition-colors">Información de postulante</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium truncate max-w-xs">Expediente</span>
+    </div>
+    <div class="eyebrow">Expediente del postulante</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Expediente de <span class="font-serif font-normal text-primary-600">@(user?.Name)</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Datos personales y secciones del expediente.</p>
+</section>
+
+<!-- Identity card -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft p-4 sm:p-5 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center gap-4">
+
+        <div class="w-20 h-20 rounded-md bg-primary-50 dark:bg-primary-500/10 ring-1 ring-primary-100 dark:ring-primary-500/20 flex items-center justify-center flex-shrink-0 overflow-hidden text-primary-600">
+            @if (!string.IsNullOrEmpty(user?.PhotoUrl))
+            {
+                <img src="/@user.PhotoUrl" alt="foto" class="w-full h-full object-cover" />
+            }
+            else
+            {
+                <i class="ti ti-user text-3xl"></i>
+            }
+        </div>
+
+        <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mb-1">Postulante</div>
+                    <h2 class="text-xl font-semibold text-ink-900 dark:text-ink-100 tracking-tight">@fullName</h2>
+                </div>
+                <span class="badge b-primary">
+                    <i class="ti ti-folder-open mr-1"></i> Expediente activo
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-5">
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">@(user?.DocumentType ?? "Documento")</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5 font-mono tabular-nums">@user?.Document</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Correo</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5 truncate">@user?.Email</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Edad</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5 tabular-nums">@age años</p>
+                </div>
+                <div class="rounded-md bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                    <p class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400">Teléfono</p>
+                    <p class="text-sm font-semibold text-ink-900 dark:text-ink-100 mt-0.5 tabular-nums">@user?.PhoneNumber</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sections -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-stack-2 text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Secciones del expediente</h2>
+            <p class="text-[11.5px] text-ink-500">Explora la información asociada al postulante.</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            @foreach (var s in sections)
+            {
+                var toneRing  = s.Tone switch {
+                    "emerald"   => "ring-emerald-200 dark:ring-emerald-500/30",
+                    "amber"     => "ring-amber-200 dark:ring-amber-500/30",
+                    "rose"      => "ring-rose-200 dark:ring-rose-500/30",
+                    "secondary" => "ring-secondary-200 dark:ring-secondary-500/30",
+                    _           => "ring-primary-200 dark:ring-primary-500/30"
+                };
+                var toneBg = s.Tone switch {
+                    "emerald"   => "bg-emerald-50 dark:bg-emerald-500/10",
+                    "amber"     => "bg-amber-50 dark:bg-amber-500/10",
+                    "rose"      => "bg-rose-50 dark:bg-rose-500/10",
+                    "secondary" => "bg-secondary-100 dark:bg-secondary-500/10",
+                    _           => "bg-primary-50 dark:bg-primary-500/10"
+                };
+                var toneText = s.Tone switch {
+                    "emerald"   => "text-emerald-600",
+                    "amber"     => "text-amber-600",
+                    "rose"      => "text-rose-500",
+                    "secondary" => "text-secondary-600",
+                    _           => "text-primary-600"
+                };
+                <a href="@s.Url"
+                   class="group bg-white dark:bg-ink-900 ring-1 @toneRing rounded-md p-4 flex flex-col items-center gap-3 lift transition-all hover:-translate-y-0.5">
+                    <div class="w-12 h-12 rounded-md @toneBg @toneText flex items-center justify-center text-lg">
+                        <i class="ti @s.Icon"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-ink-700 dark:text-ink-200 text-center tracking-tight">@s.Label</span>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+

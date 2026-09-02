@@ -1,0 +1,107 @@
+@model ADMISION.ENTITIES.Models.Infrastructure.Classroom
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Editar Salón";
+    var pavilionOptions = ((IEnumerable<dynamic>)ViewBag.Pavilions).Select(p => new { id = (Guid)p.Id, name = (string)p.Name });
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/infrastructure" class="hover:text-primary-600 transition-colors">Infraestructura</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/infrastructure/classrooms" class="hover:text-primary-600 transition-colors">Salones</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Editar</span>
+    </div>
+    <div class="eyebrow">Logística del examen</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Editar <span class="font-serif font-normal text-primary-600">@Model.Name</span>
+    </h1>
+</section>
+
+<form asp-action="Edit" method="post" class="space-y-5 max-w-3xl">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-edit text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del salón</h2>
+                <p class="text-[11.5px] text-ink-500">Modifica los campos necesarios y guarda los cambios</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <div>
+                <partial name="_CustomSelect" model='new { Id = "PavilionId", Name = "PavilionId", Label = "Pabellón", Required = true, Options = pavilionOptions, SelectedValue = Model.PavilionId.ToString() }' />
+                <span asp-validation-for="PavilionId" class="text-xs text-rose-500 mt-1"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Name", Name = "Name",
+                    Label = "Nombre del salón", Required = true,
+                    Value = Model.Name,
+                    IconLeft = "ti-door",
+                    Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "Group", Name = "Group",
+                    Label = "Grupo",
+                    Value = Model.Group,
+                    IconLeft = "ti-users",
+                    Error = ViewData.ModelState["Group"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+
+                <partial name="_FormInput" model='@(new {
+                    Id = "Floor", Name = "Floor",
+                    Label = "Piso", Type = "number", Required = true, Min = "1",
+                    Value = Model.Floor.ToString(),
+                    IconLeft = "ti-stack-2",
+                    Error = ViewData.ModelState["Floor"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4">
+                <partial name="_FormInput" model='@(new {
+                    Id = "Capacity", Name = "Capacity",
+                    Label = "Aforo (sillas)", Type = "number", Required = true, Min = "1",
+                    Value = Model.Capacity.ToString(),
+                    IconLeft = "ti-armchair",
+                    Error = ViewData.ModelState["Capacity"]?.Errors.FirstOrDefault()?.ErrorMessage
+                })' />
+            </div>
+
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "IsActive", Name = "IsActive",
+                Label = "Salón activo",
+                Hint  = "Disponible para sorteo y asignación",
+                Checked = Model.IsActive,
+                Variant = "switch"
+            })' />
+        </div>
+    </section>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar cambios
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

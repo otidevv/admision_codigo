@@ -1,0 +1,526 @@
+@model List<ADMISION.ENTITIES.Models.Postulante.Inscription>
+@using ADMISION.ENTITIES.Constants
+@using ADMISION.ENTITIES.Models.Integrations
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    var postulant = ViewBag.Postulant as ADMISION.ENTITIES.Models.Postulant.Postulant;
+    var user = postulant?.User;
+    var fullName = $"{user?.FirstNameFather} {user?.FirstNameMother}, {user?.Name}";
+    var postulantId = postulant?.Id;
+
+    ViewData["Title"] = "Pagos - " + fullName;
+
+    var allPayments = Model
+        .Where(i => i.Payments != null)
+        .SelectMany(i => i.Payments!.Select(p => new { Payment = p, Inscription = i }))
+        .OrderByDescending(x => x.Payment.DatePayment)
+        .ToList();
+
+    var totalAmount = allPayments.Sum(x => (double)x.Payment.Amount);
+    var approvedCount = allPayments.Count(x => x.Payment.IsApproved);
+
+    var externalVouchers = ViewBag.ExternalVouchers as IReadOnlyList<ExternalPaymentVoucher>
+        ?? new List<ExternalPaymentVoucher>();
+    var externalTotal = externalVouchers
+        .Where(v => v.Payments != null)
+        .SelectMany(v => v.Payments!)
+        .Sum(d => (double)d.Total);
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant/postulant/postulant-resum" class="hover:text-primary-600 transition-colors">Búsqueda</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId" class="hover:text-primary-600 transition-colors truncate max-w-[200px]">Expediente</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Pagos</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Expediente del postulante</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Registro de <span class="font-serif font-normal text-primary-600">pagos</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">@fullName</p>
+        </div>
+        <a href="/admin/info-postulant/postulant/postulant-resum/@postulantId"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver al expediente
+        </a>
+    </div>
+</section>
+
+<!-- KPIs -->
+<section class="fade-up grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@allPayments.Count</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Pagos registrados</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-receipt"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-emerald-600 tabular-nums">S/. @totalAmount.ToString("F2")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Monto registrado</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-cash"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-secondary-600 tabular-nums">@approvedCount</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Aprobados</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-circle-check"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-amber-600 tabular-nums">@externalVouchers.Count</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Pagos externos (API)</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-coin"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabs -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="border-b border-ink-200/60 dark:border-ink-800/60">
+        <div class="flex px-4 sm:px-5 -mb-px" role="tablist">
+            <button type="button" role="tab" id="tab-registered" aria-controls="panel-registered" aria-selected="true"
+                    class="tab-btn tab-btn--active" onclick="switchTab('registered')">
+                <i class="ti ti-credit-card text-xs mr-1.5"></i> Pagos Registrados
+                <span class="ml-1.5 text-[10px] font-bold bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded-full">@allPayments.Count</span>
+            </button>
+            <button type="button" role="tab" id="tab-external" aria-controls="panel-external" aria-selected="false"
+                    class="tab-btn" onclick="switchTab('external')">
+                <i class="ti ti-coin text-xs mr-1.5"></i> Pagos Externos (API)
+                <span class="ml-1.5 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">@externalVouchers.Count</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════ Tab 1: Pagos Registrados ═══════ -->
+    <div role="tabpanel" id="panel-registered" aria-labelledby="tab-registered">
+        @if (allPayments.Any())
+        {
+            <div class="overflow-x-auto">
+                <table class="atlas w-full">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Periodo</th>
+                            <th>Concepto / Op.</th>
+                            <th>Medio de Pago</th>
+                            <th class="text-right">Monto</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Asoc. API</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in allPayments)
+                        {
+                            var payment = item.Payment;
+                            if (payment == null) { continue; }
+                            var inscription = item.Inscription;
+                            <tr>
+                                <td class="text-xs text-ink-500 tabular-nums whitespace-nowrap">@payment.DatePayment.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="text-xs font-medium text-ink-600 dark:text-ink-300">@(inscription.Modality?.Term?.Name ?? "-")</span>
+                                </td>
+                                <td class="font-semibold text-ink-900 dark:text-ink-100 font-mono tabular-nums">@payment.OperationCode</td>
+                                <td>
+                                    @if (payment.MethodPayment != null)
+                                    {
+                                        var isCaja = payment.MethodPayment.Name.Contains("Caja", StringComparison.OrdinalIgnoreCase);
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold @(isCaja ? "text-blue-600" : "text-violet-600")">
+                                            <i class="ti @(isCaja ? "ti-cash" : "ti-building-bank") text-[10px]"></i>
+                                            @payment.MethodPayment.Name
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-ink-400">—</span>
+                                    }
+                                </td>
+                                <td class="text-right font-mono font-bold text-emerald-600 tabular-nums">S/. @payment.Amount.ToString("F2")</td>
+                                <td class="text-center">
+                                    <span class="@(payment.IsApproved ? "badge b-green" : "badge b-amber")">
+                                        @(payment.IsApproved ? "Aprobado" : "Pendiente")
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    @if (payment.ExternalPaymentVoucherId.HasValue)
+                                    {
+                                        <button type="button" data-modal-open="voucherModal-@payment.Id"
+                                                class="badge b-teal text-[10px] cursor-pointer hover:brightness-110 transition-all">
+                                            <i class="ti ti-link text-[8px] mr-0.5"></i> Asociado
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge b-gray text-[10px]">
+                                            <i class="ti ti-link-off text-[8px] mr-0.5"></i> Sin asociar
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (!string.IsNullOrEmpty(payment.FilePath))
+                                    {
+                                        <a href="/@payment.FilePath" target="_blank"
+                                           class="inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-secondary-200 dark:ring-secondary-500/30 text-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-500/10 transition-colors"
+                                           title="Ver comprobante">
+                                            <i class="ti ti-eye text-xs"></i>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-ink-300">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @* Modals for associated external vouchers *@
+            @foreach (var item in allPayments)
+            {
+                var payment = item.Payment;
+                if (payment?.ExternalPaymentVoucher == null) { continue; }
+                var voucher = payment.ExternalPaymentVoucher;
+                <div id="voucherModal-@payment.Id" class="adm-modal" role="dialog" aria-modal="true" aria-hidden="true">
+                    <div class="adm-modal__overlay" data-modal-close></div>
+                    <div class="adm-modal__card adm-modal__card--md">
+                        <header class="adm-modal__header">
+                            <div class="min-w-0">
+                                <div class="eyebrow">Pago externo asociado</div>
+                                <h3 class="adm-modal__title mt-1">@voucher.SerialVoucher</h3>
+                                <p class="adm-modal__subtitle">@voucher.FullName</p>
+                            </div>
+                            <button type="button" class="adm-modal__close" data-modal-close aria-label="Cerrar">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </header>
+                        <div class="adm-modal__body">
+                            <div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-4 mb-4">
+                                <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Usuario</span>
+                                        <p class="font-mono text-ink-900 dark:text-ink-100">@voucher.UserName</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Consultado</span>
+                                        <p class="font-mono text-ink-900 dark:text-ink-100">@voucher.QueriedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Log ID</span>
+                                        <p class="font-mono text-ink-900 dark:text-ink-100">@voucher.QueryLogId.ToString("N").Substring(0, 8)…</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (voucher.Payments != null && voucher.Payments.Count > 0)
+                            {
+                                <div class="space-y-4">
+                                    @foreach (var detail in voucher.Payments)
+                                    {
+                                        <div class="rounded-lg bg-white dark:bg-ink-800/60 ring-1 ring-ink-200/60 dark:ring-ink-700/60 overflow-hidden">
+                                            <div class="bg-primary/5 dark:bg-primary-500/10 px-4 py-2.5 border-b border-ink-200/40 dark:border-ink-700/40">
+                                                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">@detail.Description</p>
+                                                @if (!string.IsNullOrWhiteSpace(detail.TermName))
+                                                {
+                                                    <p class="text-[11px] text-ink-500 font-mono">@detail.TermName</p>
+                                                }
+                                            </div>
+                                            <div class="p-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Subtotal</span>
+                                                    <p class="font-mono tabular-nums text-ink-900 dark:text-ink-100">S/ @detail.SubTotal.ToString("F2")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Descuento</span>
+                                                    <p class="font-mono tabular-nums @(detail.Discount > 0 ? "text-rose-600" : "text-ink-900 dark:text-ink-100")">@(detail.Discount > 0 ? $"-S/ {detail.Discount:F2}" : "—")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Total</span>
+                                                    <p class="font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400">S/ @detail.Total.ToString("F2")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Cantidad</span>
+                                                    <p class="font-mono tabular-nums text-ink-900 dark:text-ink-100">@detail.Quantity.ToString("F0")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Tipo usuario</span>
+                                                    <p class="text-ink-900 dark:text-ink-100">@(detail.TypeUser ?? "—")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Estado</span>
+                                                    <p>@(detail.Status == 1 ? Html.Raw("<span class=\"badge b-green\">Activo</span>") : detail.Status == 0 ? Html.Raw("<span class=\"badge b-gray\">Inactivo</span>") : detail.Status.ToString())</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Fecha de pago</span>
+                                                    <p class="font-mono tabular-nums text-ink-900 dark:text-ink-100">@(detail.PaymentDate?.ToString("dd/MM/yyyy") ?? "—")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Pago bancario</span>
+                                                    <p>@(detail.IsBankPayment ? Html.Raw("<span class=\"badge b-teal\">Sí</span>") : Html.Raw("<span class=\"badge b-gray\">No</span>"))</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Cajero</span>
+                                                    <p class="text-ink-900 dark:text-ink-100">@(detail.Cashier ?? "—")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Dependencia</span>
+                                                    <p class="text-ink-900 dark:text-ink-100">@(detail.ActiveDependency ? detail.Acronym ?? "Sí" : "—")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Creado por</span>
+                                                    <p class="text-ink-900 dark:text-ink-100">@(detail.CreatedBy ?? "—")</p>
+                                                </div>
+                                                <div>
+                                                    <span class="text-[10px] uppercase tracking-widest font-semibold text-ink-400">Nombre</span>
+                                                    <p class="text-ink-900 dark:text-ink-100">@(detail.Name ?? "—")</p>
+                                                </div>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(detail.AmountInWords))
+                                            {
+                                                <div class="px-4 pb-3">
+                                                    <div class="rounded bg-ink-50 dark:bg-ink-800/40 px-3 py-2 text-xs text-ink-500 italic font-serif">
+                                                        <i class="ti ti-quote mr-1"></i>@detail.AmountInWords
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-ink-400 text-center py-4">Sin detalle de pagos</p>
+                            }
+                        </div>
+                        <footer class="adm-modal__footer">
+                            <button type="button" data-modal-close
+                                    class="btn-soft inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all">
+                                Cerrar
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="py-14 text-center">
+                <i class="ti ti-credit-card text-4xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-400 text-sm font-medium">No se registran pagos internos en este expediente.</p>
+            </div>
+        }
+    </div>
+
+    <!-- ═══════ Tab 2: Pagos Externos (API) ═══════ -->
+    <div role="tabpanel" id="panel-external" aria-labelledby="tab-external" class="hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between">
+            <div>
+                <p class="text-[11.5px] text-ink-500">Comprobantes y pagos consultados vía API externa</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="paymentsLoader" class="hidden">
+                    <i class="ti ti-loader-2 animate-spin text-primary-500 text-sm"></i>
+                </div>
+                <button type="button" id="refreshPaymentsBtn"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-600 dark:text-ink-300 text-xs font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+                    <i class="ti ti-refresh text-[10px]"></i> Actualizar
+                </button>
+            </div>
+        </div>
+
+        <div id="paymentsCardError" class="hidden p-4 sm:p-5 text-sm text-rose-700 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-300 border-b border-rose-100 dark:border-rose-500/30"></div>
+
+        <div id="paymentsCardEmpty" class="@(externalVouchers.Count > 0 ? "hidden" : "") p-8 text-center">
+            <i class="ti ti-receipt-off text-3xl text-ink-300 mb-2 block"></i>
+            <p class="text-ink-500 text-sm font-semibold">Sin historial de pagos externos</p>
+            <p class="text-ink-400 text-xs mt-1">Presiona "Actualizar" para consultar la API o verifica que esté configurada.</p>
+        </div>
+
+        <div id="paymentsCardData" class="@(externalVouchers.Count > 0 ? "" : "hidden")">
+            <div id="paymentsCardContent" class="p-4 sm:p-5 space-y-3">
+                @if (externalVouchers.Count > 0)
+                {
+                    foreach (var voucher in externalVouchers)
+                    {
+                        <div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-mono font-bold text-amber-600">@voucher.SerialVoucher</span>
+                                <span class="badge b-gray text-[10px]">@voucher.Payments.Count pago(s)</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(voucher.FullName))
+                            {
+                                <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">@voucher.FullName</p>
+                            }
+                            @if (voucher.Payments != null && voucher.Payments.Count > 0)
+                            {
+                                <div class="mt-2 space-y-1.5">
+                                    @foreach (var p in voucher.Payments)
+                                    {
+                                        <div class="flex items-center justify-between text-xs border-t border-ink-200/40 dark:border-ink-800/40 pt-1.5 first:border-0 first:pt-0">
+                                            <div class="flex-1 min-w-0">
+                                                <span class="text-ink-700 dark:text-ink-200 font-medium">@p.Description</span>
+                                                @if (!string.IsNullOrWhiteSpace(p.TermName))
+                                                {
+                                                    <span class="text-ink-400 ml-1">(@p.TermName)</span>
+                                                }
+                                            </div>
+                                            <div class="text-right ml-2 flex-shrink-0">
+                                                <span class="font-semibold text-ink-900 dark:text-ink-100">S/ @p.Total.ToString("F2")</span>
+                                                @if (p.Discount > 0)
+                                                {
+                                                    <span class="text-rose-500 text-[10px] block">-S/ @p.Discount.ToString("F2")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            <p class="text-[10px] text-ink-400 mt-2 font-mono">
+                                <i class="ti ti-clock mr-0.5"></i> @voucher.QueriedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .tab-btn {
+        padding: 0.75rem 1.25rem;
+        font-size: 13px;
+        font-weight: 600;
+        color: #9ca3af;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+        background: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+    .tab-btn:hover { color: #6b7280; }
+    .tab-btn--active {
+        color: #111827;
+        border-bottom-color: #6366f1;
+    }
+    .dark .tab-btn--active { color: #f3f4f6; border-bottom-color: #818cf8; }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            var postulantId = '@postulantId';
+
+            // ── Tab switching ──
+            window.switchTab = function (tab) {
+                document.getElementById('panel-registered').classList.toggle('hidden', tab !== 'registered');
+                document.getElementById('panel-external').classList.toggle('hidden', tab !== 'external');
+                document.getElementById('tab-registered').classList.toggle('tab-btn--active', tab === 'registered');
+                document.getElementById('tab-external').classList.toggle('tab-btn--active', tab === 'external');
+                document.getElementById('tab-registered').setAttribute('aria-selected', tab === 'registered');
+                document.getElementById('tab-external').setAttribute('aria-selected', tab === 'external');
+            };
+
+            // ── External payments refresh ──
+            var loader = document.getElementById('paymentsLoader');
+            var errorEl = document.getElementById('paymentsCardError');
+            var emptyEl = document.getElementById('paymentsCardEmpty');
+            var dataEl = document.getElementById('paymentsCardData');
+            var contentEl = document.getElementById('paymentsCardContent');
+
+            function showLoader() { loader?.classList.remove('hidden'); }
+            function hideLoader() { loader?.classList.add('hidden'); }
+            function showError(msg) { if (errorEl) { errorEl.textContent = msg; errorEl.classList.remove('hidden'); } }
+            function hideError() { errorEl?.classList.add('hidden'); }
+
+            function renderRecords(records) {
+                if (!contentEl) return;
+                if (!records || records.length === 0) { contentEl.innerHTML = ''; return; }
+                var html = '';
+                records.forEach(function (v) {
+                    var payments = v.Payments || [];
+                    var queried = v.QueriedAt ? new Date(v.QueriedAt).toLocaleString('es-PE') : '';
+                    html += '<div class="rounded-lg bg-ink-50/60 dark:bg-ink-800/40 ring-1 ring-ink-200/60 dark:ring-ink-800 p-3">';
+                    html += '  <div class="flex items-center justify-between mb-2">';
+                    html += '    <span class="text-xs font-mono font-bold text-amber-600">' + (v.SerialVoucher || '') + '</span>';
+                    html += '    <span class="badge b-gray text-[10px]">' + payments.length + ' pago(s)</span>';
+                    html += '  </div>';
+                    if (v.FullName) html += '  <p class="text-sm font-semibold text-ink-900 dark:text-ink-100">' + v.FullName + '</p>';
+                    if (payments.length > 0) {
+                        html += '  <div class="mt-2 space-y-1.5">';
+                        payments.forEach(function (p, idx) {
+                            var border = idx > 0 ? ' border-t border-ink-200/40 dark:border-ink-800/40 pt-1.5' : '';
+                            html += '    <div class="flex items-center justify-between text-xs' + border + '">';
+                            html += '      <div class="flex-1 min-w-0">';
+                            html += '        <span class="text-ink-700 dark:text-ink-200 font-medium">' + (p.Description || '') + '</span>';
+                            if (p.TermName) html += '        <span class="text-ink-400 ml-1">(' + p.TermName + ')</span>';
+                            html += '      </div>';
+                            html += '      <div class="text-right ml-2 flex-shrink-0">';
+                            html += '        <span class="font-semibold text-ink-900 dark:text-ink-100">S/ ' + (p.Total || 0).toFixed(2) + '</span>';
+                            if (p.Discount > 0) html += '        <span class="text-rose-500 text-[10px] block">-S/ ' + (p.Discount || 0).toFixed(2) + '</span>';
+                            html += '      </div>';
+                            html += '    </div>';
+                        });
+                        html += '  </div>';
+                    }
+                    html += '  <p class="text-[10px] text-ink-400 mt-2 font-mono"><i class="ti ti-clock mr-0.5"></i> ' + queried + '</p>';
+                    html += '</div>';
+                });
+                contentEl.innerHTML = html;
+            }
+
+            document.getElementById('refreshPaymentsBtn')?.addEventListener('click', function () {
+                showLoader(); hideError();
+                fetch('/admin/info-postulant/postulant/postulant-resum/' + postulantId + '/external-payments/refresh')
+                    .then(function (r) { return r.json(); })
+                    .then(function (result) {
+                        hideLoader();
+                        if (result.data && result.data.length > 0) {
+                            renderRecords(result.data);
+                            emptyEl?.classList.add('hidden');
+                            dataEl?.classList.remove('hidden');
+                        } else {
+                            dataEl?.classList.add('hidden');
+                            emptyEl?.classList.remove('hidden');
+                        }
+                        if (!result.success && result.message && result.message !== 'sin_api') showError(result.message);
+                    })
+                    .catch(function () {
+                        hideLoader();
+                        dataEl?.classList.add('hidden');
+                        emptyEl?.classList.remove('hidden');
+                        showError('Error de red al consultar pagos.');
+                    });
+            });
+        })();
+    </script>
+}

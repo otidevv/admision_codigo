@@ -1,0 +1,61 @@
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Información del Postulante";
+
+    var isSuperAdmin = User.IsInRole("SuperAdmin");
+
+    var sections = new (string Href, string Icon, string Title, string Hint, string Tone)[] {
+        ("/admin/info-postulant/list",            "ti-users",          "Postulantes",          "Listado de postulantes totales por proceso de admisión.",              "primary"),
+        ("/admin/info-postulant/attendance",      "ti-clipboard-text", "Control de Asistencia", "Verificación de identidad y control de acceso biométrico a exámenes.", "primary"),
+    };
+
+    if (isSuperAdmin)
+    {
+        sections = sections.Concat(new[] {
+            ("/admin/importaciones/postulantes", "ti-upload", "Importar Postulantes", "Importa postulantes desde Excel de periodos académicos pasados.", "primary"),
+            ("/admin/info-postulant/ingresantes", "ti-upload", "Importar Resultados",  "Importa Resultados de los procesos del examen de admisión.",     "success"),
+            ("/admin/info-postulant/ingresantes-consolidado", "ti-trophy", "Consolidar Ingresantes",  "Consolidación de ingresantes por periodo académico, CEPRE, ORIDINARIO, etc.",     "primary"),
+            ("/admin/info-postulant/cepre-match", "ti-trophy", "Resultados Ingresantes CEPRE",  "Consolidación de Ingresantes CEPRE.",     "secondary"),
+        }).ToArray();
+    }
+}
+
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <nav class="flex items-center gap-2 text-xs text-ink-400 mb-2" aria-label="Breadcrumb">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Postulantes</span>
+    </nav>
+    <div class="eyebrow">Gestión académica</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Información del <span class="font-serif font-normal text-primary-600">postulante</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1.5 max-w-2xl">
+        Administra el expediente del postulante, su historial de inscripciones y el control de asistencia biométrica al examen.
+    </p>
+</section>
+
+<!-- Hub grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 @(isSuperAdmin ? "lg:grid-cols-4" : "lg:grid-cols-2") gap-4">
+    @foreach (var s in sections)
+    {
+        var iconBg   = s.Tone == "primary" ? "bg-primary-50 dark:bg-primary-500/10"   : "bg-secondary-50 dark:bg-secondary-500/10";
+        var iconText = s.Tone == "primary" ? "text-primary-600 dark:text-primary-300" : "text-secondary-600 dark:text-secondary-300";
+
+        <a href="@s.Href"
+           class="fade-up group bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all flex flex-col gap-3 hover:ring-primary-300/60 dark:hover:ring-primary-500/30">
+            <span class="w-11 h-11 rounded-md @iconBg @iconText flex items-center justify-center text-[15px] group-hover:scale-[1.03] transition-transform">
+                <i class="ti @s.Icon"></i>
+            </span>
+            <div>
+                <h4 class="font-semibold text-ink-900 dark:text-ink-100 text-[14px] tracking-tight">@s.Title</h4>
+                <p class="text-[11.5px] text-ink-500 mt-1 leading-relaxed">@s.Hint</p>
+            </div>
+            <div class="mt-auto pt-2 flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                Abrir <i class="ti ti-arrow-right text-[9px]"></i>
+            </div>
+        </a>
+    }
+</section>

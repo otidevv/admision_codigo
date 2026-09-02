@@ -1,0 +1,386 @@
+@model dynamic
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión Documental";
+
+    var terms = ViewBag.Terms as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var selectedTermId = ViewBag.SelectedTermId as Guid?;
+    var latestVersion = ViewBag.LatestVersion as dynamic;
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+        <a href="/admin" class="hover:text-primary-600 transition-colors">Admin</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Gestión Documental</span>
+    </div>
+    <div class="eyebrow">Gestión documental</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Gestión <span class="font-serif font-normal text-primary-600">documental</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1.5 max-w-2xl">
+        Emite constancias de ingreso para los postulantes admitidos del consolidado.
+    </p>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-5">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-filter text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Período</h2>
+            <p class="text-[11.5px] text-ink-500">Selecciona el proceso de admisión para ver el consolidado</p>
+        </div>
+    </div>
+    <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-field">
+                <label for="term" class="form-label">Proceso (Term)</label>
+                <div class="form-input-wrapper">
+                    <i class="ti ti-calendar form-input-icon"></i>
+                    <select id="term" class="form-input">
+                        <option value="">— Seleccionar —</option>
+                        @foreach (dynamic t in terms)
+                        {
+                            <option value="@t.Id" selected="@(t.Id == selectedTermId)">@t.Name @(t.IsActive ? "· activo" : "")</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-end">
+                <button id="btn-load" type="button"
+                        class="btn-grad w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        @(selectedTermId == null ? "disabled" : "")>
+                    <i class="ti ti-search text-xs"></i>
+                    Cargar consolidado
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Resultados -->
+<section id="results-card" class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft @(latestVersion == null ? "hidden" : "")">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center justify-between gap-3 rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-secondary-100 dark:bg-secondary-500/10 text-secondary-600 inline-flex items-center justify-center">
+                <i class="ti ti-school text-sm"></i>
+            </span>
+            <div>
+                <h3 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Ingresantes del consolidado</h3>
+                <p id="count-label" class="text-[11.5px] text-ink-500">
+                    @if (latestVersion != null)
+                    {
+                        <span>v@(latestVersion.VersionNumber) · @latestVersion.RecordCount registros</span>
+                    }
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span id="selected-label" class="text-[11px] text-ink-500 font-mono tabular-nums px-2.5 py-1 rounded-full bg-ink-100 dark:bg-ink-800">0 seleccionados</span>
+            <button id="btn-bulk" type="button" disabled
+                    class="inline-flex items-center gap-2 bg-secondary-600 hover:bg-secondary-700 text-white text-xs font-semibold px-3 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="ti ti-file-zip"></i> ZIP seleccionados
+            </button>
+            <button id="btn-bulk-all" type="button" disabled
+                    class="btn-grad inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+                <i class="ti ti-folder-open"></i> ZIP de todos
+            </button>
+        </div>
+    </div>
+
+    <div id="results-search-wrap" class="px-4 sm:px-5 py-3 border-b border-ink-200/60 dark:border-ink-800/60">
+        <div class="flex flex-col md:flex-row md:items-center gap-3">
+            <div class="form-field w-full md:w-96">
+                <div class="form-input-wrapper">
+                    <i class="ti ti-search form-input-icon"></i>
+                    <input id="search-input" type="text" class="form-input form-input--sm" placeholder="Buscar por DNI, nombre o código de estudiante…" autocomplete="off" />
+                    <button id="search-clear" type="button"
+                            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-primary-600 transition-colors cursor-pointer"
+                            aria-label="Limpiar búsqueda">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+            </div>
+            <p class="text-[11px] text-ink-500 flex items-center gap-1.5">
+                <i class="ti ti-filter-search text-[11px]"></i>
+                <span id="search-hint">Búsqueda en tiempo real por DNI, nombre completo o código de estudiante.</span>
+            </p>
+        </div>
+    </div>
+
+    <div id="results-empty" class="py-14 text-center hidden">
+        <i class="ti ti-school text-4xl text-ink-300 mb-3 block"></i>
+        <p id="results-empty-msg" class="text-ink-400 text-sm font-medium">No se encontraron ingresantes para este período.</p>
+    </div>
+
+    <div id="results-table-wrap" class="overflow-x-auto">
+        <table class="atlas w-full">
+            <thead>
+                <tr>
+                    <th class="w-10 text-center">
+                        <input id="check-all" type="checkbox" class="w-4 h-4 rounded text-primary-600 focus:ring-primary-500" />
+                    </th>
+                    <th>#</th>
+                    <th>Código</th>
+                    <th>Postulante</th>
+                    <th>DNI</th>
+                    <th>Carrera</th>
+                    <th>Email</th>
+                    <th class="text-right">Acción</th>
+                </tr>
+            </thead>
+            <tbody id="results-body"></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Loader -->
+<div id="loader" class="hidden fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft shadow-card px-8 py-6 max-w-sm w-[90%] text-center">
+        <i class="ti ti-loader-2 fa-spin text-4xl text-primary-600 mb-3"></i>
+        <h4 id="loader-title" class="text-base font-semibold text-ink-900 dark:text-ink-100">Generando documentos…</h4>
+        <p id="loader-subtitle" class="text-xs text-ink-500 mt-1">Esto puede tardar un momento. No cierres esta ventana.</p>
+    </div>
+</div>
+
+<form id="hidden-form" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+</form>
+
+@section Scripts {
+    <script>
+    (function () {
+        const $ = (sel) => document.querySelector(sel);
+        const termSel = $('#term');
+        const btnLoad = $('#btn-load');
+        const btnBulk = $('#btn-bulk');
+        const btnBulkAll = $('#btn-bulk-all');
+        const checkAll = $('#check-all');
+        const card = $('#results-card');
+        const empty = $('#results-empty');
+        const tableWrap = $('#results-table-wrap');
+        const tbody = $('#results-body');
+        const countLbl = $('#count-label');
+        const selectedLbl = $('#selected-label');
+        const loader = $('#loader');
+        const loaderTitle = $('#loader-title');
+        const loaderSub = $('#loader-subtitle');
+        const csrf = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        const searchInput = $('#search-input');
+        const searchClear = $('#search-clear');
+        const searchWrap = $('#results-search-wrap');
+        const emptyMsg = $('#results-empty-msg');
+        const versionNumber = @((int)(latestVersion?.VersionNumber ?? 0));
+
+        let currentRows = [];
+        let currentVersionId = null;
+
+        const normalize = (s) => (s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+
+        const matchesQuery = (r, q) =>
+            normalize(r.fullName).includes(q) ||
+            normalize(r.dni).includes(q) ||
+            normalize(r.codigoEstudiante).includes(q);
+
+        function showLoader(title, subtitle) {
+            loaderTitle.textContent = title || 'Procesando…';
+            loaderSub.textContent = subtitle || 'Esto puede tardar un momento. No cierres esta ventana.';
+            loader.classList.remove('hidden');
+        }
+        function hideLoader() { loader.classList.add('hidden'); }
+
+        termSel.addEventListener('change', () => {
+            btnLoad.disabled = !termSel.value;
+        });
+
+        btnLoad.addEventListener('click', async () => {
+            if (!termSel.value) return;
+            window.location.href = `/admin/gestion-documental?termId=${termSel.value}`;
+        });
+
+        // Auto-load if term is preselected
+        @if (latestVersion != null)
+        {
+            <text>
+            currentVersionId = '@latestVersion.Id';
+            loadRecords(currentVersionId);
+            </text>
+        }
+
+        async function loadRecords(versionId) {
+            showLoader('Cargando consolidado…', 'Obteniendo registros del período.');
+            try {
+                const res = await fetch(`/admin/gestion-documental/registros?versionId=${versionId}`, { headers: { 'Accept': 'application/json' } });
+                const data = await res.json();
+                currentRows = data.items || [];
+                searchInput.value = '';
+                card.classList.remove('hidden');
+                refresh();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el consolidado.', confirmButtonColor: '#f54477' });
+            }
+            hideLoader();
+            updateBulkButtons();
+        }
+
+        function updateCountLabel(filteredCount) {
+            if (currentRows.length === 0) { countLbl.textContent = ''; return; }
+            const word = currentRows.length === 1 ? 'ingresante' : 'ingresantes';
+            const q = normalize(searchInput.value.trim());
+            countLbl.textContent = q
+                ? `${filteredCount} de ${currentRows.length} ${word} · v${versionNumber}`
+                : `${currentRows.length} ${word} · v${versionNumber}`;
+        }
+
+        function refresh() {
+            const q = normalize(searchInput.value.trim());
+            const filtered = q ? currentRows.filter(r => matchesQuery(r, q)) : currentRows;
+
+            searchClear.classList.toggle('hidden', !q);
+
+            const hasRecords = currentRows.length > 0;
+            const noMatches = hasRecords && q && filtered.length === 0;
+
+            renderRows(filtered);
+            updateCountLabel(filtered.length);
+
+            tableWrap.classList.toggle('hidden', !hasRecords || noMatches);
+            searchWrap.classList.toggle('hidden', !hasRecords);
+            empty.classList.toggle('hidden', !(!hasRecords || noMatches));
+            if (!hasRecords) emptyMsg.textContent = 'No se encontraron ingresantes para este período.';
+            else if (noMatches) emptyMsg.textContent = `No se encontraron resultados para "${searchInput.value.trim()}".`;
+
+            checkAll.checked = false;
+            updateBulkButtons();
+        }
+
+        searchInput.addEventListener('input', refresh);
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            refresh();
+            searchInput.focus();
+        });
+
+        function renderRows(rows) {
+            tbody.innerHTML = rows.map(r => `
+                <tr>
+                    <td class="text-center">
+                        <input type="checkbox" class="row-check w-4 h-4 rounded text-primary-600 focus:ring-primary-500" data-id="${r.id}" />
+                    </td>
+                    <td class="text-xs text-ink-500 font-mono">${r.nro}</td>
+                    <td><span class="font-mono font-semibold text-primary-600 text-xs">${r.codigoEstudiante}</span></td>
+                    <td>
+                        <div class="font-semibold text-ink-900 dark:text-ink-100 text-xs">${r.fullName}</div>
+                    </td>
+                    <td class="text-xs text-ink-700 dark:text-ink-300 font-mono">${r.dni}</td>
+                    <td class="text-xs text-ink-700 dark:text-ink-300">${r.careerName || r.codigoCarrera}</td>
+                    <td class="text-[11px] text-ink-500">${r.email || '—'}</td>
+                    <td class="text-right">
+                        <button class="btn-individual inline-flex items-center gap-1.5 text-xs font-semibold text-secondary-600 hover:text-secondary-700 px-2.5 py-1.5 rounded-md ring-1 ring-secondary-200 dark:ring-secondary-500/30 hover:bg-secondary-50 dark:hover:bg-secondary-500/10 transition-colors" data-id="${r.id}" data-name="${r.fullName.replace(/"/g, '&quot;')}">
+                            <i class="ti ti-file-text"></i> Emitir PDF
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            tbody.querySelectorAll('.row-check').forEach(cb => cb.addEventListener('change', updateBulkButtons));
+            tbody.querySelectorAll('.btn-individual').forEach(btn => btn.addEventListener('click', onIssueIndividual));
+        }
+
+        function updateBulkButtons() {
+            const selected = tbody.querySelectorAll('input.row-check:checked').length;
+            selectedLbl.textContent = selected + ' seleccionados';
+            btnBulk.disabled = selected === 0;
+            btnBulkAll.disabled = currentRows.length === 0;
+        }
+
+        checkAll.addEventListener('change', () => {
+            tbody.querySelectorAll('.row-check').forEach(cb => cb.checked = checkAll.checked);
+            updateBulkButtons();
+        });
+
+        async function onIssueIndividual(e) {
+            const id = e.currentTarget.dataset.id;
+            const name = e.currentTarget.dataset.name;
+            showLoader('Generando PDF…', `Constancia de ${name}`);
+            try {
+                const fd = new FormData();
+                fd.append('__RequestVerificationToken', csrf);
+                fd.append('recordId', id);
+                fd.append('watermark', 'false');
+
+                const res = await fetch('/admin/gestion-documental/emitir-individual', {
+                    method: 'POST',
+                    body: fd
+                });
+                if (!res.ok) throw new Error(await res.text() || res.statusText);
+                await downloadResponse(res);
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'No se pudo emitir el documento.', confirmButtonColor: '#f54477' });
+            }
+            hideLoader();
+        }
+
+        async function issueBulk(onlySelected) {
+            const ids = onlySelected
+                ? Array.from(tbody.querySelectorAll('input.row-check:checked')).map(c => c.dataset.id)
+                : currentRows.map(r => r.id);
+
+            if (ids.length === 0) return;
+
+            const confirmed = await Swal.fire({
+                title: '¿Emitir constancias?',
+                html: `Se generarán <b>${ids.length}</b> constancias de ingreso.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#f54477',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, emitir',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            });
+            if (!confirmed.isConfirmed) return;
+
+            showLoader('Generando documentos…', `Procesando ${ids.length} constancias. Puede tardar varios minutos.`);
+
+            try {
+                const res = await fetch('/admin/gestion-documental/emitir-masivo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrf },
+                    body: JSON.stringify({ recordIds: ids, watermark: false })
+                });
+                if (!res.ok) throw new Error(await res.text() || res.statusText);
+                await downloadResponse(res);
+                Toastify({ text: `ZIP con ${ids.length} constancias descargado.`, duration: 4000, gravity: 'top', position: 'right', backgroundColor: '#10b981' }).showToast();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'No se pudo generar el ZIP.', confirmButtonColor: '#f54477' });
+            }
+            hideLoader();
+        }
+
+        btnBulk.addEventListener('click', () => issueBulk(true));
+        btnBulkAll.addEventListener('click', () => issueBulk(false));
+
+        async function downloadResponse(res) {
+            const blob = await res.blob();
+            const cd = res.headers.get('Content-Disposition') || '';
+            let filename = 'documento';
+            const m = /filename\*?=(?:UTF-8'')?\"?([^\";]+)\"?/i.exec(cd);
+            if (m) filename = decodeURIComponent(m[1]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+        }
+    })();
+    </script>
+}

@@ -1,0 +1,115 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Requirement.FileRequirementManagement>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestión de Requisitos";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Requisito / Descripción", Field = "name", Type = "combined", SubField = "description", Sortable = true },
+        new() { Label = "Tamaño Máximo", Field = "maxFileSizeMB", Type = "text", Align = "center", Sortable = true },
+        new() { Label = "Formatos", Field = "filePathExtencion", Type = "custom", RenderFn = "renderExtensions", Align = "center" }
+    };
+    var actions = new List<DataTableAction>
+    {
+        new() { Key = "edit", Label = "Editar", Icon = "ti-edit", Href = "/admin/exam-management/documents/editar/{id}" },
+        new() { Key = "delete", Label = "Eliminar", Icon = "ti-trash", Danger = true },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["Actions"] = actions;
+    ViewData["AjaxUrl"] = Url.Action("Index");
+    ViewData["TableId"] = "requirementsTable";
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Requisitos</span>
+        </div>
+        <div class="eyebrow">Documentación</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Requisitos de <span class="font-serif font-normal text-primary-600">archivos</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Configura los documentos requeridos para los postulantes en cada proceso.</p>
+    </div>
+    <div class="flex gap-3">
+        <button onclick="DT.refresh('requirementsTable')"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-refresh text-xs"></i> Actualizar
+        </button>
+        <a asp-action="Create" class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i>
+            Nuevo requisito
+        </a>
+    </div>
+</section>
+
+<!-- Search Filter -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+            <i class="ti ti-search text-sm"></i>
+        </span>
+        <div>
+            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Buscador de requisitos</h2>
+            <p class="text-[11.5px] text-ink-500">Filtra por nombre del requisito</p>
+        </div>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <div class="max-w-2xl">
+            <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Nombre del requisito</label>
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-ink-400 group-focus-within:text-primary-600 transition-colors">
+                    <i class="ti ti-search text-sm"></i>
+                </div>
+                <input type="text" id="filterSearch"
+                       class="w-full h-9 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-md pl-12 pr-4 text-sm text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                       placeholder="Ej: Certificado de Estudios, DNI...">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Table Container -->
+<section class="fade-up">
+    @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+</section>
+
+<!-- Modal -->
+<div id="extModal" class="hidden fixed inset-0 bg-ink-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft shadow-card max-w-md w-full overflow-hidden">
+        <div class="p-5 sm:p-6">
+            <div class="flex justify-between items-center mb-5 pb-4 border-b border-ink-200/60 dark:border-ink-800/60">
+                <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-file-code text-sm"></i>
+                    </span>
+                    <h3 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]" id="extModalTitle">Formatos admitidos</h3>
+                </div>
+                <button onclick="closeModal()"
+                        class="w-8 h-8 rounded-md flex items-center justify-center text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 transition-all">
+                    <i class="ti ti-x text-sm"></i>
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2 py-2" id="extModalContent"></div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeModal()"
+                        class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script src="~/js/admin/exam-management/requirements/index.js" asp-append-version="true"></script>
+}

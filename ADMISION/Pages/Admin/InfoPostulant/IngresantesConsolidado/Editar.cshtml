@@ -1,0 +1,274 @@
+@model ADMISION.Models.ViewModels.Admin.ConsolidadoPreviewViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Editar Consolidado de Ingresantes";
+}
+
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-2 flex-wrap">
+        <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Información del postulante</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-postulant/ingresantes-consolidado" class="hover:text-primary-600 transition-colors">Consolidado</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Editar</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Consolidado</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Editar <span class="font-serif font-normal text-primary-600">consolidado</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Ajuste observaciones y segunda carrera; los cambios se guardarán como una nueva versión</p>
+        </div>
+        <a href="/admin/info-postulant/ingresantes-consolidado@(Model.SelectedTermId.HasValue ? "?selectedTermId=" + Model.SelectedTermId.ToString() : "")"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Volver al consolidado
+        </a>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-circle-check"></i><span>@TempData["Success"]</span>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="fade-up mb-4 p-3 rounded-md bg-rose-50 ring-1 ring-rose-200 text-rose-700 text-sm font-semibold flex items-center gap-2">
+        <i class="ti ti-alert-circle"></i><span>@TempData["Error"]</span>
+    </div>
+}
+
+@if (!Model.SelectedTermId.HasValue)
+{
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="p-8 text-center text-ink-400">
+            <i class="ti ti-edit-off text-3xl mb-2 block"></i>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em]">Seleccione un período</p>
+            <p class="text-xs text-ink-400 mt-1">Elija un período para editar su consolidado desde la <a href="/admin/info-postulant/ingresantes-consolidado" class="text-primary-600 font-semibold">previsualización</a></p>
+        </div>
+    </div>
+}
+else if (!Model.HasExistingVersions)
+{
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="p-8 text-center text-ink-400">
+            <i class="ti ti-users-off text-3xl mb-2 block"></i>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em]">Sin versiones</p>
+            <p class="text-xs text-ink-400 mt-1">@Model.TermName aún no tiene un consolidado generado para editar</p>
+        </div>
+    </div>
+}
+else if (Model.Items.Count == 0)
+{
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="p-8 text-center text-ink-400">
+            <i class="ti ti-list-x text-3xl mb-2 block"></i>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.18em]">Sin registros</p>
+            <p class="text-xs text-ink-400 mt-1">La última versión (@Model.Versions.OrderByDescending(v => v.VersionNumber).Select(v => "V" + v.VersionNumber).First()) no tiene registros</p>
+        </div>
+    </div>
+}
+else
+{
+    var latest = Model.Versions.OrderByDescending(v => v.VersionNumber).First();
+    var segundaCount = Model.Items.Count(i => i.SegundaCarrera == "1");
+
+    <div class="fade-up mb-5 p-3 rounded-md bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-sm flex items-center gap-2">
+        <i class="ti ti-info-circle"></i>
+        <span>Editando la versión <strong>V@(latest.VersionNumber)</strong> de @Model.TermName (@Model.Items.Count registros). Al guardar se creará una nueva versión con los cambios aplicados.</span>
+    </div>
+
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-5">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-edit text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Registros del consolidado</h2>
+                <p class="text-[11.5px] text-ink-500">Edite las observaciones y el check de segunda carrera por registro</p>
+            </div>
+        </div>
+
+        <div class="px-4 sm:px-5 py-3 bg-secondary-50/60 dark:bg-secondary-500/5 border-b border-ink-200/60 dark:border-ink-800/60 flex flex-wrap items-center gap-3">
+            <span class="w-8 h-8 rounded-md bg-secondary-100 dark:bg-secondary-500/20 text-secondary-600 inline-flex items-center justify-center shrink-0">
+                <i class="ti ti-user-check text-xs"></i>
+            </span>
+            <p class="text-[12px] text-ink-700 dark:text-ink-200">
+                <strong id="editSegundaCount" class="text-secondary-700 dark:text-secondary-300">@segundaCount</strong> postulante(s) marcados como <strong>segunda carrera</strong>.
+            </p>
+        </div>
+
+        <form id="editForm" asp-controller="InfoPostulant" asp-action="GuardarEdicionConsolidado" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="selectedTermId" value="@Model.SelectedTermId" />
+
+            <div class="overflow-x-auto">
+                <table id="editTable" class="atlas w-full text-[10px] leading-tight">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Nro</th>
+                            <th>Código Est.</th>
+                            <th>Código Carrera</th>
+                            <th class="text-center">Segunda Carrera</th>
+                            <th>Nombres</th>
+                            <th>Paterno</th>
+                            <th>Materno</th>
+                            <th>DNI</th>
+                            <th>Tipo Obs</th>
+                            <th>Observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < Model.Items.Count; index++)
+                        {
+                            var item = Model.Items[index];
+                            <tr>
+                                <td class="text-center font-mono">@item.Nro</td>
+                                <td class="font-mono font-bold text-primary-600">@item.CodigoEstudiante</td>
+                                <td class="font-mono">@item.CodigoCarrera</td>
+                                <td class="text-center">
+                                    <input type="checkbox"
+                                           data-edit-sc
+                                           data-edit-target="edit_sc_@index"
+                                           class="w-3.5 h-3.5 rounded accent-primary-600 cursor-pointer"
+                                           @(item.SegundaCarrera == "1" ? "checked" : "") />
+                                    <input type="hidden" id="edit_sc_@index" name="items[@index].SegundaCarrera" value="@item.SegundaCarrera" />
+                                    <input type="hidden" name="items[@index].InscriptionId" value="@item.InscriptionId" />
+                                    <input type="hidden" name="items[@index].Nro" value="@item.Nro" />
+                                </td>
+                                <td class="font-semibold">@item.Nombres</td>
+                                <td>@item.Paterno</td>
+                                <td>@item.Materno</td>
+                                <td class="font-mono">@item.DNI</td>
+                                <td class="min-w-[150px]">
+                                    <select name="items[@index].TipoObs"
+                                            data-edit-tipoobs
+                                            data-obs-input="edit_obs_@index"
+                                            class="w-full h-8 rounded-md ring-soft bg-white dark:bg-ink-800 px-2 text-xs font-normal text-ink-700 dark:text-ink-200 focus:outline-none focus:ring-2 focus:ring-primary-500/60 focus:ring-soft transition-shadow cursor-pointer">
+                                        @foreach (var opt in AppConstants.ConsolidadoMapping.TipoObservacion.GetOptions())
+{
+    <option value="@opt.Value" selected="@(item.TipoObs == opt.Value)">@opt.Label</option>
+}
+                                    </select>
+                                </td>
+                                <td class="min-w-[220px]">
+                                    <input type="text"
+                                           id="edit_obs_@index"
+                                           name="items[@index].Observaciones"
+                                           value="@item.Observaciones"
+                                           title="@item.Observaciones"
+                                           placeholder="NINGUNA"
+                                           class="w-full h-8 rounded-md ring-soft bg-white dark:bg-ink-800 px-2 text-xs font-normal text-ink-700 dark:text-ink-200 focus:outline-none focus:ring-2 focus:ring-primary-500/60 focus:ring-soft transition-shadow" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-4 sm:px-5 py-4 border-t border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between">
+                <span class="text-xs text-ink-500">Total: <strong>@Model.Items.Count</strong> registro(s)</span>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                    <i class="ti ti-device-floppy text-xs"></i> Guardar como nueva versión
+                </button>
+            </div>
+        </form>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editTable = document.getElementById('editTable');
+            if (!editTable) return;
+
+            const updateSummary = function () {
+                const count = editTable.querySelectorAll('tbody input[data-edit-sc]:checked').length;
+                const summary = document.getElementById('editSegundaCount');
+                if (summary) summary.textContent = count;
+            };
+
+            editTable.querySelectorAll('tbody input[data-edit-sc]').forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const target = document.getElementById(this.dataset.editTarget);
+                    if (target) target.value = this.checked ? '1' : '0';
+                    updateSummary();
+                });
+            });
+
+            editTable.querySelectorAll('tbody select[data-edit-tipoobs]').forEach(sel => {
+                sel.addEventListener('change', function () {
+                    const input = document.getElementById(this.dataset.obsInput);
+                    if (input) input.value = this.options[this.selectedIndex].text;
+                });
+            });
+
+            const editForm = document.getElementById('editForm');
+            if (!editForm) return;
+
+            editForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const count = @Model.Items.Count;
+
+                const confirm = await Swal.fire({
+                    title: '¿Guardar los cambios?',
+                    html: `Se crear\u00e1 una nueva versi\u00f3n del consolidado con los cambios aplicados a los <strong>${count}</strong> registro(s).`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'S\u00ed, guardar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#10b981'
+                });
+                if (!confirm.isConfirmed) return;
+
+                Swal.fire({
+                    title: 'Guardando...',
+                    html: 'Creando nueva versión del consolidado',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                try {
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: new FormData(this),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        }
+                    });
+                    const data = await response.json();
+
+                    Swal.close();
+                    if (data.success) {
+                        await Swal.fire({
+                            title: 'Cambios guardados',
+                            text: data.message,
+                            icon: 'success',
+                            confirmButtonColor: '#10b981'
+                        });
+                        window.location.href = '/admin/info-postulant/ingresantes-consolidado?selectedTermId=' + encodeURIComponent(@Model.SelectedTermId.ToString());
+                    } else {
+                        Swal.fire({
+                            title: 'No se pudo guardar',
+                            text: data.message,
+                            icon: 'error',
+                            confirmButtonColor: '#f54477'
+                        });
+                    }
+                } catch {
+                    Swal.close();
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Ocurri\u00f3 un error al guardar los cambios.',
+                        icon: 'error',
+                        confirmButtonColor: '#f54477'
+                    });
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,119 @@
+@model ADMISION.ENTITIES.Models.Info.OtherFiles
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuevo Reglamento";
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/info-management/regulations" class="hover:text-primary-600 transition-colors">Reglamentos</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Nuevo</span>
+    </div>
+    <div class="eyebrow">Normativa institucional</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Publicar nuevo <span class="font-serif font-normal text-primary-600">reglamento</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Sube el documento oficial en PDF o Word para ponerlo a disposición del público.</p>
+</section>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="space-y-5 max-w-3xl">
+    <!-- Card: Datos del reglamento -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-gavel text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos del reglamento</h2>
+                <p class="text-[11.5px] text-ink-500">Información que verán los postulantes</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5 space-y-5">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+            <partial name="_FormInput" model='@(new {
+                Id = "Name", Name = "Name",
+                Label = "Nombre del reglamento", Required = true,
+                Placeholder = "Ej: Reglamento General de Admisión 2026",
+                Value = Model?.Name,
+                IconLeft = "ti-file-pencil",
+                Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <partial name="_FormTextarea" model='@(new {
+                Id = "Description", Name = "Description",
+                Label = "Descripción",
+                Placeholder = "Breve descripción del reglamento…",
+                Rows = 3,
+                Value = Model?.Description,
+                Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+            })' />
+
+            <partial name="_FormCheckbox" model='@(new {
+                Id = "IsActive", Name = "IsActive",
+                Label = "Publicado",
+                Hint = "Visible al público",
+                Checked = Model?.IsActive ?? true,
+                Variant = "default"
+            })' />
+        </div>
+    </section>
+
+    <!-- Card: Archivo -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-cloud-upload text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Archivo del reglamento</h2>
+                <p class="text-[11.5px] text-ink-500">PDF o Word — máximo 15 MB</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="rounded-md ring-1 ring-dashed ring-ink-200 dark:ring-ink-700 bg-ink-50/60 dark:bg-ink-800/40 px-6 py-8 hover:ring-primary-300 hover:bg-primary-50/40 dark:hover:bg-primary-500/5 transition-colors">
+                <div class="text-center space-y-3">
+                    <span class="inline-flex w-14 h-14 items-center justify-center rounded-md bg-white dark:bg-ink-900 ring-soft text-primary-600">
+                        <i id="file-icon" class="ti ti-gavel text-2xl"></i>
+                    </span>
+                    <div id="file-info" class="hidden">
+                        <span id="file-name" class="block text-sm font-semibold text-ink-900 dark:text-ink-100"></span>
+                        <span id="file-size" class="block text-xs text-ink-500 mt-0.5"></span>
+                    </div>
+                    <div class="text-sm text-ink-600 dark:text-ink-300">
+                        <label for="uploadFile" class="inline-flex items-center gap-2 cursor-pointer font-semibold text-primary-600 hover:text-primary-700">
+                            <i class="ti ti-folder-open text-xs"></i>
+                            <span>Seleccionar archivo</span>
+                            <input id="uploadFile" name="uploadFile" type="file" class="sr-only" onchange="handleFileSelect(this)" required accept=".pdf,.doc,.docx">
+                        </label>
+                    </div>
+                    <p class="text-[11px] text-ink-400">PDF o Word hasta 15 MB</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-cloud-upload text-xs"></i> Publicar reglamento
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/js/admin/info-management/regulations/form.js" asp-append-version="true"></script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

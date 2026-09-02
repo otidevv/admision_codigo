@@ -1,0 +1,351 @@
+@model ADMISION.ENTITIES.Models.Postulante.Inscription
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Editar Postulante";
+
+    var schoolName = Model.School?.Name ?? Model.OtherSchool;
+    var hasSchool = !string.IsNullOrWhiteSpace(schoolName);
+    var schoolLocation = Model.School?.Distrit != null
+        ? $"{Model.School.Distrit.Province?.Department?.Name} / {Model.School.Distrit.Province?.Name} / {Model.School.Distrit.Name}"
+        : null;
+}
+
+<!-- Breadcrumb + Page Hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/info-postulant" class="hover:text-primary-600 transition-colors">Información del postulante</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a asp-action="Index" class="hover:text-primary-600 transition-colors">Postulantes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Editar</span>
+    </div>
+    <div class="eyebrow">Gestión académica</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Editar expediente <span class="font-serif font-normal text-primary-600">@Model.CodePostulant</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Actualiza la información personal, académica y de residencia del postulante.</p>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-5 p-4 bg-emerald-50 ring-1 ring-emerald-200 rounded-md flex items-center gap-3 text-emerald-700">
+        <i class="ti ti-circle-check text-lg"></i>
+        <span class="text-sm font-semibold">@TempData["Success"]</span>
+    </div>
+}
+
+<form asp-action="Edit" method="post" class="space-y-5 max-w-4xl">
+    <div asp-validation-summary="ModelOnly"
+         class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+    <input type="hidden" asp-for="Id" />
+
+    <!-- Card: Estado del expediente -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-info-circle text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Estado del expediente</h2>
+                <p class="text-[11.5px] text-ink-500">Resumen y estado actual de la inscripción</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4">
+                <div class="md:col-span-1">
+                    <partial name="_CustomSelect" model='new {
+                        Id = "State",
+                        Name = "State",
+                        Label = "Estado actual",
+                        Placeholder = "Seleccione un estado",
+                        Required = true,
+                        Searchable = false,
+                        Value = Model.State,
+                        Options = ((IEnumerable<string>)ViewBag.States).Select(s => new { id = s, name = s })
+                    }' />
+                </div>
+
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-semibold text-ink-700 mb-2">Fecha de inscripción</label>
+                    <div class="h-12 flex items-center px-4 bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md text-ink-700 dark:text-ink-200 text-sm font-medium">
+                        <i class="ti ti-calendar mr-3 text-ink-400"></i>
+                        @Model.CreatedAt.ToString("dd MMMM, yyyy HH:mm")
+                    </div>
+                </div>
+
+                <div class="md:col-span-1 grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-ink-500 mb-1.5 uppercase tracking-wide">Periodo</label>
+                        <span class="badge b-primary">@(Model.Modality?.Term?.Name ?? "N/A")</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-ink-500 mb-1.5 uppercase tracking-wide">Área</label>
+                        <span class="badge b-secondary">@(ViewBag.TematicAreaCode as string ?? "Sin asignar")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Card: Datos personales -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-address-book text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Datos personales</h2>
+                <p class="text-[11.5px] text-ink-500">Información de contacto e identidad</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-4">
+                <div class="form-field">
+                    <label asp-for="Postulant!.User!.Name" class="form-label">
+                        Nombres <span class="required">*</span>
+                    </label>
+                    <input asp-for="Postulant!.User!.Name" class="form-input" required />
+                    <span asp-validation-for="Postulant!.User!.Name" class="form-error"></span>
+                </div>
+                <div class="form-field">
+                    <label asp-for="Postulant!.User!.FirstNameFather" class="form-label">
+                        Apellido paterno <span class="required">*</span>
+                    </label>
+                    <input asp-for="Postulant!.User!.FirstNameFather" class="form-input" required />
+                    <span asp-validation-for="Postulant!.User!.FirstNameFather" class="form-error"></span>
+                </div>
+                <div class="form-field">
+                    <label asp-for="Postulant!.User!.FirstNameMother" class="form-label">
+                        Apellido materno <span class="required">*</span>
+                    </label>
+                    <input asp-for="Postulant!.User!.FirstNameMother" class="form-input" required />
+                    <span asp-validation-for="Postulant!.User!.FirstNameMother" class="form-error"></span>
+                </div>
+
+                <div class="form-field md:col-span-2">
+                    <label asp-for="Postulant!.User!.Email" class="form-label">
+                        Correo electrónico <span class="required">*</span>
+                    </label>
+                    <div class="form-input-wrapper">
+                        <i class="ti ti-mail form-input-icon"></i>
+                        <input asp-for="Postulant!.User!.Email" type="email" class="form-input" required />
+                    </div>
+                    <span asp-validation-for="Postulant!.User!.Email" class="form-error"></span>
+                </div>
+                <div class="form-field">
+                    <label asp-for="Postulant!.User!.PhoneNumber" class="form-label">Celular</label>
+                    <div class="form-input-wrapper">
+                        <i class="ti ti-device-mobile form-input-icon"></i>
+                        <input asp-for="Postulant!.User!.PhoneNumber" class="form-input" />
+                    </div>
+                    <span asp-validation-for="Postulant!.User!.PhoneNumber" class="form-error"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Card: Formación académica -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-school text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Formación académica</h2>
+                <p class="text-[11.5px] text-ink-500">Elección de carrera y modalidad de ingreso</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <partial name="_CustomSelect" model='new {
+                    Id = "CareerId",
+                    Name = "CareerId",
+                    Label = "Carrera profesional",
+                    Placeholder = "Seleccione carrera",
+                    Required = true,
+                    Searchable = true,
+                    Value = Html.Raw(Json.Serialize(Model.CareerId)),
+                    Options = ((IEnumerable<dynamic>)ViewBag.Careers).Select(c => new { id = c.Id, name = c.Name })
+                }' />
+                <partial name="_CustomSelect" model='new {
+                    Id = "ModalityId",
+                    Name = "ModalityId",
+                    Label = "Modalidad de ingreso",
+                    Placeholder = "Seleccione modalidad",
+                    Required = true,
+                    Value = Model.ModalityId?.ToString(),
+                    Options = ((IEnumerable<dynamic>)ViewBag.Modalities).Select(m => new { id = m.Id, name = m.Name })
+                }' />
+            </div>
+        </div>
+    </section>
+
+    <!-- Card: Lugar de residencia -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-map-pin text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Lugar de residencia</h2>
+                <p class="text-[11.5px] text-ink-500">País y ubigeo del postulante</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4">
+                <div class="form-field">
+                    <label for="ubCountry" class="form-label">País <span class="required">*</span></label>
+                    <select name="CountryId" id="ubCountry" required class="form-input">
+                        <option value="">-- Seleccione país --</option>
+                        @foreach (var c in (IEnumerable<dynamic>)ViewBag.Countries)
+                        {
+                            <option value="@c.id" selected="@(Model.CountryId == (Guid)c.id)">@c.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="ubDepartment" class="form-label">Departamento</label>
+                    <select id="ubDepartment" class="form-input">
+                        <option value="">-- Seleccione departamento --</option>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.Departments)
+                        {
+                            <option value="@d.id" selected="@((Guid?)ViewBag.CurrentDepartmentId == (Guid)d.id)">@d.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="ubProvince" class="form-label">Provincia</label>
+                    <select id="ubProvince" class="form-input">
+                        <option value="">-- Seleccione provincia --</option>
+                        @foreach (var p in (IEnumerable<dynamic>)ViewBag.Provinces)
+                        {
+                            <option value="@p.id" selected="@((Guid?)ViewBag.CurrentProvinceId == (Guid)p.id)">@p.name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="ubDistrict" class="form-label">Distrito</label>
+                    <select name="DistritId" id="ubDistrict" class="form-input">
+                        <option value="">-- Seleccione distrito --</option>
+                        @foreach (var d in (IEnumerable<dynamic>)ViewBag.Districts)
+                        {
+                            <option value="@d.id" selected="@(Model.DistritId == (Guid)d.id)">@d.name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <p class="text-[11.5px] text-ink-500 mt-4">Seleccione país; si es Perú puede especificar el ubigeo completo (departamento / provincia / distrito).</p>
+        </div>
+    </section>
+
+    <!-- Card: Institución educativa (Read-Only) -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+            <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-school text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Institución educativa de procedencia</h2>
+                <p class="text-[11.5px] text-ink-500">Colegio declarado por el postulante</p>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            @if (hasSchool)
+            {
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-ink-700 mb-2">
+                            @(Model.School != null ? "Colegio registrado" : "Colegio (texto libre)")
+                        </label>
+                        <div class="h-12 flex items-center gap-3 px-4 bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md text-ink-800 dark:text-ink-100 font-medium text-sm">
+                            <i class="ti ti-building text-emerald-500 flex-shrink-0"></i>
+                            <span class="truncate">@schoolName</span>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(schoolLocation))
+                    {
+                        <div>
+                            <label class="block text-sm font-semibold text-ink-700 mb-2">Ubicación</label>
+                            <div class="h-12 flex items-center gap-3 px-4 bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md text-ink-700 dark:text-ink-200 text-sm">
+                                <i class="ti ti-map-pin text-rose-500 flex-shrink-0"></i>
+                                <span>@schoolLocation</span>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.School?.Modality))
+                    {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-ink-700 mb-2">Nivel</label>
+                                <div class="h-12 flex items-center gap-3 px-4 bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md text-ink-700 dark:text-ink-200 text-sm">
+                                    <i class="ti ti-stack-2 text-primary-500 flex-shrink-0"></i>
+                                    <span>@(Model.School?.Level ?? "—")</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-ink-700 mb-2">Modalidad IE</label>
+                                <div class="h-12 flex items-center gap-3 px-4 bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md text-ink-700 dark:text-ink-200 text-sm">
+                                    <i class="ti ti-tags text-amber-500 flex-shrink-0"></i>
+                                    <span>@(Model.School?.Modality ?? "—")</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.School?.Code))
+                    {
+                        <div>
+                            <label class="block text-sm font-semibold text-ink-700 mb-2">Código modular</label>
+                            <div class="h-12 flex items-center gap-3 px-4 bg-ink-50 dark:bg-ink-800/40 ring-soft rounded-md text-ink-700 dark:text-ink-200 font-mono text-sm">
+                                <i class="ti ti-barcode text-ink-400 flex-shrink-0"></i>
+                                <span>@Model.School!.Code</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="py-10 text-center">
+                    <i class="ti ti-school text-4xl text-ink-300 mb-3 block"></i>
+                    <p class="text-ink-400 text-sm font-medium">Sin institución educativa registrada.</p>
+                    <p class="text-ink-400 text-xs mt-1">El postulante no indicó un colegio de procedencia.</p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Acciones -->
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar cambios
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        window.PostulantEditConfig = {
+            state: @Html.Raw(Json.Serialize(Model.State)),
+            careerId: @Html.Raw(Json.Serialize(Model.CareerId.ToString())),
+            careerLabel: @Html.Raw(Json.Serialize(Model.Career?.Name ?? "")),
+            modalityId: @Html.Raw(Json.Serialize(Model.ModalityId?.ToString() ?? "")),
+            modalityLabel: @Html.Raw(Json.Serialize(Model.Modality?.Name ?? ""))
+        };
+    </script>
+    <script src="~/js/admin/info-postulant/postulants/edit.js" asp-append-version="true"></script>
+}

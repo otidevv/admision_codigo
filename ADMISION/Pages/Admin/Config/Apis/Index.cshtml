@@ -1,0 +1,144 @@
+﻿@model List<ADMISION.ENTITIES.Models.Integrations.ExternalApi>
+
+@{
+    ViewData["Title"] = "APIs Externas";
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+
+    string MethodBadge(string m) => m switch
+    {
+        "GET"    => "b-blue",
+        "POST"   => "b-green",
+        "PUT"    => "b-amber",
+        "DELETE" => "b-primary",
+        _         => "b-gray"
+    };
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/config" class="hover:text-primary-600 transition-colors">Configuración</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">APIs externas</span>
+        </div>
+        <div class="eyebrow">Integraciones</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            APIs <span class="font-serif font-normal text-primary-600">externas</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1 max-w-2xl">
+            Catálogo de integraciones HTTP que el sistema puede consumir desde un único punto. Cada consulta queda registrada en el historial.
+        </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a asp-action="Logs"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-history text-xs"></i> Historial
+        </a>
+        <a asp-action="Create"
+           class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-plus text-xs"></i> Registrar API
+        </a>
+    </div>
+</section>
+
+@if (TempData["Success"] != null)
+{
+    <div class="fade-up mb-6 p-4 bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-200 dark:ring-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-md flex items-center gap-3">
+        <i class="ti ti-circle-check"></i>
+        <span class="text-sm">@TempData["Success"]</span>
+    </div>
+}
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="atlas w-full">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Método</th>
+                    <th>URL</th>
+                    <th>Auth</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var api in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="font-semibold text-ink-900 dark:text-ink-100">@api.Name</div>
+                                @if (!string.IsNullOrWhiteSpace(api.Description))
+                                {
+                                    <div class="text-xs text-ink-500 mt-0.5">@api.Description</div>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @MethodBadge(api.HttpMethod) font-mono">@api.HttpMethod</span>
+                            </td>
+                            <td class="max-w-xs">
+                                <code class="text-xs text-ink-600 dark:text-ink-300 break-all font-mono">@api.Url</code>
+                            </td>
+                            <td>
+                                <span class="badge b-gray">@api.AuthType</span>
+                            </td>
+                            <td class="text-center">
+                                @if (api.IsActive)
+                                {
+                                    <span class="badge b-green">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activa
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-gray">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-ink-400"></span> Inactiva
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-right whitespace-nowrap">
+                                <div class="flex justify-end gap-2">
+                                    <a asp-action="Test" asp-route-id="@api.Id"
+                                       class="inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-emerald-200 dark:ring-emerald-500/30 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
+                                       title="Probar">
+                                        <i class="ti ti-player-play text-xs"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@api.Id"
+                                       class="inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-primary-200 dark:ring-primary-500/30 text-primary-600 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
+                                       title="Editar">
+                                        <i class="ti ti-edit text-xs"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@api.Id" method="post" class="inline delete-form">
+                                        @Html.AntiForgeryToken()
+                                        <button type="button"
+                                                class="btn-delete inline-flex items-center justify-center w-8 h-8 rounded-md ring-1 ring-rose-200 dark:ring-rose-500/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                                data-name="@api.Name"
+                                                title="Eliminar">
+                                            <i class="ti ti-trash text-xs"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model == null || !Model.Any())
+    {
+        <div class="py-14 text-center">
+            <i class="ti ti-plug text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 text-sm font-medium">Aún no hay APIs registradas.</p>
+            <p class="text-ink-400 text-xs mt-1">Comienza creando una integración HTTP.</p>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/config/apis/index.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,161 @@
+﻿@model ADMISION.ENTITIES.Models.Requirement.ModalityRequisite
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Asignar Requisito a Modalidades";
+
+    var terms = (ViewData["Terms"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var requirements = (ViewData["Requirements"] as IEnumerable<dynamic>) ?? Enumerable.Empty<dynamic>();
+    var defaultTermId = ViewData["DefaultTermId"]?.ToString() ?? "";
+}
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/exam-management/requirements-by-modality" class="hover:text-primary-600 transition-colors">Requisitos por modalidad</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Asignación masiva</span>
+    </div>
+    <div class="eyebrow">Documentación</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Asignar un requisito a múltiples <span class="font-serif font-normal text-primary-600">modalidades</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Elige el periodo y el requisito; luego marca todas las modalidades (o tipos de modalidad) que deben pedirlo. Las opciones que ya están asignadas aparecen marcadas y bloqueadas.</p>
+</section>
+
+<form id="bulkAssignForm" asp-action="CreateBulk" method="post" class="space-y-5">
+    @Html.AntiForgeryToken()
+
+    <!-- Paso 1: filtros -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                    <i class="ti ti-adjustments text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Periodo y requisito</h2>
+                    <p class="text-[11.5px] text-ink-500">Define la fuente de la asignación</p>
+                </div>
+            </div>
+            <span class="badge b-primary">Paso 1 / 2</span>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <partial name="_CustomSelect" model='new {
+                        Id = "TermId",
+                        Label = "Periodo académico",
+                        Placeholder = "Seleccionar periodo",
+                        Options = terms.Select(t => new { id = t.Id, name = t.Name }),
+                        Required = true
+                    }' />
+                </div>
+                <div>
+                    <partial name="_CustomSelect" model='new {
+                        Id = "requirementId",
+                        Name = "requirementId",
+                        Label = "Requisito a asignar",
+                        Placeholder = "Selecciona el requisito",
+                        Options = requirements.Select(r => new { id = r.Id, name = r.Name }),
+                        Required = true
+                    }' />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Paso 2: grilla -->
+    <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+        <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md bg-secondary-50/40">
+            <div class="flex items-center gap-3">
+                <span class="w-9 h-9 rounded-md bg-secondary-100 text-secondary-700 inline-flex items-center justify-center">
+                    <i class="ti ti-list-check text-sm"></i>
+                </span>
+                <div>
+                    <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Modalidades</h2>
+                    <p class="text-[11.5px] text-ink-500">Marca las modalidades / tipos a los que aplicar el requisito</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+                <button type="button" id="btnSelectAll"
+                        class="text-primary-600 hover:text-primary-700 font-semibold disabled:text-ink-300 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                    <i class="ti ti-checks mr-1 text-[10px]"></i> Seleccionar todo
+                </button>
+                <span class="text-ink-200">·</span>
+                <button type="button" id="btnClearAll"
+                        class="text-ink-500 hover:text-ink-700 font-semibold disabled:text-ink-300 disabled:cursor-not-allowed transition-colors"
+                        disabled>
+                    <i class="ti ti-x mr-1 text-[10px]"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-5">
+            <div id="gridPlaceholder" class="py-14 text-center">
+                <i class="ti ti-info-circle text-4xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 text-sm font-medium">Selecciona un periodo y un requisito para listar las modalidades.</p>
+            </div>
+
+            <div id="gridLoader" class="hidden py-14 text-center">
+                <i class="ti ti-loader-2 fa-spin text-3xl text-primary-600 mb-3 block"></i>
+                <p class="text-ink-500 text-sm font-medium">Cargando modalidades...</p>
+            </div>
+
+            <div id="gridEmpty" class="hidden py-14 text-center">
+                <i class="ti ti-folder-open text-4xl text-ink-300 mb-3 block"></i>
+                <p class="text-ink-500 text-sm font-medium">No hay modalidades para el periodo seleccionado.</p>
+            </div>
+
+            <div id="gridContainer" class="hidden space-y-3"></div>
+        </div>
+    </section>
+
+    <!-- Acciones -->
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit" id="btnSubmit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                disabled>
+            <i class="ti ti-device-floppy text-xs"></i> <span id="btnSubmitLabel">Guardar asignaciones</span>
+        </button>
+    </div>
+</form>
+
+<!-- Template de una fila de modalidad -->
+<template id="modalityRowTpl">
+    <div class="rounded-md ring-1 ring-ink-200 dark:ring-ink-700 overflow-hidden" data-modality-row>
+        <div class="flex items-center justify-between px-4 py-3 bg-ink-50/60 dark:bg-ink-800/40">
+            <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox"
+                       class="modality-check h-5 w-5 text-primary-600 rounded border-ink-300 focus:ring-primary-500" />
+                <span class="font-semibold text-ink-900 dark:text-ink-100 modality-name truncate"></span>
+                <span class="assigned-badge hidden inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 px-2 py-0.5 rounded-md">
+                    <i class="ti ti-check"></i> Ya asignado
+                </span>
+            </label>
+            <button type="button" class="toggle-types text-xs font-semibold text-primary-600 hover:text-primary-700 hidden transition-colors">
+                <span class="toggle-label">Ver tipos</span>
+                <i class="ti ti-chevron-down ml-1"></i>
+            </button>
+        </div>
+        <div class="types-panel hidden border-t border-ink-200/60 dark:border-ink-800/60 bg-white dark:bg-ink-900 px-4 py-3 space-y-2"></div>
+    </div>
+</template>
+
+@section Scripts {
+    <script>
+        window.ModalityRequisitesConfig = {
+            terms: @Html.Raw(Json.Serialize(terms.Select(t => new { id = (string)t.Id.ToString(), name = (string)t.Name }))),
+            defaultTermId: @Html.Raw(Json.Serialize(defaultTermId))
+        };
+    </script>
+    <script src="~/js/admin/exam-management/modality-requisites/create.js" asp-append-version="true"></script>
+}

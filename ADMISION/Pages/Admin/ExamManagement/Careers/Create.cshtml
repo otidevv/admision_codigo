@@ -1,0 +1,391 @@
+@model ADMISION.ENTITIES.Models.Modality.Career
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nueva Carrera";
+
+    var facultyOptions = ((IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.FacultyId)
+        .Select(i => new { id = i.Value, name = i.Text })
+        .ToList();
+}
+
+<link rel="stylesheet" href="~/css/admin/exam-management/careers-form.css" asp-append-version="true" />
+
+<!-- Breadcrumb + page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/exam-management" class="hover:text-primary-600 transition-colors">Gestión de examen</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <a href="/admin/exam-management/careers" class="hover:text-primary-600 transition-colors">Carreras</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">Nueva</span>
+    </div>
+    <div class="eyebrow">Configuración académica</div>
+    <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+        Crear nueva <span class="font-serif font-normal text-primary-600">carrera</span>
+    </h1>
+    <p class="text-ink-500 text-sm mt-1">Define la identidad visual, datos académicos y contenido público de la carrera.</p>
+</section>
+
+<form id="careerForm" asp-action="Create" method="post" enctype="multipart/form-data" class="space-y-5">
+    <div asp-validation-summary="ModelOnly"
+         class="text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 p-3 rounded-md"></div>
+
+    <input type="hidden" name="TematicArea" value="@Model?.TematicArea" />
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- ------------ Columna principal ------------ -->
+        <div class="lg:col-span-2 space-y-5">
+
+            <!-- Card: Identidad visual + datos principales -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-school text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Identidad y datos principales</h2>
+                        <p class="text-[11.5px] text-ink-500">Banner, logo, nombre, facultad y resumen</p>
+                    </div>
+                </div>
+
+                <!-- Banner slot -->
+                <label class="media-slot block w-full h-48 overflow-hidden cursor-pointer relative bg-primary-500/5" for="bannerFile">
+                    <img id="bannerPreview" src="" class="w-full h-full object-cover hidden" alt="" />
+                    <div id="bannerEmpty" class="w-full h-full flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="ti ti-photo text-4xl text-primary-300 mb-2 block"></i>
+                            <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-500">Click para subir banner</p>
+                        </div>
+                    </div>
+                    <div class="media-overlay">
+                        <i class="ti ti-camera text-2xl mb-1"></i>
+                        <span>Cambiar banner</span>
+                        <span class="text-[10px] opacity-70 mt-0.5">JPG / PNG</span>
+                    </div>
+                    <input id="bannerFile" name="bannerFile" type="file" accept="image/*" class="sr-only"
+                           onchange="previewImage(this, 'bannerPreview', 'bannerEmpty')" />
+                </label>
+
+                <div class="relative p-4 sm:p-5 flex flex-col md:flex-row gap-4">
+                    <!-- Logo slot -->
+                    <label class="media-slot w-24 h-24 md:w-28 md:h-28 rounded-md bg-white dark:bg-ink-800 ring-1 ring-ink-200/80 dark:ring-ink-700/60 shadow-sm flex items-center justify-center overflow-hidden shrink-0 -mt-16 z-10 cursor-pointer relative" for="logoFile">
+                        <img id="logoPreview" src="" class="w-full h-full object-contain p-2 hidden" alt="" />
+                        <div id="logoEmpty" class="flex flex-col items-center">
+                            <i class="ti ti-school text-primary-600 text-3xl"></i>
+                            <span class="text-[9px] font-semibold text-primary-500 mt-1 uppercase tracking-wider">Logo</span>
+                        </div>
+                        <div class="media-overlay rounded-md">
+                            <i class="ti ti-camera text-lg"></i>
+                            <span class="text-[10px] mt-1">Cambiar</span>
+                        </div>
+                        <input id="logoFile" name="logoFile" type="file" accept="image/*" class="sr-only"
+                               onchange="previewImage(this, 'logoPreview', 'logoEmpty')" />
+                    </label>
+
+                    <div class="flex-1 min-w-0 space-y-4">
+                        <div>
+                            <partial name="_CustomSelect" model='@(new {
+                                Id = "FacultyId",
+                                Name = "FacultyId",
+                                Label = "Facultad",
+                                Required = true,
+                                Placeholder = "-- Seleccione una facultad --",
+                                Options = facultyOptions,
+                                SelectedValue = Model?.FacultyId.ToString()
+                            })' />
+                            <span asp-validation-for="FacultyId" class="text-xs text-rose-500 block mt-1"></span>
+                        </div>
+
+                        <partial name="_FormInput" model='@(new {
+                            Id = "Name", Name = "Name",
+                            Label = "Nombre de la carrera", Required = true,
+                            Placeholder = "Ej: Ingeniería de Sistemas e Informática",
+                            Value = Model?.Name,
+                            IconLeft = "ti-school",
+                            Error = ViewData.ModelState["Name"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+
+                        <partial name="_FormTextarea" model='@(new {
+                            Id = "Description", Name = "Description",
+                            Label = "Descripción corta",
+                            Placeholder = "Resumen breve que se muestra en el listado público de carreras",
+                            Value = Model?.Description,
+                            Rows = 3,
+                            Error = ViewData.ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+                        })' />
+                    </div>
+                </div>
+
+                <!-- Badges editables: duración, título, grado -->
+                <div class="px-4 sm:px-5 pb-5 sm:pb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <partial name="_FormInput" model='@(new {
+                        Id = "DurationSemesters", Name = "DurationSemesters",
+                        Label = "Duración (semestres)",
+                        Type = "number", Min = "1", Max = "20",
+                        Placeholder = "10",
+                        Value = Model?.DurationSemesters?.ToString(),
+                        IconLeft = "ti-clock",
+                        Error = ViewData.ModelState["DurationSemesters"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "DegreeTitle", Name = "DegreeTitle",
+                        Label = "Título profesional",
+                        Placeholder = "Ej: Ingeniero de Sistemas",
+                        Value = Model?.DegreeTitle,
+                        IconLeft = "ti-certificate",
+                        Error = ViewData.ModelState["DegreeTitle"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "AcademicDegree", Name = "AcademicDegree",
+                        Label = "Grado académico",
+                        Placeholder = "Ej: Bachiller en Ingeniería",
+                        Value = Model?.AcademicDegree,
+                        IconLeft = "ti-award",
+                        Error = ViewData.ModelState["AcademicDegree"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+                </div>
+            </section>
+
+            <!-- Card: Galería de imágenes -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between gap-3 rounded-t-md">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                            <i class="ti ti-photo text-sm"></i>
+                        </span>
+                        <div>
+                            <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Galería de imágenes</h2>
+                            <p class="text-[11.5px] text-ink-500">Se muestran como collage en la página pública</p>
+                        </div>
+                    </div>
+                    <label for="galleryFiles"
+                           class="btn-grad inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-xs font-semibold cursor-pointer hover:-translate-y-0.5 transition-all">
+                        <i class="ti ti-plus text-[10px]"></i> Añadir imágenes
+                    </label>
+                    <input id="galleryFiles" name="galleryFiles" type="file" accept="image/*" multiple class="sr-only"
+                           onchange="onGalleryPicked(this)" />
+                </div>
+
+                <div class="p-4 sm:p-5">
+                    <p class="text-xs text-ink-500 mb-4">
+                        Selecciona varias imágenes a la vez. Se mostrarán como collage en la página pública de la carrera.
+                    </p>
+
+                    <div id="galleryPreview" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+
+                    <div id="galleryEmpty"
+                         class="border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-md py-10 flex flex-col items-center justify-center text-ink-400">
+                        <i class="ti ti-photo text-3xl mb-2"></i>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em]">Sin imágenes seleccionadas</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Card: Perfil del Egresado -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-secondary-500/10 text-secondary-700 inline-flex items-center justify-center">
+                        <i class="ti ti-user text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Perfil del egresado</h2>
+                        <p class="text-[11.5px] text-ink-500">Competencias y capacidades adquiridas</p>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <partial name="_FormTextarea" model='@(new {
+                        Id = "GraduateProfile", Name = "GraduateProfile",
+                        Placeholder = "Competencias y capacidades que adquirió el egresado",
+                        Value = Model?.GraduateProfile,
+                        Rows = 6,
+                        Error = ViewData.ModelState["GraduateProfile"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+                </div>
+            </section>
+
+            <!-- Card: Campo Laboral -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-briefcase text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Campo laboral</h2>
+                        <p class="text-[11.5px] text-ink-500">Áreas y sectores de desempeño</p>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <partial name="_FormTextarea" model='@(new {
+                        Id = "JobField", Name = "JobField",
+                        Placeholder = "Áreas y sectores donde el egresado puede desempeñarse",
+                        Value = Model?.JobField,
+                        Rows = 5,
+                        Error = ViewData.ModelState["JobField"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+                </div>
+            </section>
+        </div>
+
+        <!-- ------------ Sidebar ------------ -->
+        <aside class="space-y-5 lg:sticky lg:top-24 self-start">
+
+            <!-- Identificación -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-hash text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Identificación</h2>
+                        <p class="text-[11.5px] text-ink-500">Código e iniciales</p>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-5 space-y-4">
+                    <partial name="_FormInput" model='@(new {
+                        Id = "Code", Name = "Code",
+                        Label = "Código", Required = true,
+                        Placeholder = "Ej: ISI",
+                        Value = Model?.Code,
+                        IconLeft = "ti-barcode",
+                        Error = ViewData.ModelState["Code"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "Initials", Name = "Initials",
+                        Label = "Iniciales (fallback de logo)",
+                        Placeholder = "ISI",
+                        Value = Model?.Initials,
+                        MaxLength = "5",
+                        IconLeft = "ti-typography",
+                        Error = ViewData.ModelState["Initials"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormInput" model='@(new {
+                        Id = "ProgramNumber", Name = "ProgramNumber",
+                        Label = "N.° Programa", Required = true,
+                        Placeholder = "01",
+                        Value = Model?.ProgramNumber,
+                        MaxLength = "2",
+                        IconLeft = "ti-hash",
+                        Error = ViewData.ModelState["ProgramNumber"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+                </div>
+            </section>
+
+            <!-- Plan de Estudios -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-secondary-500/10 text-secondary-700 inline-flex items-center justify-center">
+                        <i class="ti ti-file-text text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Plan de estudios</h2>
+                        <p class="text-[11.5px] text-ink-500">Documento PDF descargable</p>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-5">
+                    <label for="studyPlanFile"
+                           class="flex items-center justify-center gap-2 border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-md px-4 py-4 text-xs font-semibold text-ink-500 hover:border-primary-500 hover:text-primary-600 cursor-pointer transition-colors">
+                        <i class="ti ti-cloud-upload"></i>
+                        <span id="studyPlanLabel">Subir PDF</span>
+                    </label>
+                    <input id="studyPlanFile" name="studyPlanFile" type="file" accept="application/pdf,.pdf" class="sr-only"
+                           onchange="showPickedName(this, 'studyPlanLabel')" />
+                </div>
+            </section>
+
+            <!-- Publicación -->
+            <section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft">
+                <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center gap-3 rounded-t-md">
+                    <span class="w-9 h-9 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center">
+                        <i class="ti ti-eye text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Publicación</h2>
+                        <p class="text-[11.5px] text-ink-500">Visibilidad y orden</p>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-5 space-y-4">
+                    <partial name="_FormInput" model='@(new {
+                        Id = "DisplayOrder", Name = "DisplayOrder",
+                        Label = "Orden de visualización",
+                        Type = "number",
+                        Value = Model?.DisplayOrder.ToString(),
+                        IconLeft = "ti-sort-descending-numbers",
+                        Error = ViewData.ModelState["DisplayOrder"]?.Errors.FirstOrDefault()?.ErrorMessage
+                    })' />
+
+                    <partial name="_FormCheckbox" model='@(new {
+                        Id = "IsActive", Name = "IsActive",
+                        Label = "Activo",
+                        Hint = "Visible al público",
+                        Checked = Model?.IsActive ?? true,
+                        Variant = "switch"
+                    })' />
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <!-- Acciones -->
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+        <a asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-ink-100 dark:hover:bg-ink-700 transition-all">
+            <i class="ti ti-arrow-left text-xs"></i> Cancelar
+        </a>
+        <button type="submit"
+                class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+            <i class="ti ti-device-floppy text-xs"></i> Guardar carrera
+        </button>
+    </div>
+</form>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script src="~/js/admin/exam-management/careers/form.js" asp-append-version="true"></script>
+
+    <script>
+        console.log('📄 Vista Create cargada');
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+        const form = document.getElementById('careerForm');
+
+        if (!form) {
+        console.error('❌ No se encontró el formulario careerForm');
+        return;
+        }
+
+        console.log('✅ Formulario encontrado');
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        if (submitBtn) {
+        submitBtn.addEventListener('click', function () {
+        console.log('🖱️ Click en Guardar carrera');
+        });
+        }
+
+        form.addEventListener('submit', function (e) {
+
+        console.log('🚀 Evento submit ejecutado');
+
+        const formData = new FormData(this);
+
+        console.log('📋 Datos del formulario:');
+
+        for (const [key, value] of formData.entries()) {
+        console.log(key, value);
+        }
+
+        console.log('✅ Fin del submit');
+        });
+        });
+    </script>
+}

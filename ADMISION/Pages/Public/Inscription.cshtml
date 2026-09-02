@@ -1,0 +1,793 @@
+@model ADMISION.Models.ViewModels.Public.EnrollmentViewModel
+@{
+    ViewData["Title"] = "Inscripción en Línea";
+    Layout = "~/Pages/Shared/_PublicLayout.cshtml";
+    var registrationsClosed = ViewBag.RegistrationsClosed is bool b && b;
+    var examEndDate = (DateTime?)ViewBag.ExamEndDate ?? DateTime.Now;
+    var captchaEnabled = ViewBag.CaptchaEnabled is bool ce && ce;
+    var captchaProvider = (ViewBag.CaptchaProvider as string) ?? "Turnstile";
+    var captchaSiteKey = ViewBag.CaptchaSiteKey as string;
+    var captchaIsRecaptcha = string.Equals(captchaProvider, "ReCaptcha", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="max-w-7xl mx-auto py-10 sm:py-12 px-4 sm:px-6 lg:px-8 relative">
+
+@if (registrationsClosed)
+{
+    <div class="max-w-lg mx-auto text-center py-16 fade-up">
+        <span class="inline-flex w-16 h-16 rounded-full bg-slate-100 text-slate-500 items-center justify-center text-3xl mb-5">
+            <i class="ti ti-calendar-off"></i>
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-semibold text-ink-900 mb-3">
+            Inscripciones <span class="font-serif font-normal text-primary-600">finalizadas</span>
+        </h1>
+        <p class="text-sm text-ink-500 leading-relaxed mb-6">
+            El periodo de inscripciones correspondiente al proceso de admisión ha culminado. Ya no se aceptan nuevos registros.
+        </p>
+        <a href="/" class="text-[12px] font-semibold text-primary-600 hover:text-primary-700 inline-flex items-center gap-1">
+            <i class="ti ti-arrow-left text-[10px]"></i> Volver al inicio
+        </a>
+    </div>
+}
+else
+{
+    <!-- Page hero -->
+    <div class="text-center mb-6 fade-up">
+
+        <h1 class="text-3xl sm:text-4xl md:text-[44px] font-semibold tracking-[-0.025em] leading-[1.05] text-ink-900 mb-3">
+            Ficha de <span class="font-serif font-normal text-primary-600">inscripción</span>
+        </h1>
+        <p class="text-ink-500 text-sm sm:text-base leading-relaxed">
+            Completa tus datos para el proceso de admisión.
+        </p>
+    </div>
+
+    <!-- Countdown Timer -->
+    <div class="mb-6 p-5 sm:p-6 bg-white ring-soft rounded-md text-center relative overflow-hidden fade-up">
+        <h2 class="eyebrow mb-4">El cierre de inscripciones finaliza en</h2>
+        <div id="countdown" class="flex justify-center items-end gap-3 sm:gap-4 md:gap-8 relative" data-end-date="@examEndDate.ToString("yyyy-MM-ddTHH:mm:ss")">
+            <div class="countdown-item">
+                <span id="days" class="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600 block tabular-nums">00</span>
+                <span class="text-[10px] md:text-xs text-ink-500 uppercase tracking-[0.16em]">Días</span>
+            </div>
+            <div class="text-3xl sm:text-4xl md:text-5xl font-light text-ink-300 leading-none">:</div>
+            <div class="countdown-item">
+                <span id="hours" class="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600 block tabular-nums">00</span>
+                <span class="text-[10px] md:text-xs text-ink-500 uppercase tracking-[0.16em]">Horas</span>
+            </div>
+            <div class="text-3xl sm:text-4xl md:text-5xl font-light text-ink-300 leading-none">:</div>
+            <div class="countdown-item">
+                <span id="minutes" class="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600 block tabular-nums">00</span>
+                <span class="text-[10px] md:text-xs text-ink-500 uppercase tracking-[0.16em]">Minutos</span>
+            </div>
+            <div class="text-3xl sm:text-4xl md:text-5xl font-light text-ink-300 leading-none">:</div>
+            <div class="countdown-item">
+                <span id="seconds" class="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-600 block tabular-nums">00</span>
+                <span class="text-[10px] md:text-xs text-ink-500 uppercase tracking-[0.16em]">Segundos</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modality summary (debajo de la cinta de conteo) -->
+    <div id="modalitySummary"
+         class="hidden mb-6 flex flex-wrap justify-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div id="summaryModalityBox" class="hidden flex items-center gap-3 rounded-md ring-soft bg-primary/5 px-4 py-3">
+            <span class="w-10 h-10 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                <i class="ti ti-certificate text-primary text-sm"></i>
+            </span>
+            <div class="min-w-0">
+                <p class="eyebrow text-[10px] tracking-[0.16em] text-primary mb-0.5">Modalidad</p>
+                <p id="summaryModalityText" class="text-sm font-bold text-ink-900 leading-snug"></p>
+            </div>
+        </div>
+        <div id="summaryTypeBox" class="hidden flex items-center gap-3 rounded-md ring-soft bg-accent-light/60 px-4 py-3">
+            <span class="w-10 h-10 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                <i class="ti ti-file-pencil text-accent text-sm"></i>
+            </span>
+            <div class="min-w-0">
+                <p class="eyebrow text-[10px] tracking-[0.16em] text-accent mb-0.5">Tipo de Modalidad</p>
+                <p id="summaryTypeText" class="text-sm font-bold text-ink-900 leading-snug"></p>
+            </div>
+        </div>
+        <div id="summaryExamBox" class="hidden flex items-center gap-3 rounded-md ring-soft bg-accent-light/60 px-4 py-3">
+            <span class="w-10 h-10 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                <i class="ti ti-calendar-event text-accent text-sm"></i>
+            </span>
+            <div class="min-w-0">
+                <p class="eyebrow text-[10px] tracking-[0.16em] text-accent mb-0.5">Fecha del Examen</p>
+                <p id="summaryExamText" class="text-sm font-bold text-ink-900 leading-snug"></p>
+            </div>
+        </div>
+        <div id="summaryResultsBox" class="hidden flex items-center gap-3 rounded-md ring-soft bg-secondary-50/70 px-4 py-3">
+            <span class="w-10 h-10 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                <i class="ti ti-award text-secondary text-sm"></i>
+            </span>
+            <div class="min-w-0">
+                <p class="eyebrow text-[10px] tracking-[0.16em] text-secondary mb-0.5">Publicación de Resultados</p>
+                <p id="summaryResultsText" class="text-sm font-bold text-ink-900 leading-snug"></p>
+            </div>
+        </div>
+    </div>
+
+    @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey) && !captchaIsRecaptcha)
+    {
+        <!-- Widget invisible — token de un solo uso para llamadas a /public/check-user (lookup por DNI). Se refresca tras cada uso. -->
+        <div id="captcha-lookup"
+             class="cf-turnstile"
+             data-sitekey="@captchaSiteKey"
+             data-size="invisible"
+             data-callback="onLookupCaptchaSolved"
+             data-error-callback="onLookupCaptchaError"></div>
+    }
+
+    <form id="inscriptionForm" asp-action="InscriptionRegister" asp-controller="Home" method="post" enctype="multipart/form-data" class="space-y-5" novalidate>
+        @Html.AntiForgeryToken()
+        
+        <!-- SECTION 1: DATOS PRINCIPALES -->
+        <div id="card-section1"
+            class="bg-white ring-soft rounded-md transition-all duration-300">
+
+            <div class="px-4 sm:px-5 py-4 sm:py-5 bg-primary text-white font-bold flex justify-between items-center rounded-t-md cursor-pointer select-none">
+                <span class="flex items-center tracking-tight text-sm sm:text-base">
+                    <i class="ti ti-user-circle mr-2 sm:mr-3 text-base sm:text-lg"></i>
+                    1. Datos Principales
+                </span>
+                <span class="step-badge text-white/80 text-[10px] px-3 py-1 rounded-full tracking-[0.15em] font-semibold">
+                    PASO 1/3
+                </span>
+            </div>
+
+            <!-- BODY -->
+            <div id="section1" class="p-4 sm:p-5 md:p-8 space-y-5 sm:space-y-8">
+
+                <!-- Nacionalidad + Tipo Documento -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <partial name="_CustomSelect" model='new { Id = "Nationality", Name = "Nationality", Label = "Nacionalidad", Required = true, Searchable = false }' />
+                    <partial name="_CustomSelect" model='new { Id = "DocumentType", Name = "DocumentType", Label = "Tipo de Documento", Required = true, Searchable = false }' />
+                </div>
+
+                <!-- Número Documento -->
+                <div class="form-field">
+                    <label asp-for="DocumentNumber" class="form-label">
+                        Número de Documento <span class="required">*</span>
+                    </label>
+                    <input asp-for="DocumentNumber" class="form-input" placeholder="Ej. 7065..." />
+                    <span asp-validation-for="DocumentNumber" class="form-error"></span>
+                </div>
+
+                <!-- UBIGEO / PROCEDENCIA -->
+                <div class="border-t border-ink-100 pt-6 mt-2">
+                    <div class="flex items-center gap-3 mb-6">
+                        <span class="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <i class="ti ti-map-pin text-primary text-sm"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="eyebrow">Ubicación</div>
+                            <h3 class="text-base sm:text-lg font-semibold text-ink-900 leading-tight">Procedencia y Ubicación</h3>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <partial name="_CustomSelect" model='new { Id = "CountryId", Name = "CountryId", Label = "País de Procedencia", Required = true }' />
+                    </div>
+
+                    <div id="peruUbigeoContainer" class="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+
+                        <!-- MODO NACIONAL: ingreso directo del código de ubigeo (DNI) -->
+                        <div id="ubigeoByCodeBlock" class="hidden space-y-4">
+                            <div class="rounded-md ring-soft bg-primary/5 p-4 md:p-5">
+                                <div class="flex flex-col gap-4 items-start">
+                                    <div class="shrink-0 w-full">
+                                        <img src="~/img/dni.jpeg" alt="Ejemplo de DNI - ubicación del ubigeo"
+                                             class="w-[500px] m-auto rounded-md ring-soft" />
+                                        <p class="form-helper text-center italic">
+                                            Encuentra el código de 6 dígitos en tu DNI
+                                        </p>
+                                    </div>
+                                    <div class="flex-1 w-full form-field">
+                                        <label for="UbigeoCode" class="form-label">
+                                            Código de Ubigeo (6 dígitos) <span class="required">*</span>
+                                        </label>
+                                        <input type="text" id="UbigeoCode" inputmode="numeric" maxlength="6"
+                                               autocomplete="off"
+                                               class="form-input font-mono text-lg tracking-widest"
+                                               placeholder="Ej: 150101" />
+                                        <p class="form-helper">
+                                            Departamento (2) + Provincia (2) + Distrito (2). Validamos contra el padrón RENIEC.
+                                        </p>
+
+                                        <!-- Estado de validación -->
+                                        <div id="ubigeoStatus" class="mt-3 hidden text-sm rounded-md p-3"></div>
+
+                                        <!-- Hidden que viaja con el form (DistritId real) -->
+                                        <input type="hidden" id="UbigeoIdHidden" name="UbigeoId" value="" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MODO EXTRANJERO / FALLBACK: selects cascada departamento → provincia → distrito -->
+                        <div id="ubigeoCascadeBlock" class="space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                               <div>
+                                   <partial name="_CustomSelect" model='new { Id = "DepartmentId", Name = "DepartmentId", Label = "Departamento", Required = false }' />
+                               </div>
+                               <div>
+                                   <partial name="_CustomSelect" model='new { Id = "ProvincieId", Name = "ProvincieId", Label = "Provincia", Required = false }' />
+                               </div>
+                               <div>
+                                   <partial name="_CustomSelect" model='new { Id = "DistritId", Name = "UbigeoId", Label = "Distrito", Required = false }' />
+                               </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Dirección — siempre visible independientemente del país -->
+                    <div class="form-field">
+                        <label asp-for="Address" class="form-label">
+                            Dirección / Referencia <span class="required">*</span>
+                        </label>
+                        <input asp-for="Address" class="form-input" placeholder="Av. Principal 123..." required />
+                    </div>
+                </div>
+
+                <!-- Modalidad -->
+                <div class="grid grid-cols-1 gap-4">
+
+                    @if (ViewBag.FixedModality == true)
+                    {
+                        <input type="hidden" asp-for="ModalityId" />
+
+                        <div class="bg-ink-50 ring-soft rounded-md p-4 flex items-center gap-3 hidden">
+                            <span class="w-10 h-10 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                                <i class="ti ti-circle-check text-emerald-500 text-lg"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="eyebrow text-[10px] tracking-[0.16em] mb-0.5">Modalidad Seleccionada</p>
+                                <p class="text-sm font-semibold text-ink-900 truncate">
+                                    @((ViewBag.Modalities as IEnumerable<dynamic>)?
+                                        .FirstOrDefault(m => m.Id == Model.ModalityId)?.Name ?? "Modalidad Específica")
+                                </p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <partial name="_CustomSelect" model='new { Id = "ModalityId", Name = "ModalityId", Label = "Modalidad", Required = true, Searchable = false }' />
+                    }
+
+                    <div id="typeModalityWrapper"
+                        class="hidden animate-in fade-in slide-in-from-left-2 duration-300">
+                        <partial name="_CustomSelect" model='new { Id = "TypeModalityId", Name = "TypeModalityId", Label = "Tipo de Modalidad", Required = false, Searchable = false }' />
+                    </div>
+                </div>
+
+                <!-- Tipo Postulante + Celular -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <partial name="_CustomSelect" model='new { Id = "TypePostulantId", Name = "TypePostulantId", Label = "Tipo de Postulante", Required = true, Searchable = false }' />
+
+                    <div class="form-field">
+                        <label asp-for="PhoneNumber" class="form-label">
+                            Celular / WhatsApp <span class="required">*</span>
+                        </label>
+                        <div class="form-input-wrapper">
+                            <i class="ti ti-device-mobile form-input-icon"></i>
+                            <input asp-for="PhoneNumber" class="form-input" placeholder="9..." />
+                        </div>
+                        <span asp-validation-for="PhoneNumber" class="form-error"></span>
+                    </div>
+                </div>
+                <!-- TYPE POSTULANT REQUIREMENT (descuento) -->
+                <div id="typePostulantRequirementSection" style="display: none;"
+                     class=" space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div id="typePostulantReqContainer" class="min-h-0">
+                        <p class="text-sm text-ink-500 italic">Cargando requisito...</p>
+                    </div>
+                </div>
+                <!-- Carrera -->
+                <div>
+                    <partial name="_CustomSelect" model='new { Id = "CareerId", Name = "CareerId", Label = "Carrera a la que Postula", Required = true, Searchable = false }' />
+                </div>
+
+                <!-- Datos de Traslado (se muestra dinámicamente según el tipo de modalidad) -->
+                <div id="transferSection" class="hidden ring-soft bg-secondary-50/40 rounded-md p-4 sm:p-5 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                            <i class="ti ti-arrows-exchange text-secondary text-sm"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="eyebrow text-secondary">Procedencia</div>
+                            <h3 class="text-base font-semibold text-ink-900 leading-tight" id="transferTitle">Información de Traslado</h3>
+                        </div>
+                    </div>
+
+                    <!-- Bloque EXTERNO: universidad + carrera texto -->
+                    <div id="transferExternal" class="hidden space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <partial name="_CustomSelect" model='new { Id = "SourceUniversityId", Name = "SourceUniversityId", Label = "Universidad de Procedencia", Required = false, Searchable = true }' />
+                            <div class="form-field">
+                                <label asp-for="SourceCareerName" class="form-label">
+                                    Carrera de Procedencia
+                                </label>
+                                <input asp-for="SourceCareerName" class="form-input" placeholder="Ej: Ingeniería de Sistemas" />
+                            </div>
+                        </div>
+                        <p class="form-helper italic">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            Indica la universidad y carrera desde la que estás solicitando el traslado externo.
+                        </p>
+                    </div>
+
+                    <!-- Bloque INTERNO: carrera del sistema -->
+                    <div id="transferInternal" class="hidden space-y-5">
+                        <partial name="_CustomSelect" model='new { Id = "SourceCareerId", Name = "SourceCareerId", Label = "Carrera de Procedencia (interna)", Required = false, Searchable = true }' />
+                        <p class="form-helper italic">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            Selecciona la carrera interna desde la que estás realizando el traslado.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PROFILE PHOTO SECTION -->
+                <div id="profilePhotoSection" style="display: none;"
+                     class="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                            <i class="ti ti-camera text-primary text-sm"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="eyebrow text-primary">Foto de perfil</div>
+                            <h3 class="text-base font-semibold text-ink-900 leading-tight">Foto del postulante</h3>
+                        </div>
+                    </div>
+                    <div class="rounded-md ring-soft bg-ink-50 p-4">
+                        <img src="~/img/foto-perfil.jpeg" alt="Referencia de foto de perfil"
+                             class="w-full max-w-xs mx-auto rounded-md ring-soft" />
+                        <p class="form-helper text-center italic mt-2">
+                            Referencia: la foto debe ser frontal, fondo blanco, sin lentes oscuros ni gorras.
+                        </p>
+                    </div>
+                    <partial name="_CustomDropzone"
+                            model='new { Id = "ProfilePhotoDropzone", Name = "ProfilePhoto", Label = "Foto de perfil", Required = "False", MaxSize = "20", AcceptedTypes = "image/*" }' />
+
+                    
+                </div>
+
+                <!-- PAYMENT SECTION -->
+                <div id="paymentSection" style="display: none;"
+                    class="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                            <i class="ti ti-wallet text-amber-600 text-sm"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="eyebrow text-amber-700">Pago</div>
+                            <h3 class="text-base font-semibold text-ink-900 leading-tight">Información de Pago</h3>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Monto y Descuento -->
+                    <div id="paymentAlert" class="bg-white ring-soft border-2 border-amber-500 p-4 rounded-md">
+                        <div class="flex items-start gap-3">
+                            <i class="ti ti-info-circle text-amber-500 mt-1"></i>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-ink-900" id="paymentConceptTitle">Concepto: -</p>
+                                <p class="text-xs text-ink-600 mt-1" id="paymentDetailsText">
+                                    Monto base: S/ <span id="baseAmount">0.00</span>
+                                    <span id="discountContainer" class="hidden text-emerald-600 font-bold ml-2">
+                                        (Descuento del <span id="discountValue">0</span>%)
+                                    </span>
+                                </p>
+                                <p class="text-lg font-extrabold text-ink-900 tracking-tight mt-2">
+                                    TOTAL A PAGAR: <span class="text-amber-700">S/ <span id="finalAmountText">0.00</span></span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <partial name="_CustomSelect" model='new { Id = "MethodPaymentId", Name = "MethodPaymentId", Label = "Medio de Pago", Required = true }' />
+
+                        <div class="form-field">
+                            <label asp-for="PaymentAmount" class="form-label">
+                                Monto Pagado (S/.) <span class="required">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group__addon">S/</span>
+                                <input asp-for="PaymentAmount" type="number" step="0.01" placeholder="0.00" readonly class="bg-slate-50 cursor-not-allowed" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="space-y-4">
+                            <!-- Guía de pago según método -->
+                            <div id="paymentGuideContainer" class="hidden">
+                                <div class="rounded-md ring-soft bg-white p-3">
+                                    <img id="paymentGuideImg" src="" alt="Guía de pago" class="h-[500px] rounded-md ring-soft object-contain mx-auto" />
+                                    <p id="paymentGuideCaption" class="form-helper text-center italic mt-1">
+                                        Sigue las indicaciones de la imagen para completar el pago
+                                    </p>
+                                </div>
+                            </div>
+                            <!-- PaymentCode - Banco (single input, max 8 digits) -->
+                            <div id="paymentCodeBanco" class="form-field">
+                                <label class="form-label">
+                                    Código de Operación / Voucher <span class="required">*</span>
+                                </label>
+                                <div class="form-input-wrapper">
+                                    <i class="ti ti-receipt form-input-icon"></i>
+                                    <input type="text" id="PaymentCodeBancoInput" class="form-input" placeholder="Ej. 001234" inputmode="numeric" maxlength="8" required />
+                                </div>
+                                <p class="form-helper">Hasta 8 dígitos. Puede contener ceros a la izquierda.</p>
+                            </div>
+                            <!-- PaymentCode - Caja (two inputs + auto-hyphen) -->
+                            <div id="paymentCodeCaja" class="hidden form-field">
+                                <label class="form-label">
+                                    Código de Operación / Voucher <span class="required">*</span>
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <div class="form-input-wrapper w-28">
+                                        <i class="ti ti-receipt form-input-icon"></i>
+                                        <input type="text" id="PaymentCodeCajaPart1" class="form-input" placeholder="002" inputmode="numeric" maxlength="3" required />
+                                    </div>
+                                    <span class="text-lg font-bold text-ink-400">-</span>
+                                    <div class="form-input-wrapper flex-1">
+                                        <input type="text" id="PaymentCodeCajaPart2" class="form-input" placeholder="0002365" inputmode="numeric" maxlength="8" required />
+                                    </div>
+                                </div>
+                                <p class="form-helper">Formato: 002-0002365</p>
+                            </div>
+                            <input type="hidden" id="PaymentCodeHidden" name="PaymentCode" />
+                            
+                        </div>
+
+                        <partial name="_CustomDropzone"
+                                model='new { Id = "PaymentVoucherDropzone", Name = "PaymentVoucher", Label = "Foto del Comprobante", Required = "True", MaxSize = "20", AcceptedTypes = "image/*,.pdf" }' />
+                    </div>
+                </div>
+
+                <!-- BUTTON -->
+                <div class="flex justify-end pt-6">
+                    <button type="button"
+                            onclick="nextSection(1, 2)"
+                            class="btn-grad font-semibold py-2.5 px-5 sm:py-3 sm:px-7 text-sm sm:text-base rounded-md transition-all inline-flex items-center gap-2">
+                        Siguiente
+                        <i class="ti ti-arrow-right text-xs"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECTION 2: DOCUMENTOS OBLIGATORIOS -->
+        <div id="card-section2" class="bg-white ring-soft rounded-md opacity-50 pointer-events-none transition-all duration-300">
+            <div class="px-4 sm:px-5 py-4 sm:py-5 bg-ink-100 text-ink-700 font-bold flex justify-between items-center rounded-t-md cursor-pointer select-none">
+                <span class="flex items-center text-sm sm:text-base"><i class="ti ti-file-text mr-2 sm:mr-3"></i> 2. Documentos Obligatorios</span>
+                <span class="step-badge ring-1 ring-ink-200 text-ink-700 text-[10px] px-3 py-1 rounded-full tracking-[0.15em] font-semibold">PASO 2/3</span>
+            </div>
+             <div id="section2" class="p-4 sm:p-5 md:p-7 space-y-5 hidden">
+                 <div id="requirementsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div class="col-span-full py-10 text-center text-ink-500 italic">
+                         Cargando requisitos según su modalidad...
+                     </div>
+                 </div>
+                 
+                 <div class="flex justify-between pt-4">
+                    <button type="button" onclick="prevSection(2, 1)" class="btn-soft font-medium py-2.5 px-5 sm:py-3 sm:px-6 text-sm sm:text-base rounded-md inline-flex items-center gap-2">
+                        <i class="ti ti-arrow-left text-xs"></i> Anterior
+                    </button>
+                    <button type="button" onclick="nextSection(2, 3)" class="btn-grad font-semibold py-2.5 px-5 sm:py-3 sm:px-7 text-sm sm:text-base rounded-md inline-flex items-center gap-2">
+                        Siguiente <i class="ti ti-arrow-right text-xs"></i>
+                    </button>
+                </div>
+             </div>
+        </div>
+
+        <!-- SECTION 3: DATOS GENERALES -->
+        <div id="card-section3" class="bg-white ring-soft rounded-md opacity-50 pointer-events-none transition-all duration-300">
+            <div class="px-4 sm:px-5 py-4 sm:py-5 bg-ink-100 text-ink-700 font-bold flex justify-between items-center rounded-t-md cursor-pointer select-none">
+                <span class="flex items-center text-sm sm:text-base"><i class="ti ti-id mr-2 sm:mr-3"></i> 3. Datos Personales</span>
+                <span class="step-badge ring-1 ring-ink-200 text-ink-700 text-[10px] px-3 py-1 rounded-full tracking-[0.15em] font-semibold">PASO 3/3</span>
+            </div>
+            <div id="section3" class="p-4 sm:p-5 md:p-7 space-y-5 sm:space-y-8 hidden">
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="form-field">
+                        <label asp-for="Name" class="form-label">Nombres <span class="required">*</span></label>
+                        <input asp-for="Name" class="form-input" placeholder="Tus nombres" />
+                        <span asp-validation-for="Name" class="form-error"></span>
+                    </div>
+                     <div class="form-field">
+                        <label asp-for="FatherSurname" class="form-label">Apellido Paterno <span class="required">*</span></label>
+                        <input asp-for="FatherSurname" class="form-input" placeholder="Apellido paterno" />
+                        <span asp-validation-for="FatherSurname" class="form-error"></span>
+                    </div>
+                     <div class="form-field">
+                        <label asp-for="MotherSurname" class="form-label">Apellido Materno <span class="required">*</span></label>
+                        <input asp-for="MotherSurname" class="form-input" placeholder="Apellido materno" />
+                        <span asp-validation-for="MotherSurname" class="form-error"></span>
+                    </div>
+                 </div>
+
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div class="form-field">
+                         <label class="form-label">Fecha de Nacimiento <span class="required">*</span></label>
+                         <div class="grid grid-cols-3 gap-2">
+                             <select id="BirthDate_Day" class="form-input" required>
+                                 <option value="">Día</option>
+                                 @for (int d = 1; d <= 31; d++)
+                                 {
+                                     <option value="@d.ToString("00")">@d</option>
+                                 }
+                             </select>
+                             <select id="BirthDate_Month" class="form-input" required>
+                                 <option value="">Mes</option>
+                                 <option value="01">Enero</option>
+                                 <option value="02">Febrero</option>
+                                 <option value="03">Marzo</option>
+                                 <option value="04">Abril</option>
+                                 <option value="05">Mayo</option>
+                                 <option value="06">Junio</option>
+                                 <option value="07">Julio</option>
+                                 <option value="08">Agosto</option>
+                                 <option value="09">Setiembre</option>
+                                 <option value="10">Octubre</option>
+                                 <option value="11">Noviembre</option>
+                                 <option value="12">Diciembre</option>
+                             </select>
+                             <select id="BirthDate_Year" class="form-input" required>
+                                 <option value="">Año</option>
+                                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 100; y--)
+                                 {
+                                     <option value="@y">@y</option>
+                                 }
+                             </select>
+                         </div>
+                         <p class="form-helper">Selecciona tu fecha de nacimiento según tu documento.</p>
+                         <input type="hidden" id="BirthDate" name="BirthDate" value="@Model.BirthDate.ToString("yyyy-MM-dd")" />
+                     </div>
+                     <div>
+                         <partial name="_CustomSelect" model='new { Id = "Genero", Name = "Genero", Label = "Género", Required = true, Searchable = false }' />
+                     </div>
+                 </div>
+
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                         <partial name="_CustomSelect" model='new { Id = "CivilStatus", Name = "CivilStatus", Label = "Estado Civil", Required = true, Searchable = false }' />
+                     </div>
+                     <div class="form-field">
+                        <label asp-for="Email" class="form-label">Correo Electrónico <span class="required">*</span></label>
+                        <div class="form-input-wrapper">
+                            <i class="ti ti-mail form-input-icon"></i>
+                            <input asp-for="Email" type="email" class="form-input" placeholder="tu@correo.com" />
+                        </div>
+                        <span asp-validation-for="Email" class="form-error"></span>
+                    </div>
+                 </div>
+
+                 <!-- DISABILITY SECTION -->
+                 <div class="border-t border-ink-100 pt-8 mt-4">
+                     <div class="flex items-center gap-3 mb-6">
+                         <span class="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                             <i class="ti ti-wheelchair text-primary text-sm"></i>
+                         </span>
+                         <div class="min-w-0">
+                             <div class="eyebrow">Ley 29973</div>
+                             <h3 class="text-base sm:text-lg font-semibold text-ink-900 leading-tight">Información de Discapacidad</h3>
+                         </div>
+                     </div>
+
+                     <div class="mb-6 animate-in fade-in slide-in-from-top-2">
+                         <partial name="_CustomSelect" model='new { Id = "DisabilityTypeIds", Name = "DisabilityTypeIds", Label = "Tipo de Discapacidad (Opcional)", Required = false, Searchable = false }' />
+                     </div>
+
+                     <div id="conadisWrapper" class="hidden animate-in fade-in slide-in-from-top-2 mb-6 form-field">
+                        <label asp-for="ConadisNumber" class="form-label">Resolución o Carnet CONADIS (Opcional)</label>
+                        <input asp-for="ConadisNumber" class="form-input" placeholder="Ej. 12345-2023-DIR" />
+                        <p class="form-helper italic">Si cuenta con certificado, por favor ingrese su número para beneficios de ley.</p>
+                     </div>
+                 </div>
+
+                 <!-- GUARDIAN SECTION (visible sólo cuando BirthDate hace al postulante menor de 18) -->
+                 <div id="guardianSection" class="hidden border-t border-ink-100 pt-8 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                     <div class="flex items-center gap-3 mb-6">
+                         <span class="w-9 h-9 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
+                             <i class="ti ti-user-shield text-amber-600 text-sm"></i>
+                         </span>
+                         <div class="min-w-0">
+                             <div class="eyebrow text-amber-700">Menor de edad</div>
+                             <h3 class="text-base sm:text-lg font-semibold text-ink-900 leading-tight">Datos del Apoderado</h3>
+                             <p class="text-xs text-ink-500 mt-1">Detectamos que eres menor de 18 años. Completa los datos de tu padre, madre o tutor legal.</p>
+                         </div>
+                     </div>
+
+                     <div class="space-y-5">
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div class="form-field">
+                                 <label asp-for="GuardianName" class="form-label">Nombres <span class="required">*</span></label>
+                                 <input asp-for="GuardianName" class="form-input" placeholder="Ej. Juan" autocomplete="off" />
+                             </div>
+                             <div class="form-field">
+                                 <label asp-for="GuardianFatherSurname" class="form-label">Apellido paterno <span class="required">*</span></label>
+                                 <input asp-for="GuardianFatherSurname" class="form-input" placeholder="Ej. Pérez" autocomplete="off" />
+                             </div>
+                             <div class="form-field">
+                                 <label asp-for="GuardianMotherSurname" class="form-label">Apellido materno <span class="required">*</span></label>
+                                 <input asp-for="GuardianMotherSurname" class="form-input" placeholder="Ej. García" autocomplete="off" />
+                             </div>
+                         </div>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div class="form-field">
+                                 <label asp-for="GuardianDni" class="form-label">DNI del apoderado <span class="required">*</span></label>
+                                 <div class="form-input-wrapper">
+                                     <i class="ti ti-id form-input-icon"></i>
+                                     <input asp-for="GuardianDni" class="form-input" inputmode="numeric" maxlength="8" placeholder="8 dígitos" autocomplete="off" />
+                                 </div>
+                             </div>
+                             <div class="form-field">
+                                 <label asp-for="GuardianPhone" class="form-label">Teléfono del apoderado <span class="required">*</span></label>
+                                 <div class="form-input-wrapper">
+                                     <i class="ti ti-phone form-input-icon"></i>
+                                     <input asp-for="GuardianPhone" class="form-input" inputmode="tel" placeholder="9..." autocomplete="off" />
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="form-field">
+                             <label asp-for="GuardianEmail" class="form-label">Correo electrónico del apoderado <span class="text-ink-400 font-normal text-[11px] ml-1">(opcional)</span></label>
+                             <div class="form-input-wrapper">
+                                 <i class="ti ti-mail form-input-icon"></i>
+                                 <input asp-for="GuardianEmail" type="email" class="form-input" placeholder="apoderado@correo.com" autocomplete="off" />
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+
+                <div class="border-t border-ink-100 pt-8 mt-4">
+                     <div class="flex items-center gap-3 mb-6">
+                         <span class="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                             <i class="ti ti-school text-primary text-sm"></i>
+                         </span>
+                         <div class="min-w-0">
+                             <div class="eyebrow">Educación</div>
+                             <h3 class="text-base sm:text-lg font-semibold text-ink-900 leading-tight">Datos de la Institución Educativa</h3>
+                         </div>
+                     </div>
+
+                     <div class="mb-6">
+                         <label class="form-check form-check--card cursor-pointer" for="checkAbroad">
+                             <input asp-for="IsOutsidePeru" type="checkbox" id="checkAbroad" />
+                             <span class="leading-tight">
+                                 <span class="form-check__text">Terminé mis estudios fuera del Perú</span>
+                                 <span class="form-check__hint">Activa esta opción si tu institución educativa está en el extranjero.</span>
+                             </span>
+                         </label>
+                     </div>
+
+                     <div id="schoolUbigeoFilter" class="space-y-5 animate-in fade-in slide-in-from-top-2">
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <partial name="_CustomSelect" model='new { Id = "SchoolDepartmentId", Name = "SchoolDepartmentId", Label = "Departamento IE", Required = false }' />
+                            <partial name="_CustomSelect" model='new { Id = "SchoolProvincieId", Name = "SchoolProvincieId", Label = "Provincia IE", Required = false }' />
+                            <partial name="_CustomSelect" model='new { Id = "SchoolDistritId", Name = "SchoolDistritId", Label = "Distrito IE", Required = false }' />
+                         </div>
+                     </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                          <div id="schoolSelectWrapper">
+                              <partial name="_CustomSelect" model='new { Id = "SchoolId", Name = "SchoolId", Label = "Seleccionar Colegio", Required = false }' />
+                          </div>
+                          <div id="otherSchoolWrapper" class="hidden form-field">
+                              <label asp-for="OtherSchool" class="form-label">Nombre del Colegio (Otros)</label>
+                              <input asp-for="OtherSchool" id="OtherSchool" class="form-input" placeholder="Escribe el nombre de tu colegio..." />
+                          </div>
+                           <div id="schoolTypeWrapper" class="hidden">
+                               <partial name="_CustomSelect" model='new { Id = "SchoolType", Name = "SchoolType", Label = "Gestión Educativa", Required = true, Searchable = false }' />
+                           </div>
+                          <div id="educationalLevelWrapper" class="hidden">
+                              <partial name="_CustomSelect" model='new { Id = "EducationalLevel", Name = "EducationalLevel", Label = "Nivel educativo", Required = false, Searchable = false }' />
+                          </div>
+                          <div id="gradeWrapper" class="hidden">
+                              <partial name="_CustomSelect" model='new { Id = "Grade", Name = "Grade", Label = "Grado", Required = false, Searchable = false }' />
+                          </div>
+                      </div>
+                 </div>
+
+                 <div class="bg-primary/5 ring-soft p-4 sm:p-5 rounded-md">
+                    <div class="flex items-start gap-3 mb-2">
+                        <span class="w-8 h-8 rounded-md bg-white ring-soft flex items-center justify-center shrink-0">
+                            <i class="ti ti-signature text-primary text-xs"></i>
+                        </span>
+                        <div class="eyebrow text-primary-700 leading-snug mt-1.5">Declaración jurada</div>
+                    </div>
+                    <label class="form-check items-start" for="TermsAccepted">
+                        <input asp-for="TermsAccepted" type="checkbox" id="TermsAccepted" />
+                        <span class="text-sm text-ink-700 leading-relaxed cursor-pointer">
+                            Declaro que los datos consignados en esta ficha son <strong>verdaderos</strong> y acepto las bases del reglamento del proceso de admisión vigente. Me comprometo a presentarme en las fechas programadas para la toma de fotografía y examen biométrico.
+                        </span>
+                    </label>
+                    <span asp-validation-for="TermsAccepted" class="form-error ml-8"></span>
+                 </div>
+
+                @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey))
+                {
+                    <div class="bg-white ring-soft rounded-md p-5">
+                        <p class="text-sm font-semibold text-ink-700 mb-3 flex items-center gap-2">
+                            <i class="ti ti-shield text-primary"></i>
+                            Verificación anti-bot
+                        </p>
+                        <div class="flex justify-center">
+                            @if (captchaIsRecaptcha)
+                            {
+                                <div class="g-recaptcha" data-sitekey="@captchaSiteKey"></div>
+                            }
+                            else
+                            {
+                                <div id="turnstile-submit" class="cf-turnstile"
+                                     data-sitekey="@captchaSiteKey"
+                                     data-theme="light"
+                                     data-callback="onSubmitCaptchaSolved"></div>
+                            }
+                        </div>
+                        <p id="captcha-expired-hint" class="hidden text-xs text-amber-600 text-center mt-2">
+                            <i class="ti ti-alert-triangle mr-1"></i>
+                            La verificación expiró. Se está renovando automáticamente...
+                        </p>
+                    </div>
+                }
+
+                 <div class="flex justify-between pt-4">
+                    <button type="button" onclick="prevSection(3, 2)" class="btn-soft font-medium py-2.5 px-5 sm:py-3 sm:px-6 text-sm sm:text-base rounded-md inline-flex items-center gap-2">
+                        <i class="ti ti-arrow-left text-xs"></i> Anterior
+                    </button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-5 sm:py-3.5 sm:px-7 rounded-md shadow-[0_10px_24px_-12px_rgba(16,185,129,0.45)] hover:-translate-y-0.5 transition-all inline-flex items-center gap-2 sm:gap-3 text-sm sm:text-base tracking-tight">
+                        <span class="hidden sm:inline">FINALIZAR INSCRIPCIÓN</span>
+                        <span class="sm:hidden">Finalizar</span>
+                        <i class="ti ti-send text-xs sm:text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+}
+</div>
+
+@section Scripts {
+    @if (!registrationsClosed)
+    {
+    <partial name="_ValidationScriptsPartial" />
+    @if (captchaEnabled && !string.IsNullOrEmpty(captchaSiteKey))
+    {
+        if (captchaIsRecaptcha)
+        {
+            <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        }
+        else
+        {
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        }
+    }
+    <script>
+        window.inscriptionData = {
+            modalities: @Html.Raw(Json.Serialize(ViewBag.Modalities)),
+            typePostulants: @Html.Raw(Json.Serialize(ViewBag.TypePostulants)),
+            methodPayments: @Html.Raw(Json.Serialize(ViewBag.MethodPayments)),
+            careers: @Html.Raw(Json.Serialize(ViewBag.Careers)),
+            careersAll: @Html.Raw(Json.Serialize(ViewBag.CareersAll)),
+            countries: @Html.Raw(Json.Serialize(ViewBag.Countries)),
+            disabilityTypes: @Html.Raw(Json.Serialize(ViewBag.DisabilityTypes)),
+            universities: @Html.Raw(Json.Serialize(ViewBag.Universities)),
+            schoolTypes: [ { id: "Publico", name: "PÚBLICO" }, { id: "Privado", name: "PRIVADO" } ],
+            modalityCareerMap: @Html.Raw(Json.Serialize(ViewBag.ModalityCareerMap)),
+            typeModalityCareerMap: @Html.Raw(Json.Serialize(ViewBag.TypeModalityCareerMap)),
+            modalityFlags: @Html.Raw(Json.Serialize(ViewBag.ModalityFlags))
+        };
+        window.captchaConfig = {
+            enabled: @(captchaEnabled ? "true" : "false"),
+            provider: '@captchaProvider',
+            siteKey: '@(captchaSiteKey ?? "")'
+        };
+    </script>
+    <script src="~/js/public/inscription.js" asp-append-version="true"></script>
+    }
+}

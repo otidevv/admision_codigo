@@ -1,0 +1,165 @@
+@{
+    // Guard: los usuarios autenticados no deben navegar por el layout público.
+    // Redirigimos a /admin/restringido (vista amigable bajo el layout admin).
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        IgnoreBody();
+        var original = Context.Request.Path + Context.Request.QueryString;
+        Context.Response.Redirect($"/admin/restringido?from={Uri.EscapeDataString(original)}");
+        return;
+    }
+}
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admisión</title>
+
+    <script type="importmap"></script>
+    <link rel="preload" href="~/lib/inter/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="~/lib/toastify-js/src/toastify.css" />
+    <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/tabler-icons/tabler-icons.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="icon" type="image/png" href="~/img/unamad.png" asp-append-version="true" />
+</head>
+<body class="antialiased font-sans bg-ink-50 text-ink-900 overflow-x-hidden">
+    <!-- Header Component -->
+    <partial name="Components/_Header" />
+
+    <!-- Main Content -->
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- Footer Component -->
+    <partial name="Components/_Footer" />
+
+    <!-- Chatbot flotante (preguntas frecuentes) -->
+    <partial name="Components/_ChatbotWidget" />
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/toastify-js/src/toastify.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Fade-up on intersect: cualquier elemento con .fade-up se anima al
+        // entrar al viewport. Los elementos visibles al cargar disparan
+        // inmediatamente (rootMargin acotado por abajo, no por arriba).
+        // Incluye un safety-net que revela forzosamente los .fade-up que no
+        // hayan disparado tras 1.2s (cubre la fila de acciones "Guardar" en
+        // formularios donde el botón cae dentro del rootMargin inferior).
+        (function () {
+            function revealAll() {
+                document.querySelectorAll('.fade-up:not(.is-in)').forEach(function (el) {
+                    el.classList.add('is-in');
+                });
+            }
+            if (!('IntersectionObserver' in window)) {
+                revealAll();
+                return;
+            }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (en) {
+                    if (en.isIntersecting) {
+                        en.target.classList.add('is-in');
+                        io.unobserve(en.target);
+                    }
+                });
+            }, { rootMargin: '0px 0px -8% 0px', threshold: 0.01 });
+
+            window.ADM = window.ADM || {};
+            window.ADM.refreshFadeUp = function () {
+                document.querySelectorAll('.fade-up:not(.is-in)').forEach(function (el, i) {
+                    el.style.transitionDelay = ((i % 4) * 80) + 'ms';
+                    io.observe(el);
+                });
+            };
+
+            function observe() {
+                document.querySelectorAll('.fade-up:not(.is-in)').forEach(function (el, i) {
+                    el.style.transitionDelay = ((i % 4) * 80) + 'ms';
+                    io.observe(el);
+                });
+                setTimeout(revealAll, 1200);
+            }
+            if (document.readyState !== 'loading') observe();
+            else document.addEventListener('DOMContentLoaded', observe);
+        })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (TempData["Success"] != null)
+            {
+                <text>
+                Toastify({
+                    text: "@TempData["Success"]",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    style: {
+                        background: "#10b981",
+                    },
+                    stopOnFocus: true
+                }).showToast();
+                </text>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <text>
+                Toastify({
+                    text: "@TempData["Error"]",
+                    duration: 4000,
+                    gravity: "top",
+                    position: "right",
+                    style: {
+                        background: "#f31a5b",
+                    },
+                    stopOnFocus: true
+                }).showToast();
+                </text>
+            }
+            @if (TempData["Warning"] != null)
+            {
+                <text>
+                Toastify({
+                    text: "@TempData["Warning"]",
+                    duration: 3500,
+                    gravity: "top",
+                    position: "right",
+                    style: {
+                        background: "#f59e0b",
+                    },
+                    stopOnFocus: true
+                }).showToast();
+                </text>
+            }
+            @if (TempData["Info"] != null)
+            {
+                <text>
+                Toastify({
+                    text: "@TempData["Info"]",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    style: {
+                        background: "#716aca",
+                    },
+                    stopOnFocus: true
+                }).showToast();
+                </text>
+            }
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

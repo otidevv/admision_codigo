@@ -1,0 +1,317 @@
+@model ADMISION.ENTITIES.Models.Modality.Career
+@{
+    ViewData["Title"]   = Model.Name;
+    Layout              = "~/Pages/Shared/_PublicLayout.cshtml";
+    var latestTerm      = ViewBag.LatestTerm as ADMISION.ENTITIES.Models.Modality.Term;
+    var totalVacancies  = (int)(ViewBag.TotalVacancies ?? 0);
+}
+
+<!-- Hero -->
+<section class="relative overflow-hidden bg-ink-50 border-b border-ink-200/60">
+
+    @if (!string.IsNullOrWhiteSpace(Model.BannerUrl))
+    {
+        <div class="absolute inset-0 pointer-events-none">
+            <img src="/@Model.BannerUrl" alt="" class="w-full h-full object-cover" />
+        </div>
+    }
+
+
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-5">
+            <a href="/" class="hover:text-primary-600 transition-colors">Inicio</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <a href="/carreras" class="hover:text-primary-600 transition-colors">Carreras</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 font-medium">@Model.Name</span>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center gap-4 fade-up">
+            <div class="w-24 h-24 md:w-28 md:h-28 rounded-md bg-white ring-soft flex items-center justify-center shrink-0 overflow-hidden">
+                @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                {
+                    <img src="/@Model.LogoUrl" alt="@Model.Name" class="w-full h-full object-contain p-2" />
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.Initials))
+                {
+                    <span class="text-3xl md:text-4xl font-bold text-primary-600">@Model.Initials</span>
+                }
+                else
+                {
+                    <i class="ti ti-school text-primary-500 text-4xl"></i>
+                }
+            </div>
+
+            <div class="flex-1 min-w-0">
+                @if (Model.Faculty != null)
+                {
+                    <p class="eyebrow mb-2">
+                        <i class="ti ti-building-bank mr-1"></i> @Model.Faculty.Name
+                    </p>
+                }
+                <h1 class="text-3xl md:text-4xl lg:text-[44px] font-semibold tracking-[-0.025em] leading-tight text-ink-900 mb-2">@Model.Name</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <p class="text-ink-500 text-sm md:text-base leading-relaxed max-w-3xl">@Model.Description</p>
+                }
+            </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="flex flex-wrap gap-3 mt-6 fade-up">
+            @if (Model.DurationSemesters.HasValue)
+            {
+                <div class="inline-flex items-center gap-3 bg-white ring-soft rounded-md px-4 py-2.5">
+                    <i class="ti ti-clock text-primary-600"></i>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-400">Duración</p>
+                        <p class="text-sm font-bold text-ink-900">@Model.DurationSemesters semestres</p>
+                    </div>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.DegreeTitle))
+            {
+                <div class="inline-flex items-center gap-3 bg-white ring-soft rounded-md px-4 py-2.5">
+                    <i class="ti ti-certificate text-secondary-600"></i>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-400">Título profesional</p>
+                        <p class="text-sm font-bold text-ink-900">@Model.DegreeTitle</p>
+                    </div>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.AcademicDegree))
+            {
+                <div class="inline-flex items-center gap-3 bg-white ring-soft rounded-md px-4 py-2.5">
+                    <i class="ti ti-award text-primary-600"></i>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-400">Grado académico</p>
+                        <p class="text-sm font-bold text-ink-900">@Model.AcademicDegree</p>
+                    </div>
+                </div>
+            }
+            @if (latestTerm != null && totalVacancies > 0)
+            {
+                <div class="inline-flex items-center gap-3 bg-white ring-soft rounded-md px-4 py-2.5">
+                    <i class="ti ti-armchair text-primary-600"></i>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-400">Vacantes @latestTerm.Name</p>
+                        <p class="text-sm font-bold text-ink-900 tabular-nums">@totalVacancies</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- Contenido -->
+<section class="py-12 sm:py-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <div class="lg:col-span-2 space-y-10">
+            @if (!string.IsNullOrWhiteSpace(Model.GraduateProfile))
+            {
+                <div class="fade-up">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-9 h-9 rounded-md bg-secondary-50 text-secondary-600 flex items-center justify-center ring-1 ring-secondary-100">
+                            <i class="ti ti-user text-sm"></i>
+                        </span>
+                        <h2 class="text-lg sm:text-xl font-semibold text-ink-900 tracking-tight">Perfil del Egresado</h2>
+                    </div>
+                    <div class="prose prose-sm max-w-none text-ink-700 leading-relaxed whitespace-pre-line">@Model.GraduateProfile</div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.JobField))
+            {
+                <div class="fade-up">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center ring-1 ring-primary-100">
+                            <i class="ti ti-briefcase text-sm"></i>
+                        </span>
+                        <h2 class="text-lg sm:text-xl font-semibold text-ink-900 tracking-tight">Campo Laboral</h2>
+                    </div>
+                    <div class="prose prose-sm max-w-none text-ink-700 leading-relaxed whitespace-pre-line">@Model.JobField</div>
+                </div>
+            }
+
+            @if (string.IsNullOrWhiteSpace(Model.GraduateProfile)
+                && string.IsNullOrWhiteSpace(Model.JobField))
+            {
+                <div class="bg-white ring-soft rounded-md py-12 text-center">
+                    <div class="w-14 h-14 rounded-md bg-ink-100 flex items-center justify-center mx-auto mb-3 text-ink-300">
+                        <i class="ti ti-clipboard-list text-xl"></i>
+                    </div>
+                    <p class="text-ink-700 text-sm font-semibold">Información en preparación</p>
+                    <p class="text-ink-400 text-xs mt-1 max-w-sm mx-auto">
+                        Próximamente publicaremos los perfiles académicos y el campo laboral de esta carrera.
+                    </p>
+                </div>
+            }
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="space-y-5 fade-up">
+            @if (!string.IsNullOrWhiteSpace(Model.StudyPlanUrl))
+            {
+                <a href="/@Model.StudyPlanUrl" target="_blank" rel="noopener"
+                   class="lift flex items-center justify-between gap-3 w-full px-5 py-4 rounded-md bg-white ring-soft text-primary-700 hover:bg-primary-50 font-semibold text-sm transition-all">
+                    <span class="inline-flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-md bg-primary-50 flex items-center justify-center">
+                            <i class="ti ti-file-text"></i>
+                        </span>
+                        Plan de Estudios
+                    </span>
+                    <i class="ti ti-external-link text-[11px] opacity-60"></i>
+                </a>
+            }
+
+            <div class="bg-white ring-soft rounded-md p-5">
+                <p class="eyebrow mb-2">¿Tienes dudas?</p>
+                <p class="text-sm text-ink-700 leading-relaxed mb-3">
+                    Revisa el cronograma, los temarios y los reglamentos del proceso de admisión.
+                </p>
+                <div class="flex flex-col gap-2 text-sm">
+                    <a href="/cronograma" class="inline-flex items-center gap-2 text-ink-700 font-semibold hover:text-primary-600 transition-colors">
+                        <i class="ti ti-calendar text-primary-600"></i> Cronograma
+                    </a>
+                    <a href="/modalidad" class="inline-flex items-center gap-2 text-ink-700 font-semibold hover:text-primary-600 transition-colors">
+                        <i class="ti ti-list-check text-primary-600"></i> Modalidades
+                    </a>
+                    <a href="/vacantes" class="inline-flex items-center gap-2 text-ink-700 font-semibold hover:text-primary-600 transition-colors">
+                        <i class="ti ti-armchair text-primary-600"></i> Vacantes
+                    </a>
+                </div>
+            </div>
+        </aside>
+    </div>
+</section>
+
+@{
+    var galleryImages = Model.Images?.OrderBy(i => i.DisplayOrder).ToList() ?? new List<ADMISION.ENTITIES.Models.Modality.CareerImage>();
+}
+@if (galleryImages.Count > 0)
+{
+    <section class="py-12 sm:py-16 bg-ink-50 border-t border-ink-200/60">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center ring-1 ring-primary-100">
+                    <i class="ti ti-photo text-sm"></i>
+                </span>
+                <h2 class="text-lg sm:text-xl font-semibold text-ink-900 tracking-tight">Galería</h2>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 [grid-auto-flow:dense]">
+                @for (int i = 0; i < galleryImages.Count; i++)
+                {
+                    var img = galleryImages[i];
+                    var spanClass = (i % 7 == 0) ? "sm:col-span-2 sm:row-span-2" : ((i % 5 == 3) ? "sm:row-span-2" : "");
+                    <button type="button"
+                            onclick="openCareerLightbox(@i)"
+                            class="@spanClass relative group rounded-md overflow-hidden bg-ink-200 aspect-square focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <img src="/@img.ImageUrl"
+                             alt="@(string.IsNullOrWhiteSpace(img.Caption) ? Model.Name : img.Caption)"
+                             loading="lazy"
+                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <div class="absolute inset-0 bg-ink-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-end p-3">
+                            <span class="w-10 h-10 rounded-full bg-white text-ink-900 flex items-center justify-center shadow-card">
+                                <i class="ti ti-zoom-in"></i>
+                            </span>
+                        </div>
+                    </button>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Lightbox -->
+    <div id="careerLightbox"
+         class="fixed inset-0 z-[100] bg-ink-950/90 hidden items-center justify-center"
+         role="dialog" aria-modal="true" aria-label="Galería">
+
+        <button type="button"
+                onclick="closeCareerLightbox()"
+                class="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition-colors"
+                aria-label="Cerrar">
+            <i class="ti ti-x"></i>
+        </button>
+
+        <button type="button"
+                onclick="prevCareerImage()"
+                class="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition-colors"
+                aria-label="Anterior">
+            <i class="ti ti-chevron-left"></i>
+        </button>
+
+        <button type="button"
+                onclick="nextCareerImage()"
+                class="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition-colors"
+                aria-label="Siguiente">
+            <i class="ti ti-chevron-right"></i>
+        </button>
+
+        <div class="w-full max-w-6xl px-4 md:px-16 flex flex-col items-center">
+            <div class="w-full flex items-center justify-center max-h-[80vh]">
+                <img id="careerLightboxImg" src="" alt="" class="max-w-full max-h-[80vh] object-contain rounded-md" />
+            </div>
+            <div class="mt-4 flex items-center justify-between w-full text-white/80 text-xs">
+                <span id="careerLightboxCaption" class="truncate"></span>
+                <span><span id="careerLightboxIndex">1</span> / @galleryImages.Count</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const careerGallery = [
+            @for (int i = 0; i < galleryImages.Count; i++)
+            {
+                var img = galleryImages[i];
+                var caption = string.IsNullOrWhiteSpace(img.Caption) ? Model.Name : img.Caption;
+                @:{ url: "/@img.ImageUrl", caption: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(caption)) }@(i < galleryImages.Count - 1 ? "," : "")
+            }
+        ];
+        let careerLightboxIndex = 0;
+
+        function openCareerLightbox(index) {
+            careerLightboxIndex = index;
+            document.getElementById('careerLightbox').classList.remove('hidden');
+            document.getElementById('careerLightbox').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            renderCareerLightbox();
+        }
+        function closeCareerLightbox() {
+            document.getElementById('careerLightbox').classList.add('hidden');
+            document.getElementById('careerLightbox').classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+        function renderCareerLightbox() {
+            const item = careerGallery[careerLightboxIndex];
+            if (!item) return;
+            document.getElementById('careerLightboxImg').src = item.url;
+            document.getElementById('careerLightboxImg').alt = item.caption || '';
+            document.getElementById('careerLightboxCaption').textContent = item.caption || '';
+            document.getElementById('careerLightboxIndex').textContent = (careerLightboxIndex + 1).toString();
+        }
+        function nextCareerImage() {
+            careerLightboxIndex = (careerLightboxIndex + 1) % careerGallery.length;
+            renderCareerLightbox();
+        }
+        function prevCareerImage() {
+            careerLightboxIndex = (careerLightboxIndex - 1 + careerGallery.length) % careerGallery.length;
+            renderCareerLightbox();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const lb = document.getElementById('careerLightbox');
+            if (!lb || lb.classList.contains('hidden')) return;
+            if (e.key === 'Escape') closeCareerLightbox();
+            else if (e.key === 'ArrowRight') nextCareerImage();
+            else if (e.key === 'ArrowLeft') prevCareerImage();
+        });
+
+        document.getElementById('careerLightbox').addEventListener('click', (e) => {
+            if (e.target.id === 'careerLightbox') closeCareerLightbox();
+        });
+    </script>
+}

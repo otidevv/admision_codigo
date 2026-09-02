@@ -1,0 +1,84 @@
+@using ADMISION.Models.Shared
+@model IEnumerable<ADMISION.ENTITIES.Models.Info.OtherFiles>
+
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Temarios";
+
+    var columns = new List<DataTableColumn>
+    {
+        new() { Label = "Temario",         Field = "name",       Type = "combined", SubField = "description", Sortable = true },
+        new() { Label = "Nombre Original", Field = "fileName",   Type = "text",     Sortable = true },
+        new() { Label = "Detalles",        Field = "fileDetails", Type = "text" },
+        new() { Label = "Estado",          Field = "statusText", Type = "badge",
+                BadgeMap = new Dictionary<string, string> { { "Activo", "green" }, { "Inactivo", "gray" } } },
+    };
+
+    ViewData["Columns"] = columns;
+    ViewData["TableId"] = "syllabiTable";
+    ViewData["ClientSide"] = true;
+    ViewData["Actions"] = new List<DataTableAction>
+    {
+        new() { Key="download", Label="Descargar", Icon="ti-download",  Href="/{fileUrl}", Target="_blank" },
+        new() { Key="edit",     Label="Editar",    Icon="ti-edit",      Href="/admin/info-management/syllabi/editar/{id}" },
+        new() { Key="delete",   Label="Eliminar",  Icon="ti-trash", Danger=true }
+    };
+}
+
+<!-- Page hero -->
+<section class="fade-up flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+        <div class="flex items-center gap-2 text-xs text-ink-400 mb-2">
+            <a href="/admin/info-management" class="hover:text-primary-600 transition-colors">Información</a>
+            <i class="ti ti-chevron-right text-[9px]"></i>
+            <span class="text-ink-700 dark:text-ink-200 font-medium">Temarios</span>
+        </div>
+        <div class="eyebrow">Material académico</div>
+        <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+            Gestión de <span class="font-serif font-normal text-primary-600">temarios</span>
+        </h1>
+        <p class="text-ink-500 text-sm mt-1">Temarios del examen de admisión por área o asignatura.</p>
+    </div>
+    <a href="/admin/info-management/syllabi/crear"
+       class="btn-grad inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-md hover:-translate-y-0.5 transition-all">
+        <i class="ti ti-plus text-xs"></i>
+        Nuevo temario
+    </a>
+</section>
+
+<!-- Search -->
+<section class="fade-up bg-white dark:bg-ink-900 ring-soft rounded-md p-4 sm:p-5 mb-5">
+    <div class="max-w-md">
+        <label for="filterName" class="block text-[11px] font-bold uppercase tracking-[0.16em] text-ink-500 mb-1.5">Buscar temario</label>
+        <div class="form-input-wrapper">
+            <i class="ti ti-search form-input-icon"></i>
+            <input type="text" id="filterName"
+                   class="form-input form-input--suffix"
+                   placeholder="Escribe el nombre del temario, descripción o archivo..." autocomplete="off">
+        </div>
+    </div>
+</section>
+
+<!-- Tabla -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+    <div id="tableContainer">
+        @await Html.PartialAsync("_DataTable", new ViewDataDictionary(ViewData))
+    </div>
+</section>
+
+<form id="antiForgeryForm">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script>
+        window.SyllabiData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(o => new {
+            o.Id,
+            o.Name,
+            o.Description,
+            o.FileName,
+            o.FileUrl,
+            FileDetails = $"{o.FileType} ({o.FileSize})",
+            StatusText = o.IsActive ? "Activo" : "Inactivo"
+        }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    </script>
+    <script src="~/js/admin/info-management/syllabi/index.js" asp-append-version="true"></script>
+}

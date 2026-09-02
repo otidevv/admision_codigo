@@ -1,0 +1,88 @@
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Vista no disponible";
+    var from = ViewBag.From as string;
+}
+
+<div class="max-w-2xl mx-auto py-10 sm:py-16">
+
+    <div class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden">
+
+        <!-- Header: fondo sólido rosa con blobs decorativos -->
+        <div class="relative bg-primary-500 text-white px-6 py-10 sm:py-12 text-center overflow-hidden">
+
+            <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-md bg-white/15 backdrop-blur ring-1 ring-white/25 flex items-center justify-center mx-auto mb-4">
+                <i class="ti ti-lock text-white text-3xl sm:text-4xl"></i>
+            </div>
+
+            <span class="relative inline-flex items-center gap-2 bg-white/15 backdrop-blur ring-1 ring-white/25 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-[0.18em] mb-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-white inline-block"></span>
+                Acceso restringido
+            </span>
+            <h1 class="relative text-2xl sm:text-3xl font-semibold tracking-[-0.02em] leading-tight mb-2">
+                Esta <span class="font-serif font-normal">vista</span> no está disponible
+            </h1>
+            <p class="relative text-sm sm:text-[15px] text-white/85 leading-relaxed max-w-md mx-auto">
+                Como usuario autenticado en el panel administrativo, no puedes navegar por las vistas públicas del portal.
+            </p>
+        </div>
+
+        <!-- Body -->
+        <div class="px-6 py-6 sm:py-8 space-y-5">
+
+            @if (!string.IsNullOrWhiteSpace(from))
+            {
+                <div class="flex items-start gap-3 bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-200/60 dark:ring-amber-500/20 rounded-md p-4">
+                    <span class="w-8 h-8 rounded-md bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+                        <i class="ti ti-alert-triangle text-amber-600 text-xs"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-[0.14em] mb-1">Ruta solicitada</p>
+                        <code class="text-xs text-amber-900 dark:text-amber-200 break-all block bg-white/60 dark:bg-ink-900/60 px-2 py-1 rounded-md font-mono">@from</code>
+                    </div>
+                </div>
+            }
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="flex items-start gap-3 bg-ink-50 dark:bg-ink-900/40 ring-1 ring-ink-200/60 dark:ring-ink-800 rounded-md p-4">
+                    <span class="w-8 h-8 rounded-md bg-white dark:bg-ink-800 ring-1 ring-ink-200/60 dark:ring-ink-700 flex items-center justify-center shrink-0">
+                        <i class="ti ti-user-shield text-ink-500 text-xs"></i>
+                    </span>
+                    <div>
+                        <p class="text-[11px] font-bold text-ink-700 dark:text-ink-200 uppercase tracking-[0.14em] mb-1">¿Por qué?</p>
+                        <p class="text-xs text-ink-600 dark:text-ink-400 leading-relaxed">Mantenemos separadas las vistas públicas y administrativas para evitar confusiones durante tu sesión.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 bg-ink-50 dark:bg-ink-900/40 ring-1 ring-ink-200/60 dark:ring-ink-800 rounded-md p-4">
+                    <span class="w-8 h-8 rounded-md bg-white dark:bg-ink-800 ring-1 ring-ink-200/60 dark:ring-ink-700 flex items-center justify-center shrink-0">
+                        <i class="ti ti-bulb text-ink-500 text-xs"></i>
+                    </span>
+                    <div>
+                        <p class="text-[11px] font-bold text-ink-700 dark:text-ink-200 uppercase tracking-[0.14em] mb-1">Sugerencia</p>
+                        <p class="text-xs text-ink-600 dark:text-ink-400 leading-relaxed">Si necesitas revisar el portal público, cierra tu sesión primero y vuelve a abrirlo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2">
+                <a href="/admin"
+                   class="btn-grad inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-gauge"></i>
+                    Volver al panel
+                </a>
+                <a href="/admin/profile"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-700 dark:text-ink-200 text-sm font-semibold hover:bg-primary-50 dark:hover:bg-ink-700 hover:text-primary-700 transition-all">
+                    <i class="ti ti-user-cog"></i>
+                    Ir a mi perfil
+                </a>
+                <a href="/login/logout"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-white dark:bg-ink-800 ring-soft text-ink-600 dark:text-ink-300 text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 transition-all">
+                    <i class="ti ti-logout"></i>
+                    Cerrar sesión
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

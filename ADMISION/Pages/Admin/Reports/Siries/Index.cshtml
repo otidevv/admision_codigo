@@ -1,0 +1,210 @@
+@model ADMISION.Models.ViewModels.Reports.SiriesReportViewModel
+@{
+    Layout = "~/Pages/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Reporte SIRIES";
+    var terms = (IEnumerable<ADMISION.ENTITIES.Models.Modality.Term>)(ViewBag.Terms ?? Enumerable.Empty<ADMISION.ENTITIES.Models.Modality.Term>());
+}
+
+<!-- Page hero -->
+<section class="fade-up mb-5">
+    <div class="flex items-center gap-2 text-xs text-ink-400 mb-3">
+        <a href="/admin/reportes" class="hover:text-primary-600 transition-colors">Reportes</a>
+        <i class="ti ti-chevron-right text-[9px]"></i>
+        <span class="text-ink-700 dark:text-ink-200 font-medium">MINEDU</span>
+    </div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="eyebrow">Reporte institucional</div>
+            <h1 class="mt-1 text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-ink-900 dark:text-ink-100">
+                Reporte <span class="font-serif font-normal text-primary-600">SIRIES</span>
+            </h1>
+            <p class="text-ink-500 text-sm mt-1">Postulantes e ingresantes para el Sistema de Recolección de Información para Educación superior (SIRIES).</p>
+        </div>
+    </div>
+</section>
+
+<!-- Filtros -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-filter text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Filtros del reporte</h2>
+                <p class="text-[11.5px] text-ink-500">Selecciona el período académico a reportar</p>
+            </div>
+        </div>
+        <span class="badge b-primary">MINEDU</span>
+    </div>
+
+    <div class="p-4 sm:p-5">
+        <form method="get" id="filterForm" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-ink-700 dark:text-ink-200 mb-2">Periodo Académico</label>
+                <select name="termId" class="filter-select w-full h-11 bg-white dark:bg-ink-900 border border-ink-200 dark:border-ink-700 rounded-md px-3 text-sm text-ink-800 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                    <option value="">-- Todos --</option>
+                    @foreach (var t in terms)
+                    {
+                        <option value="@t.Id" selected="@(Model.TermId == t.Id)">@t.Name @(t.IsActive ? "· Activo" : "")</option>
+                    }
+                </select>
+            </div>
+
+            <div class="lg:col-span-2 flex flex-wrap items-end justify-end gap-2">
+                <button type="submit" class="btn-grad inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold hover:-translate-y-0.5 transition-all">
+                    <i class="ti ti-filter text-xs"></i> Aplicar filtros
+                </button>
+                <a href="/admin/reportes/siries" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-ink-700 hover:bg-ink-100 text-sm font-semibold transition-all">
+                    <i class="ti ti-rotate text-xs"></i> Limpiar
+                </a>
+                <button type="button" id="btnExportExcel" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition-all">
+                    <i class="ti ti-file-spreadsheet text-xs"></i> Exportar Excel
+                </button>
+                <button type="button" id="btnExportPdf" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white ring-soft text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-all">
+                    <i class="ti ti-file-text text-xs"></i> Exportar PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- KPIs -->
+<section class="fade-up grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 mb-6">
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalPostulantes.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total de postulantes</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-ink-900 rounded-md ring-soft p-5 lift transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <div class="font-mono text-3xl font-bold leading-tight text-ink-900 dark:text-ink-100 tabular-nums">@Model.TotalIngresantes.ToString("N0")</div>
+                <div class="text-[10px] font-bold tracking-[0.14em] uppercase text-ink-400 mt-1.5">Total de ingresantes</div>
+            </div>
+            <div class="w-11 h-11 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 inline-flex items-center justify-center text-lg">
+                <i class="ti ti-user-plus"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tabla de resultados -->
+<section class="fade-up bg-white dark:bg-ink-900 rounded-md ring-soft overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-4 border-b border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between rounded-t-md">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-md bg-primary-50 text-primary-600 inline-flex items-center justify-center">
+                <i class="ti ti-table text-sm"></i>
+            </span>
+            <div>
+                <h2 class="font-semibold text-ink-900 dark:text-ink-100 tracking-tight text-[15px]">Resultados</h2>
+                <p class="text-[11.5px] text-ink-500">Mostrando @Model.Items.Count de @Model.TotalPostulantes registro(s)</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.TermId.HasValue)
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-filter text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">Seleccione un periodo para generar el reporte.</p>
+        </div>
+    }
+    else if (!Model.Items.Any())
+    {
+        <div class="py-16 text-center">
+            <i class="ti ti-chart-bar text-4xl text-ink-300 mb-3 block"></i>
+            <p class="text-ink-400 font-medium text-sm">No hay postulantes que coincidan con el período seleccionado.</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="atlas w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="whitespace-nowrap">TIPO DOC.</th>
+                        <th class="whitespace-nowrap">N° DOCUMENTO</th>
+                        <th class="whitespace-nowrap">APELLIDO PATERNO</th>
+                        <th class="whitespace-nowrap">APELLIDO MATERNO</th>
+                        <th class="whitespace-nowrap">NOMBRES</th>
+                        <th class="whitespace-nowrap text-center">GÉNERO</th>
+                        <th class="whitespace-nowrap">FECHA NACIMIENTO</th>
+                        <th class="whitespace-nowrap">DISCAPACIDAD</th>
+                        <th class="whitespace-nowrap">PERIODO</th>
+                        <th class="whitespace-nowrap">LOCAL</th>
+                        <th class="whitespace-nowrap">CARRERA 1ª OPCIÓN</th>
+                        <th class="whitespace-nowrap">CARRERA 2ª OPCIÓN</th>
+                        <th class="whitespace-nowrap">MODALIDAD DE ADMISIÓN</th>
+                        <th class="whitespace-nowrap">MODALIDAD DE ESTUDIOS</th>
+                        <th class="whitespace-nowrap text-center">PUNTAJE</th>
+                        <th class="whitespace-nowrap text-center">INGRESANTE</th>
+                        <th class="whitespace-nowrap">CARRERA DE INGRESO</th>
+                        <th class="whitespace-nowrap">IDENTIDAD ÉTNICA</th>
+                        <th class="whitespace-nowrap">CORREO INSTITUCIONAL</th>
+                        <th class="whitespace-nowrap">CORREO PERSONAL</th>
+                        <th class="whitespace-nowrap">TELÉFONO</th>
+                        <th class="whitespace-nowrap">CELULAR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="whitespace-nowrap">@item.TipoDocumento</td>
+                            <td class="whitespace-nowrap font-mono">@item.NumeroDocumento</td>
+                            <td class="whitespace-nowrap">@item.ApellidoPaterno</td>
+                            <td class="whitespace-nowrap">@item.ApellidoMaterno</td>
+                            <td class="whitespace-nowrap font-semibold text-ink-900 dark:text-ink-100">@item.Nombres</td>
+                            <td class="whitespace-nowrap text-center">@item.Genero</td>
+                            <td class="whitespace-nowrap">@item.FechaNacimiento</td>
+                            <td class="max-w-[160px] truncate" title="@item.Discapacidad">@item.Discapacidad</td>
+                            <td class="whitespace-nowrap"><span class="badge b-secondary font-mono">@item.Periodo</span></td>
+                            <td class="whitespace-nowrap">@item.Local</td>
+                            <td class="max-w-[160px] truncate" title="@item.CarreraPrimeraOpcion">@item.CarreraPrimeraOpcion</td>
+                            <td class="whitespace-nowrap">@item.CarreraSegundaOpcion</td>
+                            <td class="max-w-[160px] truncate" title="@item.ModalidadAdmision">@item.ModalidadAdmision</td>
+                            <td class="whitespace-nowrap">@item.ModalidadEstudios</td>
+                            <td class="whitespace-nowrap text-center font-mono font-bold tabular-nums">@item.Puntaje</td>
+                            <td class="whitespace-nowrap text-center">
+                                @if (item.EsIngresante == "SI")
+                                {
+                                    <span class="badge b-green">SI</span>
+                                }
+                                else
+                                {
+                                    <span class="badge b-gray">NO</span>
+                                }
+                            </td>
+                            <td class="max-w-[160px] truncate" title="@item.CarreraIngreso">@item.CarreraIngreso</td>
+                            <td class="whitespace-nowrap">@item.IdentidadEtnica</td>
+                            <td class="max-w-[180px] truncate" title="@item.CorreoInstitucional">@item.CorreoInstitucional</td>
+                            <td class="max-w-[180px] truncate" title="@item.CorreoPersonal">@item.CorreoPersonal</td>
+                            <td class="whitespace-nowrap">@item.Telefono</td>
+                            <td class="whitespace-nowrap">@item.Celular</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total general -->
+        <div class="px-4 sm:px-5 py-3 border-t border-ink-200/60 dark:border-ink-800/60 flex items-center justify-between text-xs text-ink-500">
+            <span>
+                Total de postulantes: <strong class="text-ink-900">@Model.TotalPostulantes.ToString("N0")</strong>
+                <span class="mx-2">·</span>
+                Total de ingresantes: <strong class="text-emerald-600">@Model.TotalIngresantes.ToString("N0")</strong>
+            </span>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <script src="~/js/admin/reports/siries/index.js" asp-append-version="true"></script>
+}
