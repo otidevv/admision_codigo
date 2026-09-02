@@ -582,39 +582,6 @@ public async Task<IActionResult> Index(CancellationToken ct)
 }
 ```
 
-### Estado de migración a servicios
-
-La mayoría de controladores han sido migrados a servicios. Estado actual:
-
-| Controlador | Servicio | Estado | Reducción |
-|---|---|---|---|
-| `Public/HomeController` | `IPublicPortalService` + `IInscriptionLookupService` + `IInscriptionService` | ✅ Completo | 1.300 → 353 (−73%) |
-| `SchoolManagementController` | `ISchoolService` + `IUbigeoService` | ✅ Completo | 290 → 225 (−22%) |
-| `ModalitiesController` | `IModalityService` + `ICatalogService` | ✅ Completo | 257 → 174 (−32%) |
-| `CareersController` | `ICareerService` | ✅ Completo | |
-| `FacultiesController` | `IFacultyService` | ✅ Completo | |
-| `VacanciesController` | `IVacancyService` | ✅ Completo | 156 → 79 (−49%) |
-| `TypeModalitiesController` | `ITypeModalityService` + `ICatalogService` | ✅ Completo | 239 → 164 (−31%) |
-| `PaymentCodesController` | `IPaymentCodeService` + `ICatalogService` | ✅ Completo | 155 → 94 (−39%) |
-| `PostulantsController` | `IPostulantQueryService` + `ICatalogService` + `IUbigeoService` | ✅ Completo | 331 → 207 (−37%) |
-| `AttendanceController` | `IAttendanceService` | ✅ Completo | 200 → 97 (−52%) |
-| `TematicAreasController` | `ITematicAreaService` + `ICatalogService` | ✅ Completo | 314 → 179 (−43%) |
-| `UsersController` | `IUserManagementService` | ✅ Completo | 374 → 106 (−72%) |
-| `BannersController` | `IBannerService` | ✅ Completo | 183 → 104 (−43%) |
-| `ProspectsController` | `IProspectService` + `ICatalogService` | ✅ Completo | 183 → 127 (−31%) |
-| `{Syllabi,Regulations,OtherFiles}` | `IOtherFilesService` | ✅ Completo | 513 → 327 (−36%) |
-| `PublicInfosController` | `IPublicInfoService` + `ICatalogService` | ✅ Completo | 170 → 120 (−29%) |
-| `ScheduleController` | `IScheduleEventService` + `ITermService` | ✅ Completo | 137 → 120 (−12%) |
-| `TermsController` | `ITermService` | ✅ Completo | 264 → 87 (−67%) |
-| `ExamProcessingController` | `IExamProcessingService` | ✅ Completo | 541 → |
-| `AdminController` (dashboard) | `IDashboardService` | ✅ Completo | |
-| `ReportController` (postulant resume) | `IPostulantResumeService` | ✅ Completo | |
-| `TematicAreaReportController` | `ITematicAreaReportService` | ✅ Completo | |
-| `ConfigController` | inyecta servicios | ✅ Completo | |
-| `ProfileController` | `IProfileService` | ✅ Completo | |
-
-**Cómo continuar:** copiar la plantilla de `IFacultyService`/`FacultyService`, ajustar el dominio, registrar en `Program.cs`, refactorizar el controlador. Para listados con filtros, heredar `ListQuery` y devolver `PagedResult<TItem>`.
-
 ---
 
 ## 8. Design System
